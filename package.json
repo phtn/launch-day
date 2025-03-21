@@ -10,7 +10,11 @@
     "lint:fix": "next lint --fix"
   },
   "dependencies": {
+    "@reown/appkit": "^1.7.0",
+    "@reown/appkit-adapter-wagmi": "^1.7.0",
+    "@t3-oss/env-nextjs": "^0.12.0",
     "@tailwindcss/postcss": "^4.0.14",
+    "@tanstack/react-query": "^5.69.0",
     "babel-plugin-react-compiler": "^19.0.0-beta-e552027-20250112",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -22,7 +26,9 @@
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.0.14",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "viem": "^2.23.13",
+    "wagmi": "^2.14.15"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
