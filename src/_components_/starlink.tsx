@@ -9,17 +9,11 @@ import { useCallback } from "react";
 
 export const Starlink = () => {
   return (
-    <div className="col-span-5 w-full">
-      <div className="md:flex w-fit grid grid-cols-4 md:grid-cols-6 md:space-y-8 md:gap-8 h-[calc(100vh-80px)] pt-10 overflow-y-scroll md:overflow-hidden">
-        <ListColumn title="socmed" data={socmeds} />
-        <ListColumn title="frontend" delay={0.2} data={frontends} />
-        <ListColumn title="backend" delay={0.6} data={backends} />
-        {/* <div className="md:flex col-span-4 grid grid-cols-3 items-center w-full flex-wrap h-fit">
-          {frontends.map(renderItem)}
-        </div>
-        <div className="md:flex col-span-4 grid grid-cols-3 items-center w-full flex-wrap h-fit">
-          {backends.map(renderItem)}
-        </div> */}
+    <div className="col-span-5 w-full px-4 md:px-8">
+      <div className="md:flex w-fit grid grid-cols-4 md:grid-cols-6 gap-4 h-[calc(100vh-80px)] pt-10 overflow-y-scroll md:overflow-hidden">
+        <ListColumn title="socmed" delay={8} data={socmeds} />
+        <ListColumn title="frontend" delay={8.2} data={frontends} />
+        <ListColumn title="backend" delay={8.6} data={backends} />
       </div>
     </div>
   );
@@ -42,20 +36,21 @@ const ListColumn = ({ data, title = "", delay = 0 }: ListColumnProps) => {
     [],
   );
   return (
-    <div className="relative group/column col-span-5 pb-28 md:pb-40 pt-4">
+    <div className="relative group/column w-fit col-span-5 pb-28 md:pb-40 pt-4">
       <HyperList
         direction="left"
         data={titleList}
         component={Component}
         delay={delay}
-        container="text-[10px] flex items-center shadow-md px-1 py-0.5 group-hover/column:border-[0.33px] group-hover/column:text-orange-100 group-hover/column:bg-zinc-600 border-zinc-400 uppercase tracking-widest opacity-30 absolute rounded-sm top-1 left-3 group-hover/column:opacity-100"
+        container="text-[10px] flex items-center shadow-md px-1 py-0.5 group-hover/column:border-[0.33px] group-hover/column:text-orange-100 group-hover/column:bg-zinc-600 border-zinc-400 uppercase tracking-widest opacity-30 absolute rounded-sm top-1.5 left-2 md:left-6 group-hover/column:opacity-100"
       />
       <HyperList
         data={data}
         component={ListItem}
         delay={delay}
         keyId="id"
-        container="md:flex w-fit overflow-y-scroll pb-28 h-[calc(100vh-80px)] hover:bg-gradient-to-b from-zinc-400/10 via-zinc-400/5 group-hover/column:border-t-[0.33px] border-zinc-500 to-transparent rounded-t-xl h-[calc(100vh-80px)] overflow-y-scroll col-span-4 grid grid-cols-3 items-center flex-wrap"
+        itemStyle="last:odd:w-full last:odd:ps-0 md:last:odd:ps-8"
+        container="md:flex w-fit justify-center overflow-y-scroll pb-28 hover:bg-gradient-to-b from-zinc-400/10 via-zinc-400/5 group-hover/column:border-t-[0.33px] border-zinc-400 to-transparent rounded-t-xl md:h-[calc(100vh-80px)] h-fit overflow-y-scroll col-span-4 grid grid-cols-3 items-center flex-wrap"
       />
     </div>
   );

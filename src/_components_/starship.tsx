@@ -9,9 +9,8 @@ export const StarshipSuperHeavy = () => {
   const [launch, setLaunch] = useState(false);
   useEffect(() => {
     const timeout = setTimeout(() => {
-      console.log("Timeout triggered");
       setLaunch(true);
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timeout);
   }, []);
@@ -24,15 +23,15 @@ export const StarshipSuperHeavy = () => {
         width={0}
         height={0}
         className={cn(
-          "aspect-auto translate-y-40 w-12 bg-background transition-all duration-[10s] ease-in-out",
+          "aspect-auto translate-y-[24rem] w-12 bg-background transition-all duration-[10s] ease-in-out",
           { "translate-y-0": launch },
         )}
       />
       <div
         className={cn(
           cn(
-            "h-[50vh] translate-y-40 w-full border-gray-500 transition-all duration-[10s] ease-in-out",
-            { "translate-y-0": launch },
+            "h-[50vh] translate-y-[24rem] opacity-0 w-full border-gray-500 transition-all duration-[10s] ease-in-out",
+            { "translate-y-0": launch, "opacity-100": launch },
           ),
         )}
       >
