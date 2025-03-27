@@ -1,45 +1,81 @@
+"use client";
+
 import { StarlinkData } from "@/app/types";
 import { Icon } from "@/lib/icons";
 import Link from "next/link";
 import { Pentagram } from "./pentagon";
+import { HyperList } from "@/lib/ui/hyperlist";
+import { useCallback } from "react";
 
 export const Starlink = () => {
   return (
-    <div className="col-span-4">
-      <div className="space-y-8">
-        <div className="flex items-center flex-wrap h-fit">
-          {socmeds.map(renderItem)}
-        </div>
-        <div className="h-px border-b-[0.33px] border-zinc-800/60" />
-        <div className="flex items-center flex-wrap h-fit">
+    <div className="col-span-5 w-full">
+      <div className="md:flex w-fit grid grid-cols-4 md:grid-cols-6 md:space-y-8 md:gap-8 h-[calc(100vh-80px)] pt-10 overflow-y-scroll md:overflow-hidden">
+        <ListColumn title="socmed" data={socmeds} />
+        <ListColumn title="frontend" delay={0.2} data={frontends} />
+        <ListColumn title="backend" delay={0.6} data={backends} />
+        {/* <div className="md:flex col-span-4 grid grid-cols-3 items-center w-full flex-wrap h-fit">
           {frontends.map(renderItem)}
         </div>
-        <div className="h-px border-b-[0.33px] border-zinc-800/60" />
-        <div className="flex items-center flex-wrap h-fit">
+        <div className="md:flex col-span-4 grid grid-cols-3 items-center w-full flex-wrap h-fit">
           {backends.map(renderItem)}
-        </div>
+        </div> */}
       </div>
     </div>
   );
 };
 
-const renderItem = ({ label, icon, href, id }: StarlinkData) => {
+interface ListColumnProps {
+  data: StarlinkData[];
+  title?: string;
+  delay?: number;
+}
+
+const ListColumn = ({ data, title = "", delay = 0 }: ListColumnProps) => {
+  const titleList = title.split("").map((t, index) => ({ t, id: index }));
+  const Component = useCallback(
+    (el: { t: string; id: number }) => (
+      <span className="tracking-widest" key={el.id}>
+        {el.t}
+      </span>
+    ),
+    [],
+  );
   return (
-    <Link className="" href={href} target="_blank" key={id}>
-      <div className="h-24 group/link w-32 flex items-center justify-center relative">
-        <Pentagram>
-          <p className="absolute tracking-wide text-xs uppercase group-hover/link:-translate-y-5 translate-y-0 transition-all duration-300 ease-out delay-75 opacity-0 group-hover/link:opacity-100">
-            {label}
-          </p>
-          <Icon
-            name={icon}
-            className="stroke-0 text-zinc-400 group-hover/link:translate-y-0.5 translate-y-0 group-hover/link:text-orange-200 transition-all duration-300 group-hover/link:scale-80 ease-out"
-          />
-        </Pentagram>
-      </div>
-    </Link>
+    <div className="relative group/column col-span-5 pb-28 md:pb-40 pt-4">
+      <HyperList
+        direction="left"
+        data={titleList}
+        component={Component}
+        delay={delay}
+        container="text-[10px] flex items-center shadow-md px-1 py-0.5 group-hover/column:border-[0.33px] group-hover/column:text-orange-100 group-hover/column:bg-zinc-600 border-zinc-400 uppercase tracking-widest opacity-30 absolute rounded-sm top-1 left-3 group-hover/column:opacity-100"
+      />
+      <HyperList
+        data={data}
+        component={ListItem}
+        delay={delay}
+        keyId="id"
+        container="md:flex w-fit overflow-y-scroll pb-28 h-[calc(100vh-80px)] hover:bg-gradient-to-b from-zinc-400/10 via-zinc-400/5 group-hover/column:border-t-[0.33px] border-zinc-500 to-transparent rounded-t-xl h-[calc(100vh-80px)] overflow-y-scroll col-span-4 grid grid-cols-3 items-center flex-wrap"
+      />
+    </div>
   );
 };
+
+const ListItem = (item: StarlinkData) => (
+  <Link className="" href={item.href} target="_blank">
+    <div className="h-24 group/link w-28 flex items-center justify-center relative">
+      <Pentagram>
+        <p className="absolute tracking-wide text-xs uppercase group-hover/link:-translate-y-5 translate-y-0 transition-all duration-300 ease-out delay-75 opacity-0 group-hover/link:opacity-100">
+          {item.label}
+        </p>
+        <Icon
+          name={item.icon}
+          className="stroke-0 text-zinc-400 group-hover/link:translate-y-0.5 translate-y-0 group-hover/link:text-orange-200 transition-all duration-300 group-hover/link:scale-80 ease-out"
+        />
+      </Pentagram>
+    </div>
+  </Link>
+);
 const socmeds: StarlinkData[] = [
   {
     id: 0,
