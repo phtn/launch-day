@@ -3,7 +3,7 @@ import { Exo_2 } from "next/font/google";
 import { Navbar } from "@/_components_/navbar";
 import { Providers } from "@/ctx/providers";
 import "./globals.css";
-import { Footer } from "@/_components_/footer";
+// import { Footer } from "@/_components_/footer";
 import WagmiContext from "@/ctx/wagmi";
 import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
@@ -56,7 +56,7 @@ export default async function RootLayout({
             <div>
               <Navbar />
               {children}
-              <Footer />
+              {/* <Footer /> */}
             </div>
           </Providers>
         </WagmiContext>

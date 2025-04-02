@@ -1,6 +1,7 @@
 import { ClassName } from "@/app/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 
 interface BrandProps {
   className?: ClassName;
@@ -10,7 +11,10 @@ interface BrandProps {
 export const Brand = ({ className, title }: BrandProps) => {
   const [a, b] = title?.split(" ") || ["", ""];
   return (
-    <div className={cn("flex items-center gap-2 md:gap-6", className)}>
+    <Link
+      href={"/"}
+      className={cn("flex items-center gap-2 md:gap-6", className)}
+    >
       <Image
         alt="launch-day"
         src={"/svg/logomark.svg"}
@@ -26,6 +30,6 @@ export const Brand = ({ className, title }: BrandProps) => {
           {b}
         </span>
       </h1>
-    </div>
+    </Link>
   );
 };

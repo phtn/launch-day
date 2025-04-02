@@ -7,7 +7,7 @@ import { useCallback } from "react";
 
 export const Navbar = () => {
   return (
-    <nav className="md:h-20 h-12 w-full justify-between dark:bg-background bg-black fixed top-0 flex items-center gap-8 ps-2 md:px-8">
+    <nav className="md:h-20 h-12 w-full justify-between bg-gray-950 dark:bg-background fixed top-0 flex items-center gap-8 ps-2 md:px-8">
       <Brand title="Launch Day" />
       <WalletConnector />
     </nav>

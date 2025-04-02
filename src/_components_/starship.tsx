@@ -23,14 +23,14 @@ export const StarshipSuperHeavy = () => {
         width={0}
         height={0}
         className={cn(
-          "aspect-auto translate-y-[24rem] w-12 bg-background transition-all duration-[10s] ease-in-out",
+          "aspect-auto translate-y-[48rem] w-12 bg-background transition-all duration-[10s] ease-in-out",
           { "translate-y-0": launch },
         )}
       />
       <div
         className={cn(
           cn(
-            "h-[50vh] translate-y-[24rem] opacity-0 w-full border-gray-500 transition-all duration-[10s] ease-in-out",
+            "h-[50vh] translate-y-[48rem] opacity-0 w-full border-gray-500 transition-all duration-[10s] ease-in-out",
             { "translate-y-0": launch, "opacity-100": launch },
           ),
         )}
