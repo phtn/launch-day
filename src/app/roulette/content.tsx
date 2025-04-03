@@ -9,7 +9,6 @@ import {
   type MouseEvent,
   ChangeEvent,
 } from "react";
-import { Button } from "@/components/ui/button";
 import { useMobile } from "@/lib/hooks/use-mobile";
 import { Icon } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -20,7 +19,6 @@ import {
   CreditBalance,
   Header,
   HistoryList,
-  OptionsDrawer,
   ResultsSection,
   ZeroNumberCell,
 } from "./components";
@@ -48,7 +46,7 @@ export default function RouletteGame() {
   const [autoBetPlayRemaining, setAutoBetPlayRemaining] = useState(0);
   const [autoPlayTimeRemaining, setAutoPlayTimeRemaining] = useState(0);
   const [isAutoBetPlaying, setIsAutoBetPlaying] = useState(false);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
   // Refs for intervals and timeouts
   const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -481,24 +479,31 @@ export default function RouletteGame() {
     [showHistory],
   );
 
+  const handleReplenish = useCallback(() => {
+    setCredits((prev) => prev + 420);
+  }, []);
+
   const controls = useMemo(
     () => ({
       repeatBet,
       doubleBet,
       clearBets,
       spin: spinRoulette,
+      replenishFn: handleReplenish,
     }),
-    [repeatBet, doubleBet, clearBets, spinRoulette],
+    [repeatBet, doubleBet, clearBets, spinRoulette, handleReplenish],
   );
 
   const gameState = useMemo(
     () => ({
       spinning,
-      isAutoPlaying,
       lastBets,
+      isAutoBetPlaying,
       selectedBets,
+      hasPlacedBet,
+      credits,
     }),
-    [spinning, isAutoPlaying, lastBets, selectedBets],
+    [credits, hasPlacedBet, spinning, isAutoBetPlaying, lastBets, selectedBets],
   );
 
   const controlProps = useMemo(
@@ -508,11 +513,13 @@ export default function RouletteGame() {
       onChangeHistory: handleChangeHistory,
       controls,
       state: gameState,
+      replenishFn: handleReplenish,
     }),
     [
       chipValue,
       handleChipValueChange,
       handleChangeHistory,
+      handleReplenish,
       controls,
       gameState,
     ],
@@ -619,7 +626,7 @@ export default function RouletteGame() {
             <span className="text-xl md:text-3xl">{v}</span>
           </div>
           {selectedBets[v] && (
-            <div className="absolute pointer-events-none top-1 left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
+            <div className="absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
               <ChipBet value={selectedBets[v]} />
             </div>
           )}
@@ -636,14 +643,10 @@ export default function RouletteGame() {
     ],
   );
 
-  const handleReplenish = useCallback(() => {
-    setCredits((prev) => prev + 420);
-  }, []);
-
   return (
     <div
       ref={gameContainerRef}
-      className="h-screen overflow-hidden text-white bg-black flex flex-col"
+      className="h-screen px-4 md:px-0 overflow-hidden text-white bg-black flex flex-col"
     >
       {/* Header */}
       <Header
@@ -691,7 +694,7 @@ export default function RouletteGame() {
                           <HyperList
                             key={`row-${rowIndex}`}
                             container={cn(
-                              "grid grid-cols-12 w-full size-full gap-1 md:overflow-hidden",
+                              "grid grid-cols-6 md:grid-cols-12 w-full size-full gap-1 md:overflow-hidden",
                             )}
                             data={data}
                             itemStyle={cn("md:even:mr-1 overflow-hidden")}
@@ -704,7 +707,7 @@ export default function RouletteGame() {
 
                   {/* Bottom betting options - styled for cyberpunk */}
                   {/* <StreetBetOptions /> */}
-                  <div className="font-bold text-warning">
+                  <div className={cn("font-bold text-warning hidden md:flex")}>
                     Playing in {autoPlayTimeRemaining} secs
                   </div>
                 </div>
@@ -815,7 +818,7 @@ export default function RouletteGame() {
       {/* Fixed bottom bar for mobile */}
       {isMobile && <MobileControls {...controlProps} />}
 
-      <div className="flex px-4 space-x-2 items-center">
+      <div className="md:flex md:p-4 py-4 hidden space-x-2 items-center">
         <input
           type="checkbox"
           className="toggle toggle-sm toggle-accent"
@@ -824,7 +827,7 @@ export default function RouletteGame() {
         />
         <span className="text-sm font-bold text-accent">Auto Play</span>
       </div>
-      <div className="text-center text-xs text-cyan-400/70 py-1 px-4">
+      <div className="text-center hidden md:flex text-xs text-cyan-400/70 py-1 px-4">
         Left-click to add chips ({chipValue} credits). Right-click to remove
         chips.
       </div>
@@ -833,86 +836,85 @@ export default function RouletteGame() {
 }
 
 const MobileControls = (props: DeviceControlProps) => {
-  const { chipValue, onChangeChipValue, onChangeHistory, controls, state } =
-    props;
-  const { spin, repeatBet, doubleBet } = controls;
-  const { spinning, lastBets, selectedBets, isAutoPlaying } = state;
+  const { chipValue, onChangeChipValue, controls, state } = props;
+  const { spin, repeatBet, doubleBet, clearBets, replenishFn } = controls;
+  const {
+    spinning,
+    lastBets,
+    selectedBets,
+    isAutoBetPlaying,
+    hasPlacedBet,
+    credits,
+  } = state;
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md border-t border-[#ff00ff]/30 p-2 z-50">
-      <div className="flex items-center justify-between">
+    <div className="fixed bottom-5 left-0 right-0 z-50">
+      <div className="flex items-center space-y-4 flex-col justify-between">
         {/* Chip selector */}
-        <div className="flex-shrink-0 flex items-center gap-1">
-          {[5, 25, 100].map((value) => (
-            <Button
-              key={`mobile-chip-${value}`}
-              variant={chipValue === value ? "default" : "outline"}
-              size="sm"
-              className={`rounded-full w-10 h-10 p-0 ${
-                chipValue === value
-                  ? "bg-[#ff00ff] hover:bg-[#ff33ff] text-white border border-lime-400 shadow-[0_0_10px_rgba(255,0,255,0.7)]"
-                  : "border-[#ff00ff] text-[#ff77ff]"
-              }`}
-              onClick={onChangeChipValue(value)}
-            >
-              {value}
-            </Button>
-          ))}
+        <div className="flex-shrink-0 flex items-center ps-4">
+          <ChipList chipValue={chipValue} onChangeFn={onChangeChipValue} />
         </div>
 
         {/* Main actions */}
-        <div className="flex items-center gap-1">
-          <Button
-            onClick={repeatBet}
-            variant="outline"
-            size="sm"
-            disabled={spinning} //
-            className={cn(
-              "h-10 w-10 p-0 rounded-full border-cyan-500 text-cyan-300",
-              { hidden: Object.keys(lastBets).length === 0 },
-            )}
-          >
-            <Icon name="arrow-turn-up" className="h-4 w-4" />
-          </Button>
+        <div className="flex w-full px-4 items-center justify-between">
+          <CreditBalance credits={credits} replenishFn={replenishFn} />
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={spin}
+              disabled={
+                spinning ||
+                (Object.keys(selectedBets).length === 0 &&
+                  Object.keys(lastBets).length === 0)
+              }
+              className="py-6 btn rounded-full bg-minty overflow-hidden text-slate-700 w-16 text-lg flex items-center gap-2"
+            >
+              {isAutoBetPlaying ? (
+                <>Stop</>
+              ) : spinning ? (
+                <Icon
+                  name="spinners-scale-rotate"
+                  className="shrink-0 size-7 text-lime-300"
+                />
+              ) : (
+                <Icon name="play" />
+              )}
+            </button>
 
-          <Button
-            onClick={doubleBet}
-            variant="outline"
-            size="sm"
-            disabled={spinning || Object.keys(selectedBets).length === 0}
-            className="h-10 w-10 p-0 rounded-full border-lime-500 text-lime-300"
-          >
-            2x
-          </Button>
+            <button
+              onClick={doubleBet}
+              disabled={spinning || !hasPlacedBet}
+              className={cn(
+                "py-6 w-16 btn btn-outline text-lg border-slate-300/50 text-slate-300 rounded-full",
+                {
+                  hidden: !hasPlacedBet,
+                },
+              )}
+            >
+              2x
+            </button>
 
-          <Button
-            onClick={spin}
-            disabled={
-              spinning ||
-              (Object.keys(selectedBets).length === 0 &&
-                Object.keys(lastBets).length === 0)
-            }
-            size="sm"
-            className="h-14 w-14 p-0 rounded-full bg-[#ff00ff] hover:bg-[#ff33ff] shadow-[0_0_15px_rgba(255,0,255,0.7)]"
-          >
-            {isAutoPlaying ? (
-              <Icon name="close" className="h-6 w-6" />
-            ) : spinning ? (
-              <Icon name="play" className="h-6 w-6 animate-spin" />
-            ) : (
-              <Icon name="energy" className="h-6 w-6" />
-            )}
-          </Button>
+            <button
+              onClick={repeatBet}
+              disabled={spinning}
+              className={cn(
+                "py-6 btn rounded-full tracking-tighter w-16 btn-outline border-stone-500/60 text-stone-300 font-medium flex items-center gap-2",
+                {
+                  hidden: Object.keys(lastBets).length === 0 || hasPlacedBet,
+                },
+              )}
+            >
+              <Icon name="repeat" />
+            </button>
 
-          <Button
-            onClick={onChangeHistory}
-            variant="outline"
-            size="sm"
-            className="h-10 w-10 p-0 rounded-full border-[#ff00ff] text-[#ff77ff]"
-          >
-            <Icon name="close" className="h-4 w-4" />
-          </Button>
-
-          <OptionsDrawer />
+            <button
+              onClick={clearBets}
+              disabled={spinning || Object.keys(selectedBets).length === 0}
+              className={cn(
+                "py-6 w-16 btn btn-outline border-stone-500/60 overflow-hidden rounded-full font-medium",
+              )}
+            >
+              <Icon name="eraser" className="size-7 shrink-0" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

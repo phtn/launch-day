@@ -274,13 +274,13 @@ export const Header = ({ isMobile, muted, toggleMute }: HeaderProps) => (
 
 interface CreditBalanceProps {
   credits: number;
-  replenishFn: VoidFunction;
+  replenishFn: (e: MouseEvent<HTMLButtonElement>) => void;
 }
 export const CreditBalance = ({ credits, replenishFn }: CreditBalanceProps) => (
   <div className="flex items-center space-x-4">
-    <div className="w-36">
+    <div className="md:w-36">
       <motion.div
-        className="bg-panel-dark/60 space-y-1 py-1 backdrop-blur-sm space-x-2 border border-minty/50 px-2 rounded-lg text-xl font-semibold shadow-minty justify-between items-center"
+        className="space-y-1 py-1 bg-panel space-x-2 border border-minty/20 px-2 rounded-lg md:text-xl font-semibold shadow-minty justify-between items-center"
         animate={{
           boxShadow:
             credits > 1000
@@ -324,7 +324,7 @@ export const ZeroNumberCell = ({
   <div className="relative md:mr-2">
     <div
       className={cn(
-        "w-full md:w-16 h-full text-dark-panel md:rounded-sm md:rounded-s-xl flex items-center justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
+        "w-full md:w-16 md:h-full h-14 text-dark-panel rounded-xl mb-1 md:mb-0 md:rounded-sm md:rounded-s-xl flex items-center justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
         getNumberColor(0),
       )}
       onClick={leftClickFn(0)}
@@ -333,7 +333,7 @@ export const ZeroNumberCell = ({
       0
     </div>
     {selectedBets[0] && (
-      <div className="absolute pointer-events-none top-1 left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
+      <div className="absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
         <ChipBet value={selectedBets[0]} />
       </div>
     )}
@@ -360,15 +360,15 @@ export const ResultsSection = ({
   totalBet,
   winAmount,
 }: ResultsProps) => (
-  <div className="flex justify-between rounded-xl bg-panel h-24 items-center mb-4">
-    <div>
+  <div className="flex justify-between rounded-xl bg-panel mb-2 h-16 md:h-24 items-center md:mb-4">
+    <div className="">
       <AnimatePresence mode="wait">
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className={`text-lg font-medium text-center mb-4 p-3 rounded-lg ${
+            className={`md:text-lg font-medium text-center md:mb-4 p-3 rounded-lg ${
               result.includes("WIN") ? "text-avocado-light" : "text-error"
             }`}
           >
@@ -380,12 +380,16 @@ export const ResultsSection = ({
               {result}
             </span>
             {loseAmount !== null && (
-              <div className="text-white font-bold mt-1 flex items-center justify-center gap-1">
-                <span className="font-semibold text-white">-${loseAmount}</span>
+              <div className="text-white font-bold md:mt-1 flex items-center justify-center">
+                <span className="font-semibold text-white">
+                  -&nbsp;
+                  <span className="opacity-60 font-semibold">$</span>
+                  {loseAmount}
+                </span>
               </div>
             )}
             {winAmount !== null && (
-              <div className="text-white font-bold mt-1 flex items-center justify-center gap-1">
+              <div className="text-white font-bold md:mt-1 flex items-center justify-center">
                 <span className="font-semibold text-white">${winAmount}</span>
               </div>
             )}
@@ -395,7 +399,7 @@ export const ResultsSection = ({
     </div>
 
     <motion.div
-      className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl font-bold text-white ${
+      className={`md:size-16 aspect-square size-10 rounded-full flex items-center justify-center text-xl md:text-3xl font-bold text-white ${
         selectedNumber !== null
           ? getNumberColor(selectedNumber)
           : "bg-panel-dark"
@@ -412,25 +416,29 @@ export const ResultsSection = ({
     >
       {selectedNumber !== null ? selectedNumber : "0"}
     </motion.div>
-    <div className="pe-4 flex items-center space-x-4">
+    <div className="pe-4 w-40 md:w-80 flex items-center space-x-4">
       <div>
         {totalBet > 0 && (
-          <div className="w-32 text-right mb-4 text-avocado-light">
-            <div className="text-2xl text-white font-bold">
+          <div className="w-16 md:w-32 text-right md:mb-4">
+            <div className="md:text-2xl text-white font-bold">
               {((Object.keys(selectedBets).length / 37) * 100).toFixed(2)}
-              <span className="text-[18px] opacity-60"> %</span>
+              <span className="md:text-[18px] opacity-60"> %</span>
             </div>
-            <div className="tracking-tight">Coverage</div>
+            <div className="tracking-tight md:text-sm text-xs opacity-60">
+              Coverage
+            </div>
           </div>
         )}
       </div>
       <div>
         {totalBet > 0 && (
-          <div className="w-32 text-right mb-4 text-avocado-light">
-            <div className="text-2xl text-white font-bold">
-              <span className="text-[20px] opacity-60">$</span> {totalBet}
+          <div className="w-16 md:w-32 text-right md:mb-4">
+            <div className="md:text-2xl text-white font-bold">
+              <span className="md:text-[18px] opacity-60">$</span> {totalBet}
             </div>
-            <div className="tracking-tight">Total Bet</div>
+            <div className="tracking-tight md:text-sm text-xs opacity-60">
+              Total Bet
+            </div>
           </div>
         )}
       </div>

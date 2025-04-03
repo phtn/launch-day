@@ -5,12 +5,15 @@ interface Controls {
   doubleBet: VoidFunction;
   clearBets: (e: MouseEvent<HTMLButtonElement>) => void;
   spin: VoidFunction;
+  replenishFn: (e: MouseEvent<HTMLButtonElement>) => void;
 }
 interface ControlState {
   lastBets: Record<number, number>;
   selectedBets: Record<number, number>;
-  isAutoPlaying: boolean;
+  isAutoBetPlaying: boolean;
   spinning: boolean;
+  hasPlacedBet: boolean;
+  credits: number;
 }
 export interface DeviceControlProps {
   chipValue: number;

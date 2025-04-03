@@ -238,7 +238,7 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
     ({ value, cover }: IChipItem) => (
       <button
         className={cn(
-          "relative btn bg-transparent flex items-center justify-center rounded-full w-14 h-14 p-0",
+          "relative md:ml-0 border btn bg-transparent flex items-center justify-center rounded-full size-14 md:size-14 p-0",
           {
             "border-2 border-lime-200 border-dashed": chipValue === value,
           },
@@ -246,7 +246,7 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
         onClick={onChangeFn(value)}
       >
         <TChip cover={cover} />
-        <span className="absolute">{value}</span>
+        <span className="absolute text-sm md:text-normal">{value}</span>
       </button>
     ),
     [onChangeFn, chipValue],
@@ -256,6 +256,7 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
       keyId="value"
       data={chips}
       component={ChipItem}
+      itemStyle=""
       container="flex flex-wrap h-14 overflow-hidden"
     />
   );
@@ -270,7 +271,7 @@ export const ChipBet = ({ value }: { value: number }) => {
   return (
     <div
       className={cn(
-        "relative bg-transparent flex items-center justify-center rounded-full w-14 h-14 p-0",
+        "relative bg-transparent flex items-center justify-center rounded-full size-14 p-0",
       )}
     >
       <TChip cover={cover} />
