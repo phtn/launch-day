@@ -3,6 +3,7 @@ import { MouseEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DataListProps } from "./types";
+import { ChipBet } from "./chip";
 
 export const StreetBetOptions = () => {
   return (
@@ -45,7 +46,7 @@ interface HisstoryListProps {
 }
 export const HistoryList = (props: HisstoryListProps) => {
   return (
-    <div className="md:w-80 bg-panel-dark relative rounded-xl p-3">
+    <div className="md:w-80 bg-panel relative rounded-xl p-3">
       <div className="flex justify-between absolute right-0 items-center mb-4">
         <h2 className="text-xl font-bold text-white/80"></h2>
         <button
@@ -68,12 +69,12 @@ const DataList = ({
 }: DataListProps) => {
   return (
     <div className="flex flex-col gap-2">
-      <div className="tabs tabs-lift">
+      <div className="tabs">
         <label className="tab bg-transparent">
           <input type="radio" name="history" defaultChecked />
           Numbers
         </label>
-        <div className="tab-content max-h-[800px] p-4 overflow-y-auto">
+        <div className="tab-content h-[600px] p-4 overflow-y-auto">
           {history.length === 0 ? (
             <div className="text-gray-400 text-center">No spins yet</div>
           ) : (
@@ -94,7 +95,7 @@ const DataList = ({
           <input type="radio" name="history" />
           Win/Loss
         </label>
-        <div className="tab-content max-h-[800px] overflow-y-auto">
+        <div className="tab-content max-h-[600px] overflow-y-auto">
           {resultsHistory.length === 0 ? (
             <div className="text-gray-400 text-center">No results yet</div>
           ) : (
@@ -103,7 +104,7 @@ const DataList = ({
                 <div
                   key={`result-${index}`}
                   className={`p-2 rounded-md ${
-                    result.win ? "bg-minty/20" : "bg-error/20"
+                    result.win ? "bg-minty/40" : "bg-error/40"
                   } flex items-center justify-between`}
                 >
                   <div className="flex items-center gap-2">
@@ -245,25 +246,18 @@ export const OptionsDrawer = () => (
 
 interface HeaderProps {
   isAutoPlaying: boolean;
-  autoPlays: number;
   isMobile: boolean;
   muted: boolean;
   toggleMute: VoidFunction;
 }
-export const Header = ({
-  isAutoPlaying,
-  isMobile,
-  autoPlays,
-  muted,
-  toggleMute,
-}: HeaderProps) => (
+export const Header = ({ isMobile, muted, toggleMute }: HeaderProps) => (
   <div className="flex justify-between items-center px-4 h-14 md:h-[80px] py-1.5 md:py-3 border-b border-slate-800/20">
     <div className="flex items-center gap-2">
-      {isAutoPlaying && (
+      {/* {isAutoPlaying && (
         <div className="bg-oklch(0.7 0.3225 328.36)/30 text-[#ff00ff] px-3 py-1 rounded-md text-sm font-medium animate-pulse border border-[#ff00ff]/50">
           Auto: {autoPlays}
         </div>
-      )}
+      )} */}
 
       {!isMobile && (
         <button onClick={toggleMute} className="h-10 btn w-10 text-cyan-300">
@@ -283,11 +277,10 @@ interface CreditBalanceProps {
   replenishFn: VoidFunction;
 }
 export const CreditBalance = ({ credits, replenishFn }: CreditBalanceProps) => (
-  <div className="flex items-end space-x-2">
-    <div className="w-36 space-y-2">
-      <div className="text-xs leading-none px-1">Balance:</div>
+  <div className="flex items-center space-x-4">
+    <div className="w-36">
       <motion.div
-        className="bg-panel-dark/60 backdrop-blur-sm space-x-2 border border-minty/50 px-2 rounded-lg text-xl font-semibold shadow-minty flex justify-between items-center"
+        className="bg-panel-dark/60 space-y-1 py-1 backdrop-blur-sm space-x-2 border border-minty/50 px-2 rounded-lg text-xl font-semibold shadow-minty justify-between items-center"
         animate={{
           boxShadow:
             credits > 1000
@@ -303,8 +296,11 @@ export const CreditBalance = ({ credits, replenishFn }: CreditBalanceProps) => (
           repeat: Number.POSITIVE_INFINITY,
         }}
       >
-        <span className="text-minty font-light">$</span>
-        <span className="text-gray-300">{credits}</span>
+        <div className="text-xs leading-none font-medium">Balance:</div>
+        <div className="flex items-center justify-between">
+          <span className="text-minty font-light">$</span>
+          <span className="text-gray-300 text-right">{credits}</span>
+        </div>
       </motion.div>
     </div>
     <button className="btn rounded-full size-8" onClick={replenishFn}>
@@ -328,7 +324,7 @@ export const ZeroNumberCell = ({
   <div className="relative md:mr-2">
     <div
       className={cn(
-        "w-full md:w-16 h-full text-dark-panel md:rounded-s-lg flex items-center justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
+        "w-full md:w-16 h-full text-dark-panel md:rounded-sm md:rounded-s-xl flex items-center justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
         getNumberColor(0),
       )}
       onClick={leftClickFn(0)}
@@ -337,8 +333,8 @@ export const ZeroNumberCell = ({
       0
     </div>
     {selectedBets[0] && (
-      <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-[0_0_10px_rgba(250,204,21,0.7)]">
-        {selectedBets[0]}
+      <div className="absolute pointer-events-none top-1 left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
+        <ChipBet value={selectedBets[0]} />
       </div>
     )}
   </div>
@@ -349,6 +345,7 @@ interface ResultsProps {
   loseAmount: number | null;
   result: string | null;
   selectedNumber: number | null;
+  selectedBets: Record<number, number>;
   spinning: boolean;
   totalBet: number;
   winAmount: number | null;
@@ -358,6 +355,7 @@ export const ResultsSection = ({
   loseAmount,
   result,
   selectedNumber,
+  selectedBets,
   spinning,
   totalBet,
   winAmount,
@@ -371,7 +369,7 @@ export const ResultsSection = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className={`text-lg font-medium text-center mb-4 p-3 rounded-lg ${
-              result.includes("WIN") ? "text-avocado" : "text-error"
+              result.includes("WIN") ? "text-avocado-light" : "text-error"
             }`}
           >
             <span
@@ -414,15 +412,28 @@ export const ResultsSection = ({
     >
       {selectedNumber !== null ? selectedNumber : "0"}
     </motion.div>
-    <div className="pe-4">
-      {totalBet > 0 && (
-        <div className="w-32 text-right mb-4 text-avocado">
-          <div className="text-2xl text-white font-bold">
-            <span className="text-[20px] opacity-60">$</span> {totalBet}
+    <div className="pe-4 flex items-center space-x-4">
+      <div>
+        {totalBet > 0 && (
+          <div className="w-32 text-right mb-4 text-avocado-light">
+            <div className="text-2xl text-white font-bold">
+              {((Object.keys(selectedBets).length / 37) * 100).toFixed(2)}
+              <span className="text-[18px] opacity-60"> %</span>
+            </div>
+            <div className="tracking-tight">Coverage</div>
           </div>
-          <div className="tracking-tight">Total Bet</div>
-        </div>
-      )}
+        )}
+      </div>
+      <div>
+        {totalBet > 0 && (
+          <div className="w-32 text-right mb-4 text-avocado-light">
+            <div className="text-2xl text-white font-bold">
+              <span className="text-[20px] opacity-60">$</span> {totalBet}
+            </div>
+            <div className="tracking-tight">Total Bet</div>
+          </div>
+        )}
+      </div>
     </div>
   </div>
 );

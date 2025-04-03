@@ -21,7 +21,10 @@ export const useSFX = () => {
   const [repeatBetSFX] = useSound("/sfx/clink.wav", defaultOption);
   const [chipSelectSFX] = useSound("/sfx/chip-select.wav", defaultOption);
   const [notAllowedSFX] = useSound("/sfx/not-allowed.mp3", defaultOption);
-  const [rouletteSpinSFX] = useSound("/sfx/roulette-spin.mp3", defaultOption);
+  const [rouletteSpinSFX, { stop: stopRouletteSpinSFX }] = useSound(
+    "/sfx/roulette-spin.mp3",
+    defaultOption,
+  );
 
   return {
     winSFX,
@@ -36,5 +39,6 @@ export const useSFX = () => {
     chipSelectSFX,
     notAllowedSFX,
     rouletteSpinSFX,
+    stopRouletteSpinSFX,
   };
 };

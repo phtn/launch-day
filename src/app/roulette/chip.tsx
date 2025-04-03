@@ -234,36 +234,6 @@ interface ChipListProps {
   onChangeFn: (v: number) => (e: MouseEvent<HTMLButtonElement>) => void;
 }
 export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
-  const chips = useMemo(
-    () =>
-      [
-        {
-          value: 5,
-          cover: "/chips/c1.png",
-        },
-        {
-          value: 10,
-          cover: "/chips/c2.png",
-        },
-        {
-          value: 25,
-          cover: "/chips/c3.png",
-        },
-        {
-          value: 50,
-          cover: "/chips/c4.png",
-        },
-        {
-          value: 100,
-          cover: "/chips/c5.png",
-        },
-        {
-          value: 250,
-          cover: "/chips/c6.png",
-        },
-      ] as IChipItem[],
-    [],
-  );
   const ChipItem = useCallback(
     ({ value, cover }: IChipItem) => (
       <button
@@ -290,3 +260,60 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
     />
   );
 };
+
+export const ChipBet = ({ value }: { value: number }) => {
+  const cover = useMemo(
+    () => getCoverByValue(value) ?? "/chips/c1.png",
+    [value],
+  );
+
+  return (
+    <div
+      className={cn(
+        "relative bg-transparent flex items-center justify-center rounded-full w-14 h-14 p-0",
+      )}
+    >
+      <TChip cover={cover} />
+      <span className="absolute font-bold -tracking-widest drop-shadow-sm">
+        {value}
+      </span>
+    </div>
+  );
+};
+
+function getCoverByValue(maxValue: number): string | null {
+  // Find the highest value chip that is less than or equal to maxValue
+  const chip = chips
+    .filter((chip) => chip.value <= maxValue) // Filter chips that are less than or equal to maxValue
+    .sort((a, b) => b.value - a.value) // Sort in descending order by value
+    .shift(); // Get the first chip (highest value)
+
+  return chip ? chip.cover : null; // Return the cover or null if not found
+}
+
+const chips: IChipItem[] = [
+  {
+    value: 5,
+    cover: "/chips/c1.png",
+  },
+  {
+    value: 10,
+    cover: "/chips/c2.png",
+  },
+  {
+    value: 25,
+    cover: "/chips/c3.png",
+  },
+  {
+    value: 50,
+    cover: "/chips/c4.png",
+  },
+  {
+    value: 100,
+    cover: "/chips/c5.png",
+  },
+  {
+    value: 250,
+    cover: "/chips/c6.png",
+  },
+];

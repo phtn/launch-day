@@ -148,5 +148,6 @@ body {
     --color-panel-dark: oklch(0.24 0.01 300);
     --color-blood: oklch(0.66 0.24 360);
     --color-mossad: oklch(0.66 0.19 242);
-    --color-avocado: oklch(0.8 0.16 148);
+    --color-avocado: oklch(0.75 0.2 148);
+    --color-avocado-light: oklch(0.8 0.16 148);
 }

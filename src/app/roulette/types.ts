@@ -3,7 +3,7 @@ import { MouseEvent } from "react";
 interface Controls {
   repeatBet: VoidFunction;
   doubleBet: VoidFunction;
-  clearBets: VoidFunction;
+  clearBets: (e: MouseEvent<HTMLButtonElement>) => void;
   spin: VoidFunction;
 }
 interface ControlState {
