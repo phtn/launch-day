@@ -145,9 +145,31 @@ body {
 @theme {
     --color-minty: oklch(0.92 0.1 120);
     --color-panel: oklch(0.3 0.01 304);
-    --color-panel-dark: oklch(0.24 0.01 300);
+    --color-panel-dark: oklch(0.22 0.01 300);
     --color-blood: oklch(0.66 0.24 360);
     --color-mossad: oklch(0.66 0.19 242);
     --color-avocado: oklch(0.75 0.2 148);
     --color-avocado-light: oklch(0.8 0.16 148);
+    --color-card-table: oklch(0.6 0.16 148);
+    --color-brood: oklch(0.58 0.2 32);
+}
+
+.diamond {
+    aspect-ratio: 1 / cos(30deg);
+    clip-path: polygon(
+        50% 0%,
+        /* Top vertex */ 100% 50%,
+        /* Right vertex */ 50% 100%,
+        /* Bottom vertex */ 0% 50% /* Left vertex */
+    );
+}
+
+.zero-box {
+    clip-path: polygon(
+        0% 50%,
+        /* Left middle point */ 60% 0%,
+        /* Top point */ 100% 0%,
+        /* Right middle point */ 100% 100%,
+        /* Bottom right point */ 60% 100% /* Bottom left point */
+    );
 }

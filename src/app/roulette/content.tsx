@@ -20,6 +20,7 @@ import {
   Header,
   HistoryList,
   ResultsSection,
+  StreetBetOptions,
   ZeroNumberCell,
 } from "./components";
 import { HyperList } from "@/lib/ui/hyperlist";
@@ -97,11 +98,11 @@ export default function RouletteGame() {
   // Define colors for numbers in cyberpunk theme with new bright colors
   const getNumberColor = useCallback(
     (num: number) => {
-      if (num === 0) return "bg-avocado hover:bg-avocado/90";
+      if (num === 0) return "bg-card-table hover:bg-avocado/90";
 
       return redNumbers.includes(num)
-        ? "bg-blood hover:bg-blood/90"
-        : "bg-mossad hover:bg-mossad/90";
+        ? "bg-brood hover:bg-brood/90"
+        : "bg-panel-dark hover:bg-panel-dark/90";
     },
     [redNumbers],
   );
@@ -603,27 +604,32 @@ export default function RouletteGame() {
         <div
           key={`num-${id}`}
           className={cn(
-            "relative rounded-sm flex select-none size-full overflow-hidden",
+            "relative rounded-[2px] flex select-none size-full overflow-hidden",
             {
-              "border-4 rounded-2xl border-warning":
-                selectedNumber === v && !spinning,
+              "rounded-2xl border-warning": selectedNumber === v && !spinning,
             },
           )}
         >
           <div
             className={cn(
               `w-full aspect-square flex items-center justify-center text-base font-bold text-white cursor-pointer ${getNumberColor(v)}`,
-              {
-                "rounded-tl-xl": [3, 9, 15, 21, 27, 33].includes(v),
-                "rounded-bl-xl": [1, 7, 13, 19, 25, 31].includes(v),
-                "rounded-tr-xl": [6, 12, 18, 24, 30, 36].includes(v),
-                "rounded-br-xl": [4, 10, 16, 22, 28, 34].includes(v),
-              },
+              // {
+              //   "rounded-tl-xl": [3, 9, 15, 21, 27, 33].includes(v),
+              //   "rounded-bl-xl": [1, 7, 13, 19, 25, 31].includes(v),
+              //   "rounded-tr-xl": [6, 12, 18, 24, 30, 36].includes(v),
+              //   "rounded-br-xl": [4, 10, 16, 22, 28, 34].includes(v),
+              // },
             )}
             onClick={placeBet(v)}
             onContextMenu={removeBet(v)}
           >
-            <span className="text-xl md:text-3xl">{v}</span>
+            <span
+              className={cn("text-xl md:text-3xl", {
+                "text-minty": selectedNumber === v,
+              })}
+            >
+              {v}
+            </span>
           </div>
           {selectedBets[v] && (
             <div className="absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
@@ -676,7 +682,7 @@ export default function RouletteGame() {
                 />
 
                 {/* Roulette table */}
-                <div className="h-96 rounded-lg md:mb-4 shadow-dark-panel">
+                <div className="h-96 rounded-lg md:mb-4 bg-card-table/80 shadow-dark-panel p-3">
                   <div className="md:flex">
                     {/* ZERO */}
                     <ZeroNumberCell
@@ -687,17 +693,17 @@ export default function RouletteGame() {
                     />
 
                     {/* Main grid - larger cells */}
-                    <div className="grid grid-rows-3 gap-1 h-full flex-grow overflow-hidden">
+                    <div className="grid grid-rows-3 border border-b-0 backdrop-blur-lg gap-px bg-white/60 h-full flex-grow overflow-hidden">
                       {rouletteGrid.map((row, rowIndex) => {
                         const data = row.map((v, id) => ({ v, id }));
                         return (
                           <HyperList
                             key={`row-${rowIndex}`}
                             container={cn(
-                              "grid grid-cols-6 md:grid-cols-12 w-full size-full gap-1 md:overflow-hidden",
+                              "grid grid-cols-6 gap-px md:grid-cols-12 size-full md:overflow-hidden",
                             )}
                             data={data}
-                            itemStyle={cn("md:even:mr-1 overflow-hidden")}
+                            itemStyle={cn("overflow-hidden")}
                             component={NumberCell}
                           />
                         );
@@ -706,9 +712,9 @@ export default function RouletteGame() {
                   </div>
 
                   {/* Bottom betting options - styled for cyberpunk */}
-                  {/* <StreetBetOptions /> */}
-                  <div className={cn("font-bold text-warning hidden md:flex")}>
-                    Playing in {autoPlayTimeRemaining} secs
+                  <div className="flex">
+                    <div className="w-[86px]"></div>
+                    <StreetBetOptions />
                   </div>
                 </div>
                 {/* Desktop controls */}
@@ -716,7 +722,7 @@ export default function RouletteGame() {
                   <>
                     {/* Chip value selector */}
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-2 text-cyan-300 border-b border-cyan-800/50 pb-1"></h3>
+                      <h3 className="text-lg font-medium mb-2 text-cyan-300 border-cyan-800/50 pb-1"></h3>
                       <div className="flex items-center w-full justify-between">
                         <CreditBalance
                           replenishFn={handleReplenish}

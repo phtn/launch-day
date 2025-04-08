@@ -7,32 +7,41 @@ import { ChipBet } from "./chip";
 
 export const StreetBetOptions = () => {
   return (
-    <div>
-      <div className="grid grid-cols-3 gap-1 mt-2">
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+    <div className="hidden lg:flex flex-col w-full text-white font-medium">
+      <div className="grid grid-cols-3">
+        <div className="flex items-center justify-center h-12 border border-r-0 border-white/60 text-lg border-b-0">
           1st 12
         </div>
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+        <div className="flex items-center justify-center h-12 border border-white/60 border-r-0 border-b-0 text-lg">
           2nd 12
         </div>
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+        <div className="flex items-center justify-center h-12 border border-white/60 border-b-0 text-lg">
           3rd 12
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-1 mt-1">
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+      <div className="grid grid-cols-6">
+        <div className="flex items-center rounded-bl-sm justify-center h-12 border border-white/60 text-lg">
           1-18
         </div>
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+        <div className="flex items-center justify-center h-12 border-r-0 border border-l-0 border-white/60 text-lg">
           EVEN
         </div>
-        <div className="bg-[#ff00ff]/60 h-10 border border-[#ff00ff]/50 rounded-sm shadow-[0_0_10px_rgba(255,0,255,0.2)]"></div>
-        <div className="bg-cyan-900/60 h-10 border border-cyan-700/50 rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]"></div>
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+        <div className="bg-panel-dark flex items-center justify-center border border-l border-r-0">
+          <div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
+            <div className="diamond h-7 w-24 bg-panel-dark scale-90 absolute flex items-center justify-center" />
+          </div>
+        </div>
+
+        <div className="bg-brood flex items-center justify-center border border-r-0 border-l">
+          <div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
+            <div className="diamond h-7 w-24 bg-brood scale-90 absolute flex items-center justify-center" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-12 border border-r-0 border-white/60 text-lg">
           ODD
         </div>
-        <div className="bg-cyan-900/60 text-cyan-200 text-center py-2 border border-cyan-700/50 text-sm rounded-sm shadow-[0_0_10px_rgba(8,145,178,0.2)]">
+        <div className="flex items-center justify-center h-12 border border-white/60 text-lg rounded-br-sm">
           19-36
         </div>
       </div>
@@ -103,8 +112,10 @@ const DataList = ({
               {resultsHistory.map((result, index) => (
                 <div
                   key={`result-${index}`}
-                  className={`p-2 rounded-md ${
-                    result.win ? "bg-minty/40" : "bg-error/40"
+                  className={`p-2 bg-gradient-to-l to-transparent rounded-md ${
+                    result.win
+                      ? "from-avocado-light/40 via-avocado-light/20"
+                      : "from-error/40 via-brood/20"
                   } flex items-center justify-between`}
                 >
                   <div className="flex items-center gap-2">
@@ -119,7 +130,7 @@ const DataList = ({
                   </div>
                   <div className="flex flex-col items-end">
                     <div
-                      className={`font-bold ${result.win ? "text-minty" : "text-white"}`}
+                      className={`font-bold ${result.win ? "text-avocado" : "text-white"}`}
                     >
                       {result.win ? `+${result.amount}` : result.amount}
                     </div>
@@ -321,17 +332,19 @@ export const ZeroNumberCell = ({
   getNumberColor,
   selectedBets,
 }: ZeroNumberCellProps) => (
-  <div className="relative md:mr-2">
+  <div className="relative flex items-center justify-center zero-box">
     <div
       className={cn(
-        "w-full md:w-16 md:h-full h-14 text-dark-panel rounded-xl mb-1 md:mb-0 md:rounded-sm md:rounded-s-xl flex items-center justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
+        "relative w-full md:w-20 bg-white md:h-full h-14 text-dark-panel rounded-none mb-1 md:mb-0 flex justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
         getNumberColor(0),
       )}
       onClick={leftClickFn(0)}
       onContextMenu={rightClickFn(0)}
     >
-      0
+      <span>0</span>
     </div>
+
+    <div className="zero-box absolute scale-90 -my-2 w-20 border bg-panel-dark h-full"></div>
     {selectedBets[0] && (
       <div className="absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
         <ChipBet value={selectedBets[0]} />

@@ -1,11 +1,10 @@
 "use client";
 
 import { BlastZone } from "@/_components_/blast-zone";
+import { Recreation } from "@/_components_/recreation";
 import { Starlink } from "@/_components_/starlink";
 import { StarshipSuperHeavy } from "@/_components_/starship";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
 
 export const Content = ({ theme }: { theme: string }) => {
   return (
@@ -17,27 +16,5 @@ export const Content = ({ theme }: { theme: string }) => {
       </div>
       <BlastZone />
     </main>
-  );
-};
-
-const Recreation = () => {
-  const router = useRouter();
-  const handleRouteToGames = useCallback(() => {
-    router.push("/roulette");
-  }, [router]);
-  return (
-    <div className="col-span-2">
-      <div className="p-6">
-        <button
-          onClick={handleRouteToGames}
-          className="btn sm btn-solid btn-xs btn-accent"
-        >
-          KEEP OUT AREA
-        </button>
-        <div role="tablist" className="tabs">
-          <a role="tab" className="tab"></a>
-        </div>
-      </div>
-    </div>
   );
 };
