@@ -20,19 +20,19 @@ export const Recreation = () => {
         className="md:h-64 h-24 w-auto relative z-[50]"
         unoptimized
       />
-      <div className="md:ps-8 ps-2 -mt-2 md:-mt-3.5 space-x-4 relative z-10">
+      <div className="md:ps-8 ps-2 -mt-2 md:-mt-3 space-x-4 relative z-10">
         <button
           onClick={handleRouteToGames}
-          className="btn sm btn-solid btn-xs btn-accent"
+          className="btn px-8 sm btn-solid relative left-4 btn-xs bg-gray-600"
         >
           <span className="md:flex">KEEP</span> OUT{" "}
           <span className="hidden md:flex">AREA</span>
         </button>
         <button
           onClick={handleRouteToPlay}
-          className="btn btn-solid btn-xs hidden md:flex btn-error"
+          className="btn btn-solid text-panel relative px-4 btn-xs hidden md:flex bg-orange-400"
         >
-          NOT PLAYGROUND
+          <span className="">NOT A PLAYGROUND</span>
         </button>
         <div role="tablist" className="tabs">
           <a role="tab" className="tab"></a>

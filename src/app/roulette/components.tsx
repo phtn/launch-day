@@ -332,10 +332,10 @@ export const ZeroNumberCell = ({
   getNumberColor,
   selectedBets,
 }: ZeroNumberCellProps) => (
-  <div className="relative flex items-center justify-center zero-box">
+  <div className="relative bg-white flex md:w-20 items-center border-y justify-center zero-box">
     <div
       className={cn(
-        "relative w-full md:w-20 bg-white md:h-full h-14 text-dark-panel rounded-none mb-1 md:mb-0 flex justify-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
+        "absolute w-full bg-white md:h-full text-dark-panel rounded-none mb-1 md:mb-0 flex justify-center items-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
         getNumberColor(0),
       )}
       onClick={leftClickFn(0)}
@@ -344,9 +344,9 @@ export const ZeroNumberCell = ({
       <span>0</span>
     </div>
 
-    <div className="zero-box absolute scale-90 -my-2 w-20 border bg-panel-dark h-full"></div>
+    <div className="zero-box absolute left-[2px] -my-px -ml-px pointer-events-none w-20 bg-panel-dark/20 h-full"></div>
     {selectedBets[0] && (
-      <div className="absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
+      <div className="absolute pointer-events-none top-1/4 left-4 md:top-1/3 md:left-1/3 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
         <ChipBet value={selectedBets[0]} />
       </div>
     )}

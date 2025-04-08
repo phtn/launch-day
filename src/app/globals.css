@@ -167,9 +167,9 @@ body {
 .zero-box {
     clip-path: polygon(
         0% 50%,
-        /* Left middle point */ 60% 0%,
+        /* Left middle point */ 65% 0%,
         /* Top point */ 100% 0%,
         /* Right middle point */ 100% 100%,
-        /* Bottom right point */ 60% 100% /* Bottom left point */
+        /* Bottom right point */ 65% 100% /* Bottom left point */
     );
 }
