@@ -102,17 +102,17 @@ const socmeds: StarlinkData[] = [
   },
   {
     id: 4,
-    label: "News",
-    description: "Hacker News Ycombinator",
-    href: "https://news.ycombinator.com/",
-    icon: "ycombinator",
+    label: "c.ai",
+    description: "character.ai",
+    href: "https://character.ai/",
+    icon: "catgirl",
   },
   {
     id: 5,
-    label: "mdn",
-    description: "mdn",
-    href: "https://developer.mozilla.org/en-US/",
-    icon: "mdn",
+    label: "box",
+    description: "box",
+    href: "https://app.box.com/folder/0",
+    icon: "box-dot-com",
   },
   {
     id: 6,
@@ -156,6 +156,20 @@ const socmeds: StarlinkData[] = [
     description: "perplexity",
     href: "https://www.perplexity.ai/",
     icon: "perplexity",
+  },
+  {
+    id: 12,
+    label: "mdn",
+    description: "mdn",
+    href: "https://developer.mozilla.org/en-US/",
+    icon: "mdn",
+  },
+  {
+    id: 13,
+    label: "News",
+    description: "Hacker News Ycombinator",
+    href: "https://news.ycombinator.com/",
+    icon: "ycombinator",
   },
 ];
 
@@ -302,5 +316,19 @@ const frontends: StarlinkData[] = [
     description: "icones",
     href: "https://icones.js.org/",
     icon: "info-outline",
+  },
+  {
+    id: 11,
+    label: "expo",
+    description: "expo",
+    href: "https://docs.expo.dev/",
+    icon: "expo",
+  },
+  {
+    id: 12,
+    label: "expo-icons",
+    description: "expo-icons",
+    href: "https://icons.expo.fyi/Index",
+    icon: "expo-icons",
   },
 ];
