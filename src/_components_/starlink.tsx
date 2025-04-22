@@ -232,10 +232,24 @@ const backends: StarlinkData[] = [
   },
   {
     id: 8,
+    label: "3000",
+    description: "localhost",
+    href: "https://localhost:3000",
+    icon: "secured-server",
+  },
+  {
+    id: 9,
     label: "3001",
     description: "localhost",
     href: "http://localhost:3001",
     icon: "localhost2",
+  },
+  {
+    id: 10,
+    label: "3001",
+    description: "localhost",
+    href: "https://localhost:3001",
+    icon: "secured-server",
   },
 ];
 
