@@ -19,7 +19,7 @@ const WalletConnector = () => {
 
   return (
     <div className="items-center flex justify-end text-xs md:justify-center md:space-x-4">
-      <w3m-button loadingLabel="Connecting..." size="sm" label="yo" />
+      <w3m-button loadingLabel="Connecting..." size="sm" label="Sign in" />
       {isConnected && (
         <div className="hidden md:flex">
           <w3m-network-button />
