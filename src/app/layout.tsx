@@ -55,7 +55,7 @@ export default async function RootLayout({
           <Providers initialState={initialState}>
             <div>
               <Navbar />
-              {children}
+              <main>{children}</main>
               {/* <Footer /> */}
             </div>
           </Providers>

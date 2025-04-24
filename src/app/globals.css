@@ -28,19 +28,11 @@
         font-family: var(--font-geist-sans);
         font-family: var(--font-exo);
     }
-}
-
-/* @layer base {
-    body {
-        @apply bg-background text-foreground;
-        ::-webkit-scrollbar {
-            display: none;
-        }
+    .scroll-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
-} */
-
-body {
-    ::-webkit-scrollbar {
+    .scroll-hide::-webkit-scrollbar {
         display: none;
     }
 }
