@@ -53,9 +53,11 @@ export default async function RootLayout({
       <body className={`font-exo ${exo.variable} antialiased`}>
         <WagmiContext cookies={""}>
           <Providers initialState={initialState}>
-            <div>
+            <div className="bg-gray-900">
               <Navbar />
-              <main>{children}</main>
+              <main className="bg-gray-950 h-screen overflow-hidden">
+                {children}
+              </main>
               {/* <Footer /> */}
             </div>
           </Providers>

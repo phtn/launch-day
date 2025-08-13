@@ -16,7 +16,7 @@ export const StarshipSuperHeavy = () => {
   }, []);
 
   return (
-    <div className="w-full relative overflow-hidden h-[calc(100vh-80)] col-span-1 flex flex-col items-center">
+    <div className="w-full relative overflow-hidden h-[calc(100vh-80)] col-span-2 flex flex-col items-center">
       <Image
         alt="starship"
         src="/svg/starship.svg"

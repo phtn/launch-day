@@ -9,7 +9,7 @@ export const Icon: FC<IconProps> = ({
   className,
   size = 24,
   color = "currentColor",
-  solid = false,
+  solid = true,
   ...props
 }) => {
   const icon = icons[name] as IconData;
@@ -23,7 +23,7 @@ export const Icon: FC<IconProps> = ({
       className={className}
       fill={solid ? color : "none"}
       stroke={color}
-      strokeWidth="1"
+      strokeWidth={solid ? 0 : 1}
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

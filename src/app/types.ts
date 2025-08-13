@@ -9,4 +9,6 @@ export interface StarlinkData {
   description: string;
   href: string;
   icon: IconName;
+  posX: number;
+  posY: number;
 }

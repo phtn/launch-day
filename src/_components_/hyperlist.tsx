@@ -39,7 +39,10 @@ export const HyperList = <T extends object>(props: HyperListProps<T>) => {
     [container],
   );
 
-  const baseItemStyle = useMemo(() => cn("group/list", itemStyle), [itemStyle]);
+  const baseItemStyle = useMemo(
+    () => cn("hex-item group/list", itemStyle),
+    [itemStyle],
+  );
 
   const variants: Variants = useMemo(
     () => ({
@@ -53,11 +56,11 @@ export const HyperList = <T extends object>(props: HyperListProps<T>) => {
       },
       left: {
         opacity: 0,
-        x: 10,
+        x: 6,
       },
       right: {
         opacity: 0,
-        x: -10,
+        x: -6,
       },
     }),
     [],
@@ -90,8 +93,13 @@ export const HyperList = <T extends object>(props: HyperListProps<T>) => {
           initial={disableAnimation ? false : direction}
           variants={variants}
           animate={{ opacity: 1, ...animate }}
-          transition={{ delay: j * 0.04 + delay }}
-          className={baseItemStyle}
+          transition={{
+            type: "spring",
+            visualDuration: 0.6,
+            bounce: 0.5,
+            delay: j * 0.04 + delay,
+          }}
+          className={cn(baseItemStyle, "hex-item")}
         >
           <Component {...i} />
         </motion.li>
