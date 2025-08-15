@@ -23,11 +23,6 @@
 }
 
 @layer utilities {
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        font-family: var(--font-geist-sans);
-        font-family: var(--font-exo);
-    }
     .scroll-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -88,6 +83,9 @@
     --color-error: oklch(64% 0.246 16.439);
     --color-error-content: oklch(28% 0.109 3.907);
     --color-minty: oklch(0.72 0.11 178);
+    --font-sans: var(--font-geist-sans);
+    --font-abril: var(--font-abril);
+    --font-exo: var(--font-exo);
     --radius-selector: 0.25rem;
     --radius-field: 0.25rem;
     --radius-box: 0.5rem;
@@ -124,6 +122,9 @@
     --color-error: oklch(57% 0.245 27.325);
     --color-error-content: oklch(97% 0.013 17.38);
     --color-minty: oklch(0.72 0.11 178);
+    --font-sans: var(--font-geist-sans);
+    --font-abril: var(--font-abril);
+    --font-exo: var(--font-exo);
     --radius-selector: 1rem;
     --radius-field: 0.5rem;
     --radius-box: 2rem;
@@ -134,7 +135,7 @@
     --noise: 1;
 }
 
-@theme {
+@theme inline {
     --color-minty: oklch(0.92 0.1 120);
     --color-panel: oklch(0.3 0.01 304);
     --color-panel-dark: oklch(0.22 0.01 300);
@@ -144,6 +145,9 @@
     --color-avocado-light: oklch(0.8 0.16 148);
     --color-card-table: oklch(0.6 0.16 148);
     --color-brood: oklch(0.58 0.2 32);
+    --font-sans: var(--font-geist-sans);
+    --font-abril: var(--font-abril);
+    --font-exo: var(--font-exo);
 }
 
 .diamond {
@@ -159,9 +163,9 @@
 .zero-box {
     clip-path: polygon(
         0% 50%,
-        /* Left middle point */ 65% 0%,
+        /* Left middle point */ 40% 0%,
         /* Top point */ 100% 0%,
         /* Right middle point */ 100% 100%,
-        /* Bottom right point */ 65% 100% /* Bottom left point */
+        /* Bottom right point */ 40% 100% /* Bottom left point */
     );
 }

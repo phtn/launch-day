@@ -4,44 +4,59 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DataListProps } from "./types";
 import { ChipBet } from "./chip";
+import Image from "next/image";
 
 export const StreetBetOptions = () => {
   return (
-    <div className="hidden lg:flex flex-col w-full text-white font-medium">
+    <div className="hidden lg:flex flex-col w-full text-panel-dark font-medium">
       <div className="grid grid-cols-3">
-        <div className="flex items-center justify-center h-12 border border-r-0 border-white/60 text-lg border-b-0">
+        <div className="flex items-center justify-center h-16 border border-neutral-300 text-neutral-200 text-3xl border-r-0 border-b-0">
           1st 12
         </div>
-        <div className="flex items-center justify-center h-12 border border-white/60 border-r-0 border-b-0 text-lg">
+        <div className="flex items-center justify-center h-16 border border-neutral-300 text-neutral-200 text-3xl border-r-0 border-b-0">
           2nd 12
         </div>
-        <div className="flex items-center justify-center h-12 border border-white/60 border-b-0 text-lg">
+        <div className="flex items-center justify-center h-16 border border-neutral-300 text-neutral-200 text-3xl border-b-0">
           3rd 12
         </div>
       </div>
 
       <div className="grid grid-cols-6">
-        <div className="flex items-center rounded-bl-sm justify-center h-12 border border-white/60 text-lg">
+        <div className="flex items-center rounded-bl-sm justify-center h-16 border border-neutral-300 text-neutral-200 text-3xl">
           1-18
         </div>
-        <div className="flex items-center justify-center h-12 border-r-0 border border-l-0 border-white/60 text-lg">
+        <div className="flex items-center justify-center h-16 border border-r-0 border-neutral-300 text-neutral-200 text-3xl">
           EVEN
         </div>
-        <div className="bg-panel-dark flex items-center justify-center border border-l border-r-0">
-          <div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
+        <div className="flex items-center justify-center border border-l border-r-0">
+          <Image
+            src="/svg/black-slot.svg"
+            alt="black"
+            width={80}
+            height={32}
+            className=""
+          />
+          {/*<div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
             <div className="diamond h-7 w-24 bg-panel-dark scale-90 absolute flex items-center justify-center" />
-          </div>
+          </div>*/}
         </div>
 
-        <div className="bg-brood flex items-center justify-center border border-r-0 border-l">
-          <div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
+        <div className="flex items-center justify-center border border-r-0 border-l">
+          {/*<div className="diamond h-7 w-24 bg-white relative flex items-center justify-center">
             <div className="diamond h-7 w-24 bg-brood scale-90 absolute flex items-center justify-center" />
-          </div>
+          </div>*/}
+          <Image
+            src="/svg/red-slot.svg"
+            alt="red"
+            width={80}
+            height={32}
+            className=""
+          />
         </div>
-        <div className="flex items-center justify-center h-12 border border-r-0 border-white/60 text-lg">
+        <div className="flex items-center justify-center h-16 border border-r-0 border-neutral-300 text-neutral-200 text-3xl">
           ODD
         </div>
-        <div className="flex items-center justify-center h-12 border border-white/60 text-lg rounded-br-sm">
+        <div className="flex items-center justify-center h-16 border border-neutral-300 text-neutral-200 text-3xl rounded-br-sm">
           19-36
         </div>
       </div>
@@ -91,7 +106,7 @@ const DataList = ({
               {history.map((num, index) => (
                 <div
                   key={`history-${index}`}
-                  className={`size-10 rounded-full flex items-center justify-center text-sm font-bold text-white border border-gray-800 ${getNumberColor(num)}`}
+                  className={`size-10 rounded-full font-abril flex items-center justify-center text-sm font-bold text-white border border-gray-800 ${getNumberColor(num)}`}
                 >
                   {num}
                 </div>
@@ -260,9 +275,17 @@ interface HeaderProps {
   isMobile: boolean;
   muted: boolean;
   toggleMute: VoidFunction;
+  replenishFn: VoidFunction;
+  credits: number;
 }
-export const Header = ({ isMobile, muted, toggleMute }: HeaderProps) => (
-  <div className="flex justify-between items-center px-4 h-14 md:h-[80px] py-1.5 md:py-3 border-b border-slate-800/20">
+export const Header = ({
+  isMobile,
+  muted,
+  toggleMute,
+  replenishFn,
+  credits,
+}: HeaderProps) => (
+  <div className="flex justify-between items-center px-4 h-16 mt-14 bg-zinc-600 md:h-[80px] py-1.5 md:py-3 border-b border-slate-800/20">
     <div className="flex items-center gap-2">
       {/* {isAutoPlaying && (
         <div className="bg-oklch(0.7 0.3225 328.36)/30 text-[#ff00ff] px-3 py-1 rounded-md text-sm font-medium animate-pulse border border-[#ff00ff]/50">
@@ -273,12 +296,15 @@ export const Header = ({ isMobile, muted, toggleMute }: HeaderProps) => (
       {!isMobile && (
         <button onClick={toggleMute} className="h-10 btn w-10 text-cyan-300">
           {muted ? (
-            <Icon name="abacus" className="h-5 w-5" />
+            <Icon name="abacus" className="size-5 text-gray-300" />
           ) : (
-            <Icon name="abacus" className="text-secondary" />
+            <Icon name="abacus" className="text-zinc-300 shrink-0" />
           )}
         </button>
       )}
+    </div>
+    <div>
+      <CreditBalance replenishFn={replenishFn} credits={credits} />
     </div>
   </div>
 );
@@ -288,34 +314,20 @@ interface CreditBalanceProps {
   replenishFn: (e: MouseEvent<HTMLButtonElement>) => void;
 }
 export const CreditBalance = ({ credits, replenishFn }: CreditBalanceProps) => (
-  <div className="flex items-center space-x-4">
-    <div className="md:w-36">
-      <motion.div
-        className="space-y-1 py-1 bg-panel space-x-2 border border-minty/20 px-2 rounded-lg md:text-xl font-semibold shadow-minty justify-between items-center"
-        animate={{
-          boxShadow:
-            credits > 1000
-              ? [
-                  "0 0 15px rgba(132,204,22,0.3)",
-                  "0 0 25px rgba(132,204,22,0.5)",
-                  "0 0 15px rgba(132,204,22,0.3)",
-                ]
-              : undefined,
-        }}
-        transition={{
-          duration: 2,
-          repeat: Number.POSITIVE_INFINITY,
-        }}
-      >
-        <div className="text-xs leading-none font-medium">Balance:</div>
-        <div className="flex items-center justify-between">
-          <span className="text-minty font-light">$</span>
-          <span className="text-gray-300 text-right">{credits}</span>
+  <div className="flex items-end space-x-4">
+    <div className="md:w-48 w-48">
+      <div className="space-y-1 py-1 bg-panel/20 space-x-2 px-4 rounded-lg md:text-xl font-semibold justify-between items-end">
+        <div className="text-xs leading-none">Credits:</div>
+        <div className="flex items-center justify-between font-exo">
+          <span className="text-avocado font-abril">$</span>
+          <span className="text-gray-300 text-right">
+            {credits.toLocaleString()}
+          </span>
         </div>
-      </motion.div>
+      </div>
     </div>
-    <button className="btn rounded-full size-8" onClick={replenishFn}>
-      <Icon name="energy" className="text-mossad shrink-0" />
+    <button className="btn rounded-full" onClick={replenishFn}>
+      <Icon name="plus-sign" className="text-sky-300 size-5 shrink-0" />
     </button>
   </div>
 );
@@ -332,10 +344,10 @@ export const ZeroNumberCell = ({
   getNumberColor,
   selectedBets,
 }: ZeroNumberCellProps) => (
-  <div className="relative bg-white flex md:w-20 items-center border-y justify-center zero-box">
+  <div className="relative flex md:w-[6.70rem] overflow-hidden bg-white items-center justify-center zero-box">
     <div
       className={cn(
-        "absolute w-full bg-white md:h-full text-dark-panel rounded-none mb-1 md:mb-0 flex justify-center items-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
+        "absolute left-1 w-full md:h-full text-dark-panel bg-transparent rounded-none  md:mb-0 flex justify-center items-center text-xl md:text-3xl font-bold cursor-pointer transition-all",
         getNumberColor(0),
       )}
       onClick={leftClickFn(0)}
@@ -344,9 +356,9 @@ export const ZeroNumberCell = ({
       <span>0</span>
     </div>
 
-    <div className="zero-box absolute left-[2px] -my-px -ml-px pointer-events-none w-20 bg-panel-dark/20 h-full"></div>
+    <div className="zero-box absolute left-[2px] pointer-events-none h-full"></div>
     {selectedBets[0] && (
-      <div className="absolute pointer-events-none top-1/4 left-4 md:top-1/3 md:left-1/3 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
+      <div className="absolute pointer-events-none top-1/4 left-4 md:top-1/3 md:left-1/3 p-[0.5px] drop-shadow-lg border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center">
         <ChipBet value={selectedBets[0]} />
       </div>
     )}
@@ -396,14 +408,17 @@ export const ResultsSection = ({
               <div className="text-white font-bold md:mt-1 flex items-center justify-center">
                 <span className="font-semibold text-white">
                   -&nbsp;
-                  <span className="opacity-60 font-semibold">$</span>
+                  <span className="opacity-60 font-semibold font-abril">$</span>
                   {loseAmount}
                 </span>
               </div>
             )}
             {winAmount !== null && (
               <div className="text-white font-bold md:mt-1 flex items-center justify-center">
-                <span className="font-semibold text-white">${winAmount}</span>
+                <span className="font-semibold text-white">
+                  <span className=" font-abril">$</span>
+                  {winAmount}
+                </span>
               </div>
             )}
           </motion.div>
@@ -412,7 +427,7 @@ export const ResultsSection = ({
     </div>
 
     <motion.div
-      className={`md:size-16 aspect-square size-10 rounded-full flex items-center justify-center text-xl md:text-3xl font-bold text-white ${
+      className={`md:size-16 aspect-square size-10 font-abril rounded-full flex items-center justify-center text-xl md:text-3xl font-bold text-white ${
         selectedNumber !== null
           ? getNumberColor(selectedNumber)
           : "bg-panel-dark"
@@ -435,7 +450,7 @@ export const ResultsSection = ({
           <div className="w-16 md:w-32 text-right md:mb-4">
             <div className="md:text-2xl text-white font-bold">
               {((Object.keys(selectedBets).length / 37) * 100).toFixed(2)}
-              <span className="md:text-[18px] opacity-60"> %</span>
+              <span className="md:text-[18px] opacity-60 font-abril"> %</span>
             </div>
             <div className="tracking-tight md:text-sm text-xs opacity-60">
               Coverage

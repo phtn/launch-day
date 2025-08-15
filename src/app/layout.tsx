@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Exo_2 } from "next/font/google";
+import { Exo_2, Abril_Fatface, Geist } from "next/font/google";
 import { Navbar } from "@/_components_/navbar";
 import { Providers } from "@/ctx/providers";
 import "./globals.css";
@@ -15,7 +15,18 @@ const exo = Exo_2({
   weight: ["400", "900"],
   subsets: ["latin"],
 });
-// Set up metadata
+
+const abril = Abril_Fatface({
+  variable: "--font-abril",
+  weight: ["400"],
+  subsets: ["latin"],
+});
+
+const geist = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+// Set up metadata Geist
 export const metadata: Metadata = {
   title: "Launch Day",
   description: "Dev Launcher",
@@ -50,7 +61,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-exo ${exo.variable} antialiased`}>
+      <body
+        className={`font-sans ${geist.variable} ${abril.variable} ${exo.variable} antialiased`}
+      >
         <WagmiContext cookies={""}>
           <Providers initialState={initialState}>
             <div className="bg-gray-900">

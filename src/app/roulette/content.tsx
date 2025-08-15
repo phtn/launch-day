@@ -98,7 +98,7 @@ export default function RouletteGame() {
   // Define colors for numbers in cyberpunk theme with new bright colors
   const getNumberColor = useCallback(
     (num: number) => {
-      if (num === 0) return "bg-card-table hover:bg-avocado/90";
+      if (num === 0) return "bg-zinc-600 hover:bg-avocado/90";
 
       return redNumbers.includes(num)
         ? "bg-brood hover:bg-brood/90"
@@ -612,7 +612,7 @@ export default function RouletteGame() {
         >
           <div
             className={cn(
-              `w-full aspect-square flex items-center justify-center text-base font-bold text-white cursor-pointer ${getNumberColor(v)}`,
+              `w-full aspect-square flex items-center justify-center text-base font-bold text-neutral-100 cursor-pointer ${getNumberColor(v)}`,
               // {
               //   "rounded-tl-xl": [3, 9, 15, 21, 27, 33].includes(v),
               //   "rounded-bl-xl": [1, 7, 13, 19, 25, 31].includes(v),
@@ -624,7 +624,7 @@ export default function RouletteGame() {
             onContextMenu={removeBet(v)}
           >
             <span
-              className={cn("text-xl md:text-3xl", {
+              className={cn("text-xl md:text-4xl font-abril", {
                 "text-minty": selectedNumber === v,
               })}
             >
@@ -656,10 +656,12 @@ export default function RouletteGame() {
     >
       {/* Header */}
       <Header
+        muted={muted}
         isMobile={isMobile}
         isAutoPlaying={isAutoPlaying}
-        muted={muted}
         toggleMute={toggleMute}
+        replenishFn={handleReplenish}
+        credits={credits}
       />
 
       {/* Main content - flex-grow to take available space */}
@@ -682,9 +684,9 @@ export default function RouletteGame() {
                 />
 
                 {/* Roulette table */}
-                <div className="h-96 rounded-lg md:mb-4 bg-card-table/80 shadow-dark-panel p-3">
+                <div className="h-fit rounded-lg md:mb-4 bg-zinc-600 shadow-dark-panel p-3">
                   <div className="md:flex">
-                    {/* ZERO */}
+                    {/* ZERO card-table */}
                     <ZeroNumberCell
                       rightClickFn={removeBet}
                       leftClickFn={placeBet}
@@ -721,13 +723,9 @@ export default function RouletteGame() {
                 {!isMobile && (
                   <>
                     {/* Chip value selector */}
-                    <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-2 text-cyan-300 border-cyan-800/50 pb-1"></h3>
-                      <div className="flex items-center w-full justify-between">
-                        <CreditBalance
-                          replenishFn={handleReplenish}
-                          credits={credits}
-                        />
+                    <div className=" md:fixed md:bottom-40 md:left-1/5 w-fit">
+                      <h3 className="text-lg font-medium text-cyan-300 border-cyan-800/50 pb-1"></h3>
+                      <div className="flex h-28 items-center w-full justify-around space-x-8">
                         <ChipList
                           chipValue={chipValue}
                           onChangeFn={handleChipValueChange}

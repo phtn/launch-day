@@ -204,13 +204,13 @@ interface TChipProps {
 }
 export const TChip = (props: TChipProps) => {
   return (
-    <div className="size-12 flex items-center justify-center rounded-full overflow-hidden">
+    <div className="size-16 aspect-auto flex items-center justify-center rounded-full overflow-hidden">
       <Image
-        width={0}
-        height={0}
-        alt=""
+        width={80}
+        height={80}
+        alt={props.cover}
         src={props.cover}
-        className="aspect-square h-12 w-auto"
+        className="aspect-square h-16 w-auto"
         unoptimized
         priority
       />
@@ -238,9 +238,9 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
     ({ value, cover }: IChipItem) => (
       <button
         className={cn(
-          "relative md:ml-0 border btn bg-transparent flex items-center justify-center rounded-full size-14 md:size-14 p-0",
+          "relative md:ml-0 bg-transparent flex items-center justify-center rounded-full size-16 md:size-[4.15rem]",
           {
-            "border-2 border-lime-200 border-dashed": chipValue === value,
+            "border-2 border-lime-100 border-dashed": chipValue === value,
           },
         )}
         onClick={onChangeFn(value)}
@@ -257,7 +257,7 @@ export const ChipList = ({ chipValue, onChangeFn }: ChipListProps) => {
       data={chips}
       component={ChipItem}
       itemStyle=""
-      container="flex flex-wrap h-14 overflow-hidden"
+      container="flex flex-wrap h-16 overflow-hidden"
     />
   );
 };
