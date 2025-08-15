@@ -9,16 +9,16 @@ import { HyperHex } from "./hyperhex";
 
 export const Starlink = () => {
   return (
-    <div className="col-span-7 size-full flex items-center justify-center">
-      <div className="relative w-full h-full">
-        <div className="h-20 w-full"></div>
+    <div className="md:col-span-7 col-span-8 size-full flex items-center justify-center">
+      <div className="relative w-full h-full overflow-x-scroll">
+        <div className="md:h-20 w-full"></div>
         <HyperList
           keyId="id"
           delay={1.15}
           direction="up"
           component={HeatTile}
           data={socmeds.slice(0, 3)}
-          container="h-px overflow-visible flex"
+          container="h-px overflow-visible  flex"
         />
         <HyperList
           delay={0.6}
