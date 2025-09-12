@@ -105,7 +105,15 @@ export const Starlink = () => {
           delay={3.25}
           direction="up"
           component={HeatTile}
-          data={frontends.slice(10)}
+          data={frontends.slice(10, 14)}
+          container="h-px overflow-visible flex"
+        />
+        <HyperList
+          keyId="id"
+          delay={3.25}
+          direction="up"
+          component={HeatTile}
+          data={frontends.slice(14)}
           container="h-px overflow-visible flex"
         />
       </div>
@@ -119,7 +127,7 @@ const HeatTile = memo((item: StarlinkData) => {
       className="group/tile"
       href={item.href}
       target="_blank"
-      title={item.description}
+      title={item.label}
     >
       <HyperHex posX={item.posX} posY={item.posY}>
         <Icon name={item.icon} className="size-7 text-zinc-800" solid />
@@ -472,11 +480,57 @@ const frontends: StarlinkData[] = [
   },
   {
     id: 12,
-    label: "expo-icons",
-    description: "Vector icon directory for Expo apps",
-    href: "https://icons.expo.fyi/Index",
-    icon: "expo-icons",
+    label: "Cult UI",
+    description: "Components for Design Engineers",
+    href: "https://cult-ui.com/",
+    icon: "cult-ui",
     posX: 259,
     posY: 577,
+  },
+  {
+    id: 13,
+    label: "Kokonut UI",
+    description: "Collection of stunning components.",
+    href: "https://kokonutui.com/",
+    icon: "kokonut-ui",
+    posX: 338,
+    posY: 577,
+  },
+  {
+    id: 14,
+    label: "Fancy Components*",
+    description:
+      "Collection of fun and weird, ready-to-use components and microinteractions",
+    href: "https://www.fancycomponents.dev/",
+    icon: "fancy-components",
+    posX: 151,
+    posY: 604,
+  },
+  {
+    id: 15,
+    label: "Badtz UI",
+    description: "UI library for React developers.",
+    href: "https://www.badtz-ui.com/",
+    icon: "badtz-ui",
+    posX: 230,
+    posY: 604,
+  },
+  {
+    id: 16,
+    label: "Animate UI",
+    description: "Elevate your UI with fluid, animated components",
+    href: "https://animate-ui.com/",
+    icon: "animate-ui",
+    posX: 309,
+    posY: 604,
+  },
+  {
+    id: 17,
+    label: "React Bits",
+    description: "React components for creative developers",
+    href: "https://reactbits.dev/",
+    icon: "react-bits",
+    posX: 388,
+    posY: 604,
   },
 ];

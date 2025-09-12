@@ -1,14 +1,13 @@
-import { type ReactNode } from "react";
-import { Exo_2, Abril_Fatface, Geist } from "next/font/google";
 import { Navbar } from "@/_components_/navbar";
 import { Providers } from "@/ctx/providers";
-import "./globals.css";
-// import { Footer } from "@/_components_/footer";
 import WagmiContext from "@/ctx/wagmi";
-import { headers } from "next/headers";
-import { cookieToInitialState } from "wagmi";
 import { config } from "@/ctx/wagmi/config";
 import { Metadata } from "next";
+import { Abril_Fatface, Exo_2, Geist } from "next/font/google";
+import { headers } from "next/headers";
+import { type ReactNode } from "react";
+import { cookieToInitialState } from "wagmi";
+import "./globals.css";
 
 const exo = Exo_2({
   variable: "--font-exo",
