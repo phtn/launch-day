@@ -147,7 +147,7 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
       </div>
       <div
         ref={scrollAreaRef}
-        className='relative mt-20 z-50 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:gird-cols-12 gap-4 pb-36'>
+        className='relative mt-24 z-50 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:gird-cols-12 gap-4 pb-36'>
         {filteredIcons.map((icon) => (
           <div
             key={icon.name}
@@ -164,7 +164,7 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
 
             <div className='absolute top-0 right-0 hidden group-hover/icon:flex p-2'>
               <label className='swap swap-rotate'>
-                <input type='checkbox' onClick={copyIconSymbol} defaultChecked={isCopied} />
+                <input type='checkbox' onClick={copyIconSymbol} checked={isCopied} readOnly />
                 <Icon name={'check'} className='size-4 swap-on' />
                 <Icon name={'re-up.ph'} className='size-4 swap-off' />
               </label>
