@@ -4,8 +4,9 @@ import Link from 'next/link'
 
 export const Sidebar = () => {
   const data: Array<SidebarItem> = [
-    { id: '1', label: 'Roulette', description: 'Description 1', href: '/roulette', icon: 'airplane-take-off-01' },
-    { id: '2', label: 'Crypto', description: 'Trends & Prices', href: '/crypto', icon: 'coinbase' }
+    { id: '1', label: 'Roulette', description: 'Play for fun', href: '/roulette', icon: 'airplane-take-off-01' },
+    { id: '2', label: 'Crypto', description: 'Trends & Prices', href: '/crypto', icon: 'coinbase' },
+    { id: '3', label: 'Icons', description: 'Icon Sets', href: '/icons', icon: 'coinbase' }
   ]
   return (
     <div className='col-span-3 h-full w-full flex justify-center p-2 md:p-2'>

@@ -26,7 +26,7 @@ const geist = Geist({
 
 const figtree = Figtree({
   variable: '--font-figtree',
-  weight: ['400', '900'],
+  weight: ['400', '600', '700', '900'],
   subsets: ['latin']
 })
 

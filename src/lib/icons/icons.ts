@@ -613,11 +613,23 @@ export const icons = {
       '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="m2.75 21.25l18.5-18.5"/><path fill="currentColor" d="M14.625 12a2.625 2.625 0 0 1-4.481 1.856l3.712-3.712c.475.475.769 1.131.769 1.856Z"/><path d="M6.924 17.076c1.364.993 3.057 1.734 5.076 1.734c4.813 0 7.771-4.199 8.82-6.002a1.6 1.6 0 0 0-.001-1.615c-.609-1.046-1.86-2.898-3.742-4.27m-2.81-1.409A8 8 0 0 0 12 5.19c-4.808 0-7.768 4.197-8.818 6.001a1.6 1.6 0 0 0 0 1.617c.326.56.836 1.35 1.528 2.173"/></g>',
     viewBox: '0 0 24 24',
     set: 'proicons'
+  },
+  'user-fill': {
+    symbol:
+      '<path fill="currentColor" d="M19.652 19.405c.552-.115.882-.693.607-1.187c-.606-1.087-1.56-2.043-2.78-2.771C15.907 14.509 13.98 14 12 14s-3.907.508-5.479 1.447c-1.22.728-2.174 1.684-2.78 2.771c-.275.494.055 1.072.607 1.187a37.5 37.5 0 0 0 15.303 0"/><circle cx="12" cy="8" r="5" fill="currentColor"/>',
+    viewBox: '0 0 24 24',
+    set: 'lets-icons'
+  },
+  height: {
+    symbol:
+      '<path fill="currentColor" d="m12 3l-.354-.354l.354-.353l.354.353zm.5 11a.5.5 0 0 1-1 0zM6.646 7.646l5-5l.708.708l-5 5zm5.708-5l5 5l-.708.708l-5-5zM12.5 3v11h-1V3z"/><path fill="currentColor" d="m12 21l-.354.354l.354.353l.354-.353zm.5-7a.5.5 0 0 0-1 0zm-5.854 2.354l5 5l.708-.708l-5-5zm5.708 5l5-5l-.708-.708l-5 5zM12.5 21v-7h-1v7z"/>',
+    viewBox: '0 0 24 24',
+    set: 'lets-icons'
   }
 }
 
 export type IconNameType = keyof typeof icons
-// export type IconList = typeof icons;
+
 /*
 
 

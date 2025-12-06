@@ -1,7 +1,9 @@
 'use client'
 
 import { useCrypto } from '@/hooks/use-crypto'
+import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { formatTimestamp } from '@/utils/date'
 import { Suspense } from 'react'
 
 const formatPrice = (price: number): string => {
@@ -32,12 +34,12 @@ const formatSupply = (num: number): string => {
 
 const PercentChange = ({ value }: { value: number }) => {
   const isPositive = value >= 0
-  const color = isPositive ? 'text-emerald-300' : 'text-rose-100 opacity-70 font-medium font-space'
+  const color = isPositive ? 'text-emerald-300' : 'text-rose-100 opacity-70'
   const arrow = isPositive ? '▲' : '▼'
 
   return (
-    <span className={`${color} font-medium font-sans whitespace-nowrap`}>
-      <span className={cn(isPositive ? 'text-emerald-300' : 'text-rose-400', 'text-xs')}>{arrow}</span>{' '}
+    <span className={`${color} whitespace-nowrap font-medium font-space`}>
+      <span className={cn(isPositive ? 'text-emerald-400' : 'text-rose-400', 'text-xs')}>{arrow}</span>{' '}
       {Math.abs(value).toFixed(2)}%
     </span>
   )
@@ -48,30 +50,39 @@ export const CryptoContent = () => {
 
   if (error) {
     return (
-      <main className='h-screen px-4 md:px-0 overflow-hidden text-white bg-black flex items-center justify-center'>
+      <div className='h-screen px-4 md:px-0 overflow-hidden text-white bg-black flex items-center justify-center'>
         <div className='text-center'>
           <p className='text-red-400 text-lg mb-4'>Error: {error}</p>
           <button onClick={refetch} className='btn btn-primary btn-sm'>
             Retry
           </button>
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className='h-full px-4 md:px-6 overflow-hidden text-white bg-black flex flex-col'>
-      <header className='flex items-center justify-between py-4 border-b border-zinc-800'>
+    <div className='h-full px-4 md:px-6 overflow-hidden text-white flex flex-col'>
+      <header className='flex items-center justify-between py-4'>
         <div>
           <h1 className='text-lg md:text-2xl font-bold tracking-tight'>Crypto Prices</h1>
-          {lastUpdated && (
-            <p className='text-xs text-zinc-500 mt-1 portrait:hidden'>
-              Last updated: {new Date(lastUpdated).toLocaleString()}
-            </p>
-          )}
         </div>
-        <button onClick={refetch} className='btn btn-sm btn-neutral gap-2'>
-          Refresh
+        <button onClick={refetch} className='group/refresh block btn btn-md btn-soft pb-0.5 h-12 items-center w-fit'>
+          <div className='flex items-center space-x-1.5'>
+            <Icon
+              name='refresh-linear'
+              className='size-4 opacity-70 group-hover/refresh:rotate-135 transition-transform duration-500'
+            />
+            <span className='font-medium font-sans tracking-tight text-base text-orange-100 group-hover/refresh:text-emerald-100'>
+              Refresh
+            </span>
+          </div>
+          {lastUpdated && (
+            <div className='text-xs space-x-1.5 -mt-0.5 portrait:hidden'>
+              <span className='opacity-50 font-normal'>updated</span>
+              <span className='opacity-70 font-medium'>{formatTimestamp(lastUpdated)}</span>
+            </div>
+          )}
         </button>
       </header>
 
@@ -79,10 +90,10 @@ export const CryptoContent = () => {
         <div className='flex-1 overflow-auto'>
           <table className='table table-xs table-pin-rows'>
             <thead>
-              <tr className='bg-base-300 text-zinc-400 text-xs sticky uppercase tracking-wider font-normal'>
-                <th className='text-center sticky left-0 z-10 bg-zinc-900 text-base font-exo pr-1'>#</th>
-                <th className='sticky left-6 z-10 bg-zinc-900'>Name</th>
-                <th className='left-6 z-10 bg-zinc-900'></th>
+              <tr className='bg-base-200 text-zinc-400 text-xs sticky uppercase tracking-wider font-normal'>
+                <th className='text-center sticky backdrop-blur-3xl left-0 z-10 text-base font-exo pr-1 w-fit'>#</th>
+                <th className='sticky left-6 z-10 backdrop-blur-3xl'>Name</th>
+                <th className='left-6 z-10 '></th>
                 <th className='text-right'>($) Price</th>
                 <th className='text-right'>1h %</th>
                 <th className='text-right'>24h %</th>
@@ -96,20 +107,18 @@ export const CryptoContent = () => {
             </thead>
             <tbody>
               {data.map((crypto) => (
-                <tr
-                  key={crypto.id}
-                  className=' text-sm hover:bg-zinc-900/50 border-b border-zinc-800/50 transition-colors group'>
-                  <th className='text-center text-zinc-500 font-normal sticky left-0 z-10 bg-black group-hover:bg-zinc-900 transition-colors portrait:w-4'>
-                    {crypto.rank}
+                <tr key={crypto.id} className=' text-sm border-b border-base-100 transition-colors duration-50 group'>
+                  <th className='text-center backdrop-blur-xl bg-black/20 font-normal sticky left-0 z-10 portrait:w-4'>
+                    <span className='opacity-50'>{crypto.rank}</span>
                   </th>
-                  <td className='left-6 sticky z-10 bg-black group-hover:bg-zinc-900 transition-colors'>
+                  <td className='left-6 sticky z-10 bg-black'>
                     <div className='flex items-center gap-2'>
-                      <span className='font-bone font-semibold text-cyan-50/90'>{crypto.symbol}</span>
+                      <span className='font-bone font-medium text-emerald-50'>{crypto.symbol}</span>
                     </div>
                   </td>
-                  <td className='left-6 z-10 bg-black group-hover:bg-zinc-900 transition-colors'>
+                  <td className='left-6 z-10 bg-black'>
                     <div className='flex items-center gap-2'>
-                      <span className='text-zinc-500 whitespace-nowrap text-[8px] md:text-xs'>{crypto.name}</span>
+                      <span className='opacity-50 whitespace-nowrap text-[8px] md:text-xs'>{crypto.name}</span>
                     </div>
                   </td>
                   <td className='text-right font-space text-orange-100'>{formatPrice(crypto.price)}</td>
@@ -132,7 +141,7 @@ export const CryptoContent = () => {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
+            <tfoot className={cn({ hidden: !data })}>
               <tr className='bg-zinc-900/80 text-zinc-400 text-xs uppercase tracking-wider'>
                 <th className='text-center sticky left-0 z-10 bg-zinc-900 font-exo text-base pr-1'>#</th>
                 <th className='sticky left-6 z-10 bg-zinc-900 pl-1'>Name</th>
@@ -151,7 +160,7 @@ export const CryptoContent = () => {
           </table>
         </div>
       </Suspense>
-    </main>
+    </div>
   )
 }
 
