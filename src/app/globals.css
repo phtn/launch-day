@@ -107,9 +107,7 @@
   --color-error: oklch(57% 0.245 27.325);
   --color-error-content: oklch(97% 0.013 17.38);
   --color-minty: oklch(0.72 0.11 178);
-  --font-sans: var(--font-geist-sans);
-  --font-abril: var(--font-abril);
-  --font-exo: var(--font-exo);
+
   --radius-selector: 1rem;
   --radius-field: 0.5rem;
   --radius-box: 2rem;
@@ -130,9 +128,12 @@
   --color-avocado-light: oklch(0.8 0.16 148);
   --color-card-table: oklch(0.6 0.16 148);
   --color-brood: oklch(0.58 0.2 32);
-  --font-sans: var(--font-geist-sans);
+  --font-geist: var(--font-geist-sans);
   --font-abril: var(--font-abril);
   --font-exo: var(--font-exo);
+  --font-sans: var(--font-figtree);
+  --font-bone: var(--font-bone);
+  --font-space: var(--font-space);
 }
 
 .diamond {

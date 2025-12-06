@@ -1,21 +1,22 @@
-import { type ClassName } from "@/app/types";
-import { cn } from "@/lib/utils";
-import { AnimatePresence, motion, type Variants } from "motion/react";
-import { type FC, type ReactNode, useCallback, useMemo } from "react";
+import { type ClassName } from '@/app/types'
+import { cn } from '@/lib/utils'
+import { AnimatePresence, motion, type Variants } from 'motion/react'
+import { type FC, type ReactNode, useCallback, useMemo } from 'react'
 
 interface HyperListProps<T> {
-  keyId?: keyof T;
-  component: FC<T>;
-  data: T[] | undefined;
-  container?: ClassName;
-  itemStyle?: ClassName;
-  reversed?: boolean;
-  orderBy?: keyof T;
-  max?: number;
-  children?: ReactNode;
-  direction?: "up" | "down" | "left" | "right";
-  delay?: number;
-  disableAnimation?: boolean;
+  keyId?: keyof T
+  component: FC<T>
+  data: T[] | undefined
+  container?: ClassName
+  itemStyle?: ClassName
+  reversed?: boolean
+  orderBy?: keyof T
+  max?: number
+  children?: ReactNode
+  direction?: 'up' | 'down' | 'left' | 'right'
+  delay?: number
+  disableAnimation?: boolean
+  scrollable?: boolean
 }
 
 export const HyperList = <T extends object>(props: HyperListProps<T>) => {
@@ -25,68 +26,66 @@ export const HyperList = <T extends object>(props: HyperListProps<T>) => {
     children,
     data,
     delay = 0,
-    direction = "down",
+    direction = 'down',
     itemStyle,
     keyId,
     max = 15,
-    orderBy = "updated_at",
+    orderBy = 'updated_at',
     reversed = false,
     disableAnimation = false,
-  } = props;
+    scrollable = false
+  } = props
 
   const baseContainerStyle = useMemo(
-    () => cn("max-h-60vh overflow-y-auto", container),
-    [container],
-  );
+    () => cn('max-h-60vh', container, scrollable && 'overflow-y-scroll'),
+    [container, scrollable]
+  )
 
-  const baseItemStyle = useMemo(
-    () => cn("hex-item group/list", itemStyle),
-    [itemStyle],
-  );
+  const baseItemStyle = useMemo(() => cn('hex-item group/list', itemStyle), [itemStyle])
 
   const variants: Variants = useMemo(
     () => ({
       down: {
         opacity: 0,
-        y: -10,
+        y: -10
       },
       up: {
         opacity: 0,
-        y: 10,
+        y: 10
       },
       left: {
         opacity: 0,
-        x: 6,
+        x: 6
       },
       right: {
         opacity: 0,
-        x: -6,
-      },
+        x: -6
+      }
     }),
-    [],
-  );
+    []
+  )
 
   const animate = useMemo(() => {
     switch (direction) {
-      case "up":
-        return { y: 0 };
-      case "left":
-        return { x: 0 };
-      case "right":
-        return { x: 0 };
+      case 'up':
+        return { y: 0 }
+      case 'left':
+        return { x: 0 }
+      case 'right':
+        return { x: 0 }
       default:
-        return { y: 0 };
+        return { y: 0 }
     }
-  }, [direction]);
+  }, [direction])
 
   const slicedData = useMemo(
     () => (reversed ? data?.slice(0, max).reverse() : data?.slice(0, max)),
-    [data, max, reversed],
-  );
+    [data, max, reversed]
+  )
 
   const render = useCallback(
     (i: T, j: number) => {
-      const key = keyId && keyId in i ? String(i[keyId]) : String(j);
+      const key = keyId && keyId in i ? String(i[keyId]) : String(j)
       return (
         <motion.li
           key={key}
@@ -94,45 +93,33 @@ export const HyperList = <T extends object>(props: HyperListProps<T>) => {
           variants={variants}
           animate={{ opacity: 1, ...animate }}
           transition={{
-            type: "spring",
+            type: 'spring',
             visualDuration: 0.6,
             bounce: 0.5,
-            delay: j * 0.04 + delay,
+            delay: j * 0.04 + delay
           }}
-          className={cn(baseItemStyle, "hex-item")}
-        >
+          className={cn(baseItemStyle, 'hex-item')}>
           <Component {...i} />
         </motion.li>
-      );
+      )
     },
-    [
-      Component,
-      baseItemStyle,
-      keyId,
-      animate,
-      direction,
-      variants,
-      delay,
-      disableAnimation,
-    ],
-  );
+    [Component, baseItemStyle, keyId, animate, direction, variants, delay, disableAnimation]
+  )
 
   const sortFn = useCallback(
     (a: T, b: T) => {
       if (orderBy in b && orderBy in a) {
-        return Number(b[orderBy as keyof T]) - Number(a[orderBy as keyof T]);
+        return Number(b[orderBy as keyof T]) - Number(a[orderBy as keyof T])
       }
-      return 0;
+      return 0
     },
-    [orderBy],
-  );
+    [orderBy]
+  )
 
   return (
     <AnimatePresence>
       {children}
-      <ul className={baseContainerStyle}>
-        {slicedData?.sort(sortFn).map(render)}
-      </ul>
+      <ul className={baseContainerStyle}>{slicedData?.sort(sortFn).map(render)}</ul>
     </AnimatePresence>
-  );
-};
+  )
+}
