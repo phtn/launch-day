@@ -1,6 +1,8 @@
-@import "tailwindcss";
-
+@import 'tailwindcss';
 @plugin 'tailwindcss-animate';
+@plugin 'daisyui' {
+  themes: dracula;
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -12,160 +14,149 @@
   If we ever want to remove these styles, we need to add an explicit border
   color utility to any element that depends on these defaults.
 */
-@layer base {
-    *,
-    ::after,
-    ::before,
-    ::backdrop,
-    ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
-    }
-}
+/*@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}*/
 
 @layer utilities {
-    .scroll-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    .scroll-hide::-webkit-scrollbar {
-        display: none;
-    }
+  .scroll-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scroll-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .pentagon {
-    /* width: 200px; */
-    aspect-ratio: 1.75;
-    --o: calc(50% * tan(-22.5deg));
-    clip-path: polygon(
-        var(--o) 0%,
-        100% var(--o),
-        calc(100% - var(--o)) 50%,
-        0% calc(180% - var(--o))
-    );
+  /* width: 200px; */
+  aspect-ratio: 1.75;
+  --o: calc(50% * tan(-22.5deg));
+  clip-path: polygon(var(--o) 0%, 100% var(--o), calc(100% - var(--o)) 50%, 0% calc(180% - var(--o)));
 }
 
 .pentagox {
-    /* width: 200px; */
-    aspect-ratio: 1.75;
-    --o: calc(50% * tan(-22.5deg));
-    clip-path: polygon(
-        var(--o) 0%,
-        100% var(--o),
-        calc(100% - var(--o)) 50%,
-        0% calc(180% - var(--o))
-    );
-}
-
-@plugin "daisyui";
-@plugin "daisyui/theme" {
-    name: "v";
-    default: false;
-    prefersdark: false;
-    color-scheme: "dark";
-    --color-base-100: oklch(14% 0.005 285.823);
-    --color-base-200: oklch(21% 0.006 285.885);
-    --color-base-300: oklch(27% 0.006 286.033);
-    --color-base-content: oklch(96% 0.001 286.375);
-    --color-primary: oklch(0.13 0.0254 260.23);
-    --color-primary-content: oklch(100% 0 0);
-    --color-secondary: oklch(93% 0.127 124.321);
-    --color-secondary-content: oklch(98% 0.018 155.826);
-    --color-accent: oklch(65% 0.241 354.308);
-    --color-accent-content: oklch(97% 0.014 308.299);
-    --color-neutral: oklch(55% 0.016 285.938);
-    --color-neutral-content: oklch(98% 0 0);
-    --color-info: oklch(74% 0.16 232.661);
-    --color-info-content: oklch(30% 0.056 229.695);
-    --color-success: oklch(70% 0.14 182.503);
-    --color-success-content: oklch(27% 0.046 192.524);
-    --color-warning: oklch(82% 0.189 84.429);
-    --color-warning-content: oklch(27% 0.077 45.635);
-    --color-error: oklch(64% 0.246 16.439);
-    --color-error-content: oklch(28% 0.109 3.907);
-    --color-minty: oklch(0.72 0.11 178);
-    --font-sans: var(--font-geist-sans);
-    --font-abril: var(--font-abril);
-    --font-exo: var(--font-exo);
-    --radius-selector: 0.25rem;
-    --radius-field: 0.25rem;
-    --radius-box: 0.5rem;
-    --size-selector: 0.25rem;
-    --size-field: 0.25rem;
-    --border: 1px;
-    --depth: 0;
-    --noise: 1;
+  /* width: 200px; */
+  aspect-ratio: 1.75;
+  --o: calc(50% * tan(-22.5deg));
+  clip-path: polygon(var(--o) 0%, 100% var(--o), calc(100% - var(--o)) 50%, 0% calc(180% - var(--o)));
 }
 
 @plugin "daisyui/theme" {
-    name: "v";
-    default: false;
-    prefersdark: false;
-    color-scheme: "light";
-    --color-base-100: oklch(98% 0.003 247.858);
-    --color-base-200: oklch(96% 0.007 247.896);
-    --color-base-300: oklch(92% 0.013 255.508);
-    --color-base-content: oklch(20% 0.042 265.755);
-    --color-primary: oklch(76% 0.177 163.223);
-    --color-primary-content: oklch(26% 0.051 172.552);
-    --color-secondary: oklch(90% 0.098 111.71);
-    --color-secondary-content: oklch(27% 0.046 192.524);
-    --color-accent: oklch(77% 0.152 181.912);
-    --color-accent-content: oklch(27% 0.046 192.524);
-    --color-neutral: oklch(37% 0.044 257.287);
-    --color-neutral-content: oklch(98% 0.003 247.858);
-    --color-info: oklch(60% 0.126 221.723);
-    --color-info-content: oklch(98% 0.019 200.873);
-    --color-success: oklch(59% 0.145 163.225);
-    --color-success-content: oklch(97% 0.021 166.113);
-    --color-warning: oklch(66% 0.179 58.318);
-    --color-warning-content: oklch(98% 0.022 95.277);
-    --color-error: oklch(57% 0.245 27.325);
-    --color-error-content: oklch(97% 0.013 17.38);
-    --color-minty: oklch(0.72 0.11 178);
-    --font-sans: var(--font-geist-sans);
-    --font-abril: var(--font-abril);
-    --font-exo: var(--font-exo);
-    --radius-selector: 1rem;
-    --radius-field: 0.5rem;
-    --radius-box: 2rem;
-    --size-selector: 0.25rem;
-    --size-field: 0.25rem;
-    --border: 1px;
-    --depth: 1;
-    --noise: 1;
+  name: 'v';
+  default: false;
+  prefersdark: false;
+  color-scheme: 'dark';
+  --color-base-100: oklch(14% 0.005 285.823);
+  --color-base-200: oklch(21% 0.006 285.885);
+  --color-base-300: oklch(27% 0.006 286.033);
+  --color-base-content: oklch(96% 0.001 286.375);
+  --color-primary: oklch(0.13 0.0254 260.23);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(93% 0.127 124.321);
+  --color-secondary-content: oklch(98% 0.018 155.826);
+  --color-accent: oklch(65% 0.241 354.308);
+  --color-accent-content: oklch(97% 0.014 308.299);
+  --color-neutral: oklch(55% 0.016 285.938);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(74% 0.16 232.661);
+  --color-info-content: oklch(30% 0.056 229.695);
+  --color-success: oklch(70% 0.14 182.503);
+  --color-success-content: oklch(27% 0.046 192.524);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(27% 0.077 45.635);
+  --color-error: oklch(64% 0.246 16.439);
+  --color-error-content: oklch(28% 0.109 3.907);
+  --color-minty: oklch(0.72 0.11 178);
+  --font-sans: var(--font-geist-sans);
+  --font-abril: var(--font-abril);
+  --font-exo: var(--font-exo);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 1;
+}
+
+@plugin "daisyui/theme" {
+  name: 'v';
+  default: false;
+  prefersdark: false;
+  color-scheme: 'light';
+  --color-base-100: oklch(98% 0.003 247.858);
+  --color-base-200: oklch(96% 0.007 247.896);
+  --color-base-300: oklch(92% 0.013 255.508);
+  --color-base-content: oklch(20% 0.042 265.755);
+  --color-primary: oklch(76% 0.177 163.223);
+  --color-primary-content: oklch(26% 0.051 172.552);
+  --color-secondary: oklch(90% 0.098 111.71);
+  --color-secondary-content: oklch(27% 0.046 192.524);
+  --color-accent: oklch(77% 0.152 181.912);
+  --color-accent-content: oklch(27% 0.046 192.524);
+  --color-neutral: oklch(37% 0.044 257.287);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(60% 0.126 221.723);
+  --color-info-content: oklch(98% 0.019 200.873);
+  --color-success: oklch(59% 0.145 163.225);
+  --color-success-content: oklch(97% 0.021 166.113);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(57% 0.245 27.325);
+  --color-error-content: oklch(97% 0.013 17.38);
+  --color-minty: oklch(0.72 0.11 178);
+  --font-sans: var(--font-geist-sans);
+  --font-abril: var(--font-abril);
+  --font-exo: var(--font-exo);
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 2rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
 }
 
 @theme inline {
-    --color-minty: oklch(0.92 0.1 120);
-    --color-panel: oklch(0.3 0.01 304);
-    --color-panel-dark: oklch(0.22 0.01 300);
-    --color-blood: oklch(0.66 0.24 360);
-    --color-mossad: oklch(0.66 0.19 242);
-    --color-avocado: oklch(0.75 0.2 148);
-    --color-avocado-light: oklch(0.8 0.16 148);
-    --color-card-table: oklch(0.6 0.16 148);
-    --color-brood: oklch(0.58 0.2 32);
-    --font-sans: var(--font-geist-sans);
-    --font-abril: var(--font-abril);
-    --font-exo: var(--font-exo);
+  --color-minty: oklch(0.92 0.1 120);
+  --color-panel: oklch(0.3 0.01 304);
+  --color-panel-dark: oklch(0.22 0.01 300);
+  --color-blood: oklch(0.66 0.24 360);
+  --color-mossad: oklch(0.66 0.19 242);
+  --color-avocado: oklch(0.75 0.2 148);
+  --color-avocado-light: oklch(0.8 0.16 148);
+  --color-card-table: oklch(0.6 0.16 148);
+  --color-brood: oklch(0.58 0.2 32);
+  --font-sans: var(--font-geist-sans);
+  --font-abril: var(--font-abril);
+  --font-exo: var(--font-exo);
 }
 
 .diamond {
-    aspect-ratio: 1 / cos(30deg);
-    clip-path: polygon(
-        50% 0%,
-        /* Top vertex */ 100% 50%,
-        /* Right vertex */ 50% 100%,
-        /* Bottom vertex */ 0% 50% /* Left vertex */
-    );
+  aspect-ratio: 1 / cos(30deg);
+  clip-path: polygon(
+    50% 0%,
+    /* Top vertex */ 100% 50%,
+    /* Right vertex */ 50% 100%,
+    /* Bottom vertex */ 0% 50% /* Left vertex */
+  );
 }
 
 .zero-box {
-    clip-path: polygon(
-        0% 50%,
-        /* Left middle point */ 40% 0%,
-        /* Top point */ 100% 0%,
-        /* Right middle point */ 100% 100%,
-        /* Bottom right point */ 40% 100% /* Bottom left point */
-    );
+  clip-path: polygon(
+    0% 50%,
+    /* Left middle point */ 40% 0%,
+    /* Top point */ 100% 0%,
+    /* Right middle point */ 100% 100%,
+    /* Bottom right point */ 40% 100% /* Bottom left point */
+  );
 }

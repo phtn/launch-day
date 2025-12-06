@@ -1,12 +1,10 @@
 import { Navbar } from "@/_components_/navbar";
 import { Providers } from "@/ctx/providers";
-import WagmiContext from "@/ctx/wagmi";
-import { config } from "@/ctx/wagmi/config";
+import { DynamicWagmiContext } from "@/ctx/wagmi/dynamic";
 import { Metadata } from "next";
 import { Abril_Fatface, Exo_2, Geist } from "next/font/google";
 import { headers } from "next/headers";
 import { type ReactNode } from "react";
-import { cookieToInitialState } from "wagmi";
 import "./globals.css";
 
 const exo = Exo_2({
@@ -47,24 +45,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  // const createCtx = cache(async () => {
-  //   const heads = new Headers(await headers());
-  //   return heads.get("cookie");
-  // });
-  // let cookies: string | null = "";
-  // createCtx().then((c) => (cookies = c));
-  const initialState = cookieToInitialState(
-    config,
-    (await headers()).get("cookie"),
-  );
+  const cookies = (await headers()).get("cookie");
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`font-sans ${geist.variable} ${abril.variable} ${exo.variable} antialiased`}
       >
-        <WagmiContext cookies={""}>
-          <Providers initialState={initialState}>
+        <DynamicWagmiContext cookies={cookies}>
+          <Providers>
             <div className="bg-gray-900">
               <Navbar />
               <main className="bg-gray-950 h-screen overflow-hidden">
@@ -73,7 +62,7 @@ export default async function RootLayout({
               {/* <Footer /> */}
             </div>
           </Providers>
-        </WagmiContext>
+        </DynamicWagmiContext>
       </body>
     </html>
   );
