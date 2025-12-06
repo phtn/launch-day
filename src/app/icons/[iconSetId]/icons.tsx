@@ -80,17 +80,34 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
 
   const back = useRouter().back
 
+  const [mode, setMode] = useState<'light' | 'dark'>('light')
+  const toggleMode = () => setMode(mode === 'light' ? 'dark' : 'light')
+
+  const handleChangeSearchQuery = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value)
+  }
+
   return (
-    <div className='h-screen overflow-scroll'>
+    <div
+      className={cn(
+        'h-screen overflow-scroll bg-neutral-50 text-base-300',
+        mode === 'dark' ? 'bg-neutral-900 text-neutral-200' : ''
+      )}>
       <div className='absolute z-100 h-16 flex items-center mx-auto w-full'>
-        <div className='bg-base-300 size-full h-16 px-4 lg:px-8 flex items-center w-full justify-center'>
+        <div
+          className={cn(
+            'size-full h-16 px-4 lg:px-8 flex items-center w-full justify-center bg-base-100/10 backdrop-blur-2xl',
+            {
+              'bg-base-300': mode === 'dark'
+            }
+          )}>
           <div className='flex items-center flex-1 min-w-44 lg:min-w-80 space-x-4 md:space-x-4 lg:space-x-8'>
-            <div className='flex items-center'>
-              <button onClick={back} className='btn btn-ghost btn-xs btn-circle'>
-                <Icon name='arrow-left-01' className='size-4 text-minty' />
+            <div className='flex items-center space-x-2'>
+              <button onClick={back} className='btn btn-ghost btn-xs btn-circle bg-base-100/10'>
+                <Icon name='arrow-left-01' className='size-4' />
               </button>
-              <h1 className='text-base md:text-xl lg:text-2xl space-x-1 lg:space-x-2 tracking-tighter h-12 flex items-center capitalize'>
-                <span className='whitespace-nowrap'>{iconSetId}</span>
+              <h1 className='md:text-xl lg:text-2xl space-x-1 lg:space-x-4 xl:space-x-6 tracking-tighter h-12 flex items-center capitalize'>
+                <span className={cn('text-neutral-800', { 'text-neutral-200': mode === 'dark' })}>{iconSetId}</span>
                 <span
                   className={cn('flex font-bone rounded-md aspect-square items-center justify-center', {
                     'text-orange-300': filteredIcons.length === 0
@@ -100,21 +117,39 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
               </h1>
             </div>
 
-            <div className='flex items-center lg:space-x-4'>
+            <div
+              className={cn('flex items-center lg:space-x-4 text-base-200', { 'text-neutral-400': mode === 'dark' })}>
               <button
                 onClick={loadMore}
-                className=' rounded-full btn btn-xs lg:btn-sm btn-dash border-minty/40 disabled:border-minty/20 disabled:bg-transparent text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-medium'
+                className={cn(
+                  'rounded-full btn-ghost btn btn-xs -space-x-1 lg:btn-sm text-xs lg:text-sm font-medium font-space px-1 disabled:text-transparent hidden',
+                  { flex: hasMore }
+                )}
                 disabled={!hasMore}>
-                <span className='hidden lg:flex'>Load</span> More
+                <Icon name='plus-sign' className='size-4 hidden lg:block' />
+                <span>40</span>
               </button>
               <button
                 onClick={loadAll}
-                className='btn btn-ghost btn-xs lg:btn-sm text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-normal md:font-medium lg:font-medium'
+                className='btn btn-ghost btn-xs lg:btn-sm font-sans text-xs lg:text-sm font-normal md:font-medium lg:font-medium px-1 rounded-lg disabled:text-transparent'
                 disabled={!hasMore}>
-                <span className='hidden lg:flex'>Load</span> All
+                <Icon name='plus-sign' className='size-4 hidden lg:block' />
+                <span className=''>All</span>
+              </button>
+              <button onClick={toggleMode} className='btn btn-xs btn-circle btn-ghost group'>
+                <Icon
+                  name='dark-theme'
+                  className={cn(
+                    'size-5 text-shadow-emerald-200 rotate-5 transition-transform duration-300 ease-in-out',
+                    {
+                      'rotate-360': mode === 'dark'
+                    }
+                  )}
+                />
               </button>
             </div>
           </div>
+
           <div className='flex items-center justify-center w-40 lg:w-64'>
             <Slider
               min={16}
@@ -127,38 +162,35 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
           </div>
           <div className='min-w-24 md:min-w-44 lg:min-w-64 xl:min-w-80 join flex items-center justify-end'>
             <div>
-              <label className='input join-item input-ghost input-sm md:input-sm lg:input-md bg-black focus-visible:ring-0 focus-within:outline-0'>
-                <Input
-                  ref={searchInputRef}
-                  value={query}
-                  type='search'
-                  placeholder='Search'
-                  onChange={(e) => setQuery(e.target.value)}
-                />
+              <label className='input join-item input-ghost input-sm md:input-sm lg:input-lg bg-base-300 dark:bg-base-300/10 focus-visible:ring-0 focus-within:outline-0 rounded-s-lg font-space text-base'>
+                <Input type='search' ref={searchInputRef} placeholder='Search' onChange={handleChangeSearchQuery} />
               </label>
             </div>
             <button
-              className='btn btn-soft btn-sm md:btn-sm lg:btn-md join-item px-1.5 bg-black border-black'
-              onClick={undefined}>
-              <Icon name='slash-bold' className='size-4 md:size-4 lg:size-5 text-minty' />
+              className='btn btn-soft btn-sm md:btn-sm lg:btn-lg join-item px-1.5 dark:bg-base-300/10 dark:border-transparent rounded-e-lg'
+              onClick={() => searchInputRef.current?.focus()}>
+              <Icon name='slash-bold' className='size-4 md:size-4 lg:size-5.5' />
             </button>
           </div>
         </div>
       </div>
       <div
         ref={scrollAreaRef}
-        className='relative mt-24 z-50 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:gird-cols-12 gap-4 pb-36'>
+        className={cn(
+          'mt-24 relative z-50 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-9 xl:grid-cols-12 gap-4 pb-28',
+          { 'pt-20': filteredIcons.length > 40 }
+        )}>
         {filteredIcons.map((icon, i) => (
           <div
             key={icon.name + i}
             onMouseEnter={() => setHoveredIcon(icon)}
-            className='group/icon relative flex flex-col group aspect-square items-center justify-center p-4 border-[0.33px] border-transparent cursor-pointer hover:bg-base-200/40 dark:hover:bg-card-origin/40 hover:border-xy'>
+            className='group/icon relative flex flex-col group aspect-square items-center justify-center p-4 border-[0.33px] border-transparent cursor-pointer hover:bg-base-200/10 dark:hover:bg-card-origin/40 hover:border-xy'>
             <IconifySvg
               icon={icon}
               size={iconSize}
-              className='group-hover:scale-150 text-emerald-50 transition-transform duration-300'
+              className='group-hover:scale-150 _text-emerald-50 transition-transform duration-300'
             />
-            <span className='text-sm mt-2 group-hover:translate-y-8 text-emerald-100 transition-transform duration-300 ease-in-out font-thin font-sans'>
+            <span className='absolute bottom-0 whitespace-nowrap text-transparent group-hover:text-emerald-700 text-sm mt-2 group-hover:translate-y-8  transition-transform duration-300 ease-in-out font-thin font-sans'>
               {icon.name}
             </span>
 

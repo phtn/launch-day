@@ -642,6 +642,12 @@ export const icons = {
     symbol: `<path fill-rule="evenodd" clip-rule="evenodd" d="M18.1818 0H5.81818C2.60489 0 0 2.60489 0 5.81818V18.1818C0 21.3951 2.60489 24 5.81818 24H18.1818C21.3951 24 24 21.3951 24 18.1818V5.81818C24 2.60489 21.3951 0 18.1818 0ZM9.36263 19.7164L16.6062 5.22648C16.8789 4.68103 16.6577 4.01781 16.1123 3.74514C15.5668 3.47247 14.9036 3.69359 14.6309 4.23904L7.38738 18.7289C7.11471 19.2744 7.33584 19.9376 7.88129 20.2103C8.42674 20.4829 9.08996 20.2618 9.36263 19.7164Z" fill="currentColor"/>`,
     viewBox: `0 0 24 24`,
     set: `proicons`
+  },
+  'dark-theme': {
+    symbol:
+      '<g fill="none"><path fill="currentColor" d="M2.75 12A9.25 9.25 0 0 0 12 21.25V2.75A9.25 9.25 0 0 0 2.75 12"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21.25a9.25 9.25 0 0 0 0-18.5m0 18.5a9.25 9.25 0 0 1 0-18.5m0 18.5V2.75"/></g>',
+    viewBox: '0 0 24 24',
+    set: 'proicons'
   }
 }
 

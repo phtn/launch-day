@@ -45,7 +45,7 @@ export const Slider = ({
         className='range range-xs'
         step={step}
       />
-      <div className='flex justify-between px-0.5 mt-1 text-[10px] font-thin font-space text-minty'>
+      <div className='flex justify-between px-0.5 mt-1 text-[8px] font-thin font-space'>
         {ticks.map((tick) => (
           <span key={tick}>{tick}</span>
         ))}

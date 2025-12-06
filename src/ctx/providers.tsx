@@ -1,21 +1,16 @@
-"use client";
+'use client'
 
-import { type ReactNode } from "react";
-import { ThemeProvider } from "./theme-provider";
+import { type ReactNode } from 'react'
+import { ThemeProvider } from './theme-provider'
 
 type Props = {
-  children: ReactNode;
-};
+  children: ReactNode
+}
 
 export const Providers = ({ children }: Props) => {
   return (
-    <ThemeProvider
-      enableSystem
-      attribute="class"
-      defaultTheme="system"
-      disableTransitionOnChange
-    >
+    <ThemeProvider enableSystem attribute='class' defaultTheme='system' disableTransitionOnChange>
       {children}
     </ThemeProvider>
-  );
-};
+  )
+}

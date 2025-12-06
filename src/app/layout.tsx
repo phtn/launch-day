@@ -1,4 +1,5 @@
 import { Navbar } from '@/_components_/navbar'
+import { Dock } from '@/components/dock'
 import { Providers } from '@/ctx/providers'
 import { DynamicWagmiContext } from '@/ctx/wagmi/dynamic'
 import { Metadata } from 'next'
@@ -61,9 +62,10 @@ export default async function RootLayout({
         className={`${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${abril.variable} ${exo.variable} font-sans antialiased`}>
         <DynamicWagmiContext cookies={cookies}>
           <Providers>
-            <div className='bg-gray-900'>
+            <div className='dark'>
               <Navbar />
-              <main className='bg-gray-950 h-screen overflow-hidden'>{children}</main>
+              <main className='h-screen overflow-hidden'>{children}</main>
+              <Dock />
             </div>
           </Providers>
         </DynamicWagmiContext>

@@ -70,7 +70,7 @@ export const Content = () => {
             ))}
           </div>
         </div>
-        <div className='p-4 flex flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-12'>
+        <div className='p-4 flex flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-8'>
           {ICON_SET_IDS.map((iconSetId) => (
             <IconSetCard key={iconSetId} iconSetId={iconSetId} />
           ))}
@@ -120,15 +120,17 @@ const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
 
   return (
     <div
-      className={cn('card bg-base-300 card-md shadow-sm w-full sm:w-fit', className)}
+      className={cn('card bg-base-300/50 card-md shadow-sm w-full sm:w-fit', className)}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}>
       <div className='card-body w-full p-0'>
         <div className='flex items-center space-x-4 pl-6'>
-          <div className='text-rotate items-center bg-black/80 rounded-xl' style={{ width: 44, height: 40 }}>
+          <div
+            className='text-rotate items-center rounded-xl min-size-[44px] aspect-square'
+            style={{ width: 44, height: 40 }}>
             <span className=''>
               {icons?.slice(0, 69).map((sample, i) => (
-                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-minty size-full' />
+                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-lime-100 size-full' />
               ))}
             </span>
           </div>
@@ -153,6 +155,7 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons }: IconSetCardHeade
         <div className='flex items-center space-x-2'>
           <Link
             href={`/icons/${metadata?.id}`}
+            prefetch
             className={cn(
               'w-fit flex items-center space-x-2 font-space font-semibold text-lg md:text-xl lg:text-2xl leading-none tracking-tighter'
             )}>
@@ -194,6 +197,7 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons }: IconSetCardHeade
         />
         <StatMini
           label='icons'
+          href={`/icons/${metadata?.id}`}
           value={metadata?.icons.length ?? <Icon name='spinners-ring' className='size-5 m-1 shrink-0 opacity-80' />}
         />
       </div>
@@ -204,16 +208,19 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons }: IconSetCardHeade
 interface StatMiniProps {
   value: ReactNode
   label: string
+  href?: string
   className?: ClassName
 }
-const StatMini = ({ value, label, className }: StatMiniProps) => (
-  <div
-    className={cn(
-      'select-none flex flex-col items-center bg-black/0 p-2.5 min-size-14 sm:min-size-18 aspect-square',
-      'font-bold font-space',
-      className
-    )}>
-    <span className='pb-0.5 text-xl font-space font-thin'>{value}</span>
-    <span className='text-xs opacity-60 text-left capitalize font-sans font-normal'>{label}</span>
-  </div>
+const StatMini = ({ value, label, className, href }: StatMiniProps) => (
+  <Link href={href ?? '#'} prefetch>
+    <div
+      className={cn(
+        'select-none flex flex-col items-center bg-black/0 p-2.5 min-h-14 sm:min-h-18 min-w-20 aspect-square',
+        'font-bold font-space',
+        className
+      )}>
+      <span className='pb-0.5 text-xl font-space font-thin'>{value}</span>
+      <span className='text-xs opacity-60 text-left capitalize font-sans font-normal'>{label}</span>
+    </div>
+  </Link>
 )

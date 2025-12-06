@@ -1,11 +1,6 @@
 import { IconifyIcon, IconifyIconsResponse, IconSet } from '@/app/api/icones/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  appendCachedIcons,
-  fetchAndCacheMetadata,
-  getCachedIcons,
-  getCachedMetadata
-} from './icon-cache'
+import { appendCachedIcons, fetchAndCacheMetadata, getCachedIcons, getCachedMetadata } from './icon-cache'
 
 export type IconEntry = { name: string; sourceSetId: string; sourceHeight: number } & IconifyIcon
 

@@ -48,8 +48,8 @@
 
 @plugin "daisyui/theme" {
   name: 'xpriori';
-  default: false;
-  prefersdark: false;
+  default: true;
+  prefersdark: true;
   color-scheme: 'dark';
   --color-base-100: oklch(14% 0 0);
   --color-base-200: oklch(20% 0 0);

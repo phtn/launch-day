@@ -54,7 +54,7 @@ export const Navbar = () => {
   }, [address, balance, getBal])
 
   return (
-    <nav className='z-100 md:h-16 h-12 border-b border-base-200 w-full justify-between bg-gray-950 dark:bg-background fixed top-0 flex items-center gap-8 ps-2 md:px-8'>
+    <nav className='z-200 md:h-16 h-12 border-b border-transparent hover:border-base-300 w-full justify-between bg-black/80 backdrop-blur-2xl hover:bg-black/20 hover:backdrop-blur-2xl fixed top-0 flex items-center gap-8 ps-2 md:px-8'>
       <Brand title='Launch Day' />
       <div
         className={cn('flex items-center space-x-4 transition-transform', {
