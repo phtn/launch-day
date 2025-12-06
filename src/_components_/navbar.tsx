@@ -64,8 +64,8 @@ export const Navbar = () => {
           {balance ? (
             <label className='swap swap-flip'>
               <input type='checkbox' defaultChecked />
-              <div className='font-bone text-lg swap-on flex items-center'>{balance}</div>
-              <div className='flex items-center font-exo text-lg swap-off'>
+              <div className='font-space text-lg swap-on flex items-center'>{balance}</div>
+              <div className='flex items-center font-space text-lg swap-off'>
                 <div>$</div> <div className='text-2xl mt-2 pl-1'>*****</div>
               </div>
             </label>
