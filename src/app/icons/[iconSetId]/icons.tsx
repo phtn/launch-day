@@ -100,16 +100,16 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
               </h1>
             </div>
 
-            <div className='flex items-center'>
+            <div className='flex items-center lg:space-x-4'>
               <button
                 onClick={loadMore}
-                className=' rounded-full btn btn-xs lg:btn-sm btn-dash border-minty/60 disabled:border-minty/20 disabled:bg-transparent text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-medium'
+                className=' rounded-full btn btn-xs lg:btn-sm btn-dash border-minty/40 disabled:border-minty/20 disabled:bg-transparent text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-medium'
                 disabled={!hasMore}>
                 <span className='hidden lg:flex'>Load</span> More
               </button>
               <button
                 onClick={loadAll}
-                className='btn btn-ghost btn-xs lg:btn-sm text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-normal md:font-semibold lg:font-bold'
+                className='btn btn-ghost btn-xs lg:btn-sm text-minty disabled:text-minty/50 font-sans text-xs lg:text-sm font-normal md:font-medium lg:font-medium'
                 disabled={!hasMore}>
                 <span className='hidden lg:flex'>Load</span> All
               </button>
@@ -148,9 +148,9 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
       <div
         ref={scrollAreaRef}
         className='relative mt-24 z-50 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:gird-cols-12 gap-4 pb-36'>
-        {filteredIcons.map((icon) => (
+        {filteredIcons.map((icon, i) => (
           <div
-            key={icon.name}
+            key={icon.name + i}
             onMouseEnter={() => setHoveredIcon(icon)}
             className='group/icon relative flex flex-col group aspect-square items-center justify-center p-4 border-[0.33px] border-transparent cursor-pointer hover:bg-base-200/40 dark:hover:bg-card-origin/40 hover:border-xy'>
             <IconifySvg

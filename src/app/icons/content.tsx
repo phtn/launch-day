@@ -1,15 +1,41 @@
 'use client'
 
+import { prefetchIconSet } from '@/hooks/icon-cache'
 import { IconEntry, useIconMeta } from '@/hooks/use-icon-meta'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { ReactNode, useCallback, useEffect, useRef, useTransition } from 'react'
 import { IconSet } from '../api/icones/types'
 import { ClassName } from '../types'
 import { IconifySvg } from './iconify'
 
+const ICON_SET_IDS = ['proicons', 'svg-spinners', 'pixelarticons', 'stash', 'lets-icons'] as const
+
 export const Content = () => {
+  const router = useRouter()
+
+  // Eager prefetch all routes on mount for instant navigation
+  useEffect(() => {
+    // Use requestIdleCallback for non-blocking prefetch
+    const prefetchAll = () => {
+      ICON_SET_IDS.forEach((id) => {
+        router.prefetch(`/icons/${id}`)
+        void prefetchIconSet(id)
+      })
+    }
+
+    if ('requestIdleCallback' in window) {
+      const handle = window.requestIdleCallback(prefetchAll, { timeout: 2000 })
+      return () => window.cancelIdleCallback(handle)
+    } else {
+      // Fallback: defer with setTimeout
+      const handle = setTimeout(prefetchAll, 100)
+      return () => clearTimeout(handle)
+    }
+  }, [router])
+
   const attributions = [
     {
       label: 'Icônes',
@@ -44,8 +70,8 @@ export const Content = () => {
             ))}
           </div>
         </div>
-        <div className='p-4 flex flex-wrap gap-4'>
-          {['proicons', 'svg-spinners', 'pixelarticons', 'stash', 'lets-icons'].map((iconSetId) => (
+        <div className='p-4 flex flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-12'>
+          {ICON_SET_IDS.map((iconSetId) => (
             <IconSetCard key={iconSetId} iconSetId={iconSetId} />
           ))}
         </div>
@@ -75,14 +101,34 @@ interface IconSetCardProps {
 }
 const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
   const { metadata, icons, loadingIcons, loadingMeta } = useIconMeta(iconSetId)
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const hasPrefetched = useRef(false)
+
+  // Prefetch route + data on hover/focus for instant navigation
+  const handlePrefetch = useCallback(() => {
+    if (hasPrefetched.current) return
+    hasPrefetched.current = true
+
+    startTransition(() => {
+      // Prefetch the route (Next.js RSC payload)
+      router.prefetch(`/icons/${iconSetId}`)
+      // Prefetch the data (metadata + initial icons)
+      void prefetchIconSet(iconSetId)
+    })
+  }, [router, iconSetId])
+
   return (
-    <div className={cn('card bg-base-300 card-sm shadow-sm w-full sm:w-fit', className)}>
-      <div className='card-body w-full'>
-        <div className='flex items-center space-x-4'>
+    <div
+      className={cn('card bg-base-300 card-md shadow-sm w-full sm:w-fit', className)}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}>
+      <div className='card-body w-full p-0'>
+        <div className='flex items-center space-x-4 pl-6'>
           <div className='text-rotate items-center bg-black/80 rounded-xl' style={{ width: 44, height: 40 }}>
             <span className=''>
-              {icons?.slice(0, 69).map((sample) => (
-                <IconifySvg key={sample.name} icon={sample} size={40} className='text-minty size-full' />
+              {icons?.slice(0, 69).map((sample, i) => (
+                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-minty size-full' />
               ))}
             </span>
           </div>
@@ -100,10 +146,10 @@ interface IconSetCardHeaderProps {
   icons: Array<IconEntry>
 }
 
-const IconSetCardHeader = ({ loading, metadata, loadingIcons, icons }: IconSetCardHeaderProps) => {
+const IconSetCardHeader = ({ loading, metadata, loadingIcons }: IconSetCardHeaderProps) => {
   return (
     <div className='flex items-center justify-between w-full'>
-      <div className='min-w-1/3 sm:min-w-48 space-y-2.5'>
+      <div className='min-w-1/3 p-6 sm:min-w-48 md:min-w-56 lg:min-w-64 space-y-2.5'>
         <div className='flex items-center space-x-2'>
           <Link
             href={`/icons/${metadata?.id}`}
@@ -132,38 +178,22 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons, icons }: IconSetCa
           </h4>
         </Link>
       </div>
-      <div className='flex items-center space-x-1'>
+      <div className='flex items-start space-x-1 pr-4'>
         <StatMini
           label={loadingIcons ? 'loading' : 'size'}
           value={
             loadingIcons ? (
               <Icon name='spinners-ring' className='size-5 m-1 shrink-0 text-indigo-300' />
             ) : (
-              <div className='flex items-center text-indigo-300'>
-                <Icon name='height' className='size-5 text-indigo-100 opacity-50' />
-                <span>{metadata?.height}</span>
-              </div>
+              metadata?.height
             )
           }
-          className={cn('text-indigo-200', {
+          className={cn({
             'text-indigo-400': loadingIcons
           })}
         />
         <StatMini
-          label={loadingIcons ? 'loading' : 'loaded'}
-          value={
-            loadingIcons ? (
-              <Icon name='spinners-ring' className='size-5 m-1 shrink-0 text-indigo-400' />
-            ) : (
-              <p className='text-lg'>{icons.length}</p>
-            )
-          }
-          className={cn('text-orange-200/90', {
-            'text-indigo-400': loadingIcons
-          })}
-        />
-        <StatMini
-          label='total'
+          label='icons'
           value={metadata?.icons.length ?? <Icon name='spinners-ring' className='size-5 m-1 shrink-0 opacity-80' />}
         />
       </div>
@@ -179,11 +209,11 @@ interface StatMiniProps {
 const StatMini = ({ value, label, className }: StatMiniProps) => (
   <div
     className={cn(
-      'select-none space-y-0 flex flex-col items-center bg-black/20 p-2 min-size-14 sm:min-size-18 aspect-square',
-      'font-bold font-space tracking-wide',
+      'select-none flex flex-col items-center bg-black/0 p-2.5 min-size-14 sm:min-size-18 aspect-square',
+      'font-bold font-space',
       className
     )}>
-    <span className='py-0.5 px-1.5 font-light text-lg'>{value}</span>
-    <span className='text-sm text-left font-space capitalize tracking-tight font-normal'>{label}</span>
+    <span className='pb-0.5 text-xl font-space font-thin'>{value}</span>
+    <span className='text-xs opacity-60 text-left capitalize font-sans font-normal'>{label}</span>
   </div>
 )

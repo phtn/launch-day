@@ -1,5 +1,11 @@
 import { IconifyIcon, IconifyIconsResponse, IconSet } from '@/app/api/icones/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  appendCachedIcons,
+  fetchAndCacheMetadata,
+  getCachedIcons,
+  getCachedMetadata
+} from './icon-cache'
 
 export type IconEntry = { name: string; sourceSetId: string; sourceHeight: number } & IconifyIcon
 
@@ -7,59 +13,68 @@ const CHUNK_SIZE = 40
 
 // Simplified for single-set usage per IconSetCard to avoid effect loops on array identity
 export const useIconMeta = (iconSetId: string = 'proicons') => {
+  // Initialize state - cache hydration happens in useEffect to ensure icons fetch triggers
   const [metadata, setMetadata] = useState<IconSet | null>(null)
-  const [loadingMeta, setLoadingMeta] = useState<boolean>(false)
+  const [loadingMeta, setLoadingMeta] = useState<boolean>(true) // Start true for better UX
 
   const [icons, setIcons] = useState<IconEntry[]>([])
   const [loadingIcons, setLoadingIcons] = useState<boolean>(false)
   const [nextIndex, setNextIndex] = useState<number>(0)
   const [loadingAll, setLoadingAll] = useState<boolean>(false)
 
-  const metaAbortRef = useRef<AbortController | null>(null)
   const iconsAbortRef = useRef<AbortController | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch set metadata for the given id (no array dependency => no re-run due to new array identity)
+  // Fetch set metadata for the given id (uses cache for instant load)
   useEffect(() => {
-    const controller = new AbortController()
-    metaAbortRef.current?.abort()
-    metaAbortRef.current = controller
+    let isMounted = true
 
     const fetchMetadata = async () => {
+      // Check cache first for instant hydration
+      const cached = getCachedMetadata(iconSetId)
+      const cachedIcons = getCachedIcons(iconSetId)
+
+      if (cached) {
+        // Instant hydration from cache
+        if (isMounted) {
+          setMetadata(cached)
+          setLoadingMeta(false)
+          if (cachedIcons && cachedIcons.length > 0) {
+            setIcons(cachedIcons)
+            setNextIndex(cachedIcons.length)
+          }
+        }
+        // Icons effect will handle fetching if icons are empty
+        return
+      }
+
+      // No cache - fetch from network
       try {
-        setLoadingMeta(true)
-        // reset icons when switching set id
-        setIcons([])
-        setNextIndex(0)
+        if (isMounted) {
+          setLoadingMeta(true)
+          // Reset icons when switching set id
+          setIcons([])
+          setNextIndex(0)
+        }
 
-        const response = await fetch('/api/icones', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          },
-          body: JSON.stringify({ iconSet: iconSetId }),
-          signal: controller.signal
-        })
+        const data = await fetchAndCacheMetadata(iconSetId)
 
-        const json = (await response.json()) as { data: IconSet }
-
-        if (!controller.signal.aborted) {
-          setMetadata(json.data)
+        if (isMounted && data) {
+          setMetadata(data)
         }
       } catch (err) {
-        if ((err as { name?: string }).name === 'AbortError') {
-          console.log('[useGetMeta] metadata request aborted')
-          return
-        }
         console.error('[useGetMeta] metadata error:', err)
       } finally {
-        setLoadingMeta(false)
+        if (isMounted) {
+          setLoadingMeta(false)
+        }
       }
     }
 
     void fetchMetadata()
-    return () => controller.abort()
+    return () => {
+      isMounted = false
+    }
   }, [iconSetId])
 
   const doFetchIcons = useCallback(
@@ -96,6 +111,9 @@ export const useIconMeta = (iconSetId: string = 'proicons') => {
           }))
           setIcons((prev) => [...prev, ...entries])
           setNextIndex(start + list.length)
+
+          // Update cache with new icons
+          appendCachedIcons(iconSetId, entries)
         }
       } catch (err) {
         if ((err as { name?: string }).name === 'AbortError') {

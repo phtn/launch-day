@@ -1,5 +1,12 @@
 # launch-day
 
+## 0.3.2
+
+### Patch Changes
+
+- prefetch-icons-route
+- bffeb60: fix:is-copied-timeout and icon-set-list margin-top
+
 ## 0.3.1
 
 ### Patch Changes
