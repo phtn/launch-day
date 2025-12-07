@@ -1,30 +1,22 @@
 'use client'
-import { Icon } from '@/lib/icons'
-import { useTheme } from 'next-themes'
-import { useCallback } from 'react'
+import { cn } from '@/lib/utils'
+import { ReactNode } from 'react'
 
-export const Dock = () => {
-  const { setTheme, theme } = useTheme()
-  const toggleTheme = useCallback(() => {
-    console.log('clicked')
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }, [setTheme, theme])
+interface DockProps {
+  children?: ReactNode
+  autoHide?: boolean
+}
 
+export const Dock = ({ children, autoHide = false }: DockProps) => {
   return (
-    <div className='hover:z-300 dock dock-xs hover:bg-black/30 bg-transparent hover:backdrop-blur-2xl text-transparent hover:text-neutral-content transition-all duration-300'>
-      <button>
-        <span className='dock-label'>Home</span>
-      </button>
-
-      <button className=''>
-        <span className='dock-label'>Inbox</span>
-      </button>
-
-      <div className='flex items-center justify-center space-x-2'>
-        <button className='' onClick={toggleTheme}>
-          <Icon name='dark-theme' className='size-5' />
-        </button>
-      </div>
+    <div
+      className={cn(
+        'dock dock-xs bg-base-300/40 backdrop-blur-2xl hover:text-neutral-content transition-all duration-300 z-300',
+        {
+          'z-0 hover:z-300 hover:bg-black/30 hover:backdrop-blur-2xl bg-transparent': autoHide
+        }
+      )}>
+      {children}
     </div>
   )
 }

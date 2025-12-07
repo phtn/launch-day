@@ -1,5 +1,4 @@
 import { Navbar } from '@/_components_/navbar'
-import { Dock } from '@/components/dock'
 import { Providers } from '@/ctx/providers'
 import { DynamicWagmiContext } from '@/ctx/wagmi/dynamic'
 import { Metadata } from 'next'
@@ -65,7 +64,6 @@ export default async function RootLayout({
             <div className='dark'>
               <Navbar />
               <main className='h-screen overflow-hidden'>{children}</main>
-              <Dock />
             </div>
           </Providers>
         </DynamicWagmiContext>

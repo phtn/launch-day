@@ -4,9 +4,10 @@ import Link from 'next/link'
 
 export const Sidebar = () => {
   const data: Array<SidebarItem> = [
-    { id: '1', label: 'Roulette', description: 'Play for fun', href: '/roulette', icon: 'airplane-take-off-01' },
-    { id: '2', label: 'Crypto', description: 'Trends & Prices', href: '/crypto', icon: 'coinbase' },
-    { id: '3', label: 'Icons', description: 'Icon Sets', href: '/icons', icon: 'coinbase' }
+    { id: '1', label: 'Roulette', description: 'Play for fun', href: '/roulette', icon: 'gamepad' },
+    { id: '2', label: 'Crypto', description: 'Trends & Prices', href: '/crypto', icon: 'pyramid-chart' },
+    { id: '3', label: 'Icons', description: 'Icon Sets', href: '/icons', icon: 'line' },
+    { id: '4', label: 'Imager', description: 'Convert Images', href: '/image-converter', icon: 'img-rol-line' }
   ]
   return (
     <div className='col-span-3 h-full w-full flex justify-center p-2 md:p-2'>
@@ -62,6 +63,6 @@ const ListItem = (item: SidebarItem) => (
       <div className='text-base whitespace-nowrap'>{item.label}</div>
       <div className='hidden xl:flex text-xs opacity-45 font-light font-sans'>{item.description}</div>
     </div>
-    <Icon name='arrow-right-02' className='hidden lg:flex size-5 opacity-95 text-orange-200' />
+    <Icon name={item.icon} className='hidden lg:flex size-6 text-orange-200' />
   </Link>
 )

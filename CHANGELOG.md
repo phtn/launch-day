@@ -1,5 +1,11 @@
 # launch-day
 
+## 0.4.0
+
+### Minor Changes
+
+- added image-converter
+
 ## 0.3.3
 
 ### Patch Changes
