@@ -4,7 +4,7 @@ import { appendCachedIcons, fetchAndCacheMetadata, getCachedIcons, getCachedMeta
 
 export type IconEntry = { name: string; sourceSetId: string; sourceHeight: number } & IconifyIcon
 
-const CHUNK_SIZE = 40
+const CHUNK_SIZE = 240
 
 // Simplified for single-set usage per IconSetCard to avoid effect loops on array identity
 export const useIconMeta = (iconSetId: string = 'proicons') => {

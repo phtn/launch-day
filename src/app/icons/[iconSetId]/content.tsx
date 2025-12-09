@@ -10,9 +10,9 @@ interface ContentProps {
 export const Content = ({ iconSetId }: ContentProps) => {
   const { icons, hasMore, loadMore, loadAll, scrollAreaRef } = useIconMeta(iconSetId)
   return (
-    <main className='size-screen'>
-      <div className='text-white pt-12 md:pt-16 md:px-6 lg:px-12 h-fit'></div>
-      <div className='size-screen bg-white'>
+    <main className='min-h-screen'>
+      {/*<div className='pt-12 md:pt-16 md:px-6 lg:px-12 h-fit'></div>*/}
+      <div className='size-full bg-white pt-12 md:pt-16'>
         <IconSetList
           icons={icons}
           iconSetId={iconSetId}

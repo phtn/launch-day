@@ -1,6 +1,6 @@
 {
   "name": "launch-day",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
@@ -43,6 +43,7 @@
     "tailwind-scrollbar-hide": "^4.0.0",
     "tailwindcss": "^4.1.17",
     "tailwindcss-animate": "^1.0.7",
+    "tone": "^15.1.22",
     "use-sound": "^5.0.0",
     "viem": "^2.41.2",
     "wagmi": "^3.1.0"

@@ -107,13 +107,13 @@ export function appendCachedIcons(iconSetId: string, newIcons: IconEntry[]): voi
 // PREFETCH UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CHUNK_SIZE = 40
+const CHUNK_SIZE = 240
 
 /**
  * Prefetch metadata and initial icons for an icon set.
  * Safe to call multiple times - will use cache/pending requests.
  */
-export async function prefetchIconSet(iconSetId: string): Promise<void> {
+export async function prefetchIconSet(iconSetId: string, length = CHUNK_SIZE): Promise<void> {
   // Fetch metadata first
   const metadata = await fetchAndCacheMetadata(iconSetId)
   if (!metadata) return
@@ -130,7 +130,7 @@ export async function prefetchIconSet(iconSetId: string): Promise<void> {
   const fetchPromise = (async (): Promise<IconEntry[]> => {
     try {
       const id = (metadata.id ?? iconSetId).trim()
-      const list = metadata.icons.slice(0, CHUNK_SIZE)
+      const list = metadata.icons.slice(0, length)
       if (list.length === 0) return []
 
       const encoded = encodeURIComponent(list.join(',') + ',')
@@ -173,4 +173,3 @@ export function clearIconCache(): void {
   cache.metadata.clear()
   cache.icons.clear()
 }
-

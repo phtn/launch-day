@@ -1,5 +1,11 @@
 # launch-day
 
+## 0.5.0
+
+### Minor Changes
+
+- tonejs
+
 ## 0.4.0
 
 ### Minor Changes
