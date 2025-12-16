@@ -4,7 +4,7 @@ import { Lens } from '@/components/lens'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
-import { Dispatch, RefObject, SetStateAction, useState } from 'react'
+import { Dispatch, RefObject, SetStateAction, useEffect, useState } from 'react'
 import { ConversionStats } from './content'
 
 interface Props {
@@ -35,12 +35,25 @@ export const ImageConverter = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (f) {
+      // Revoke old preview URL to prevent memory leak
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
       setFile(f)
       setPreviewUrl(URL.createObjectURL(f))
       setConvertedUrl('')
       setStats({ originalSize: f.size, compressionRatio: 0, newSize: 0 })
     }
   }
+
+  // Cleanup preview URL on unmount or when file changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'

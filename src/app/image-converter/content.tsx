@@ -3,7 +3,7 @@
 import { Dock } from '@/components/dock'
 import { useImageConverter } from '@/hooks/use-image-converter'
 import { Icon } from '@/lib/icons'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ImageConverter } from './image-converter'
 
 export interface ConversionStats {
@@ -36,6 +36,11 @@ export const Content = () => {
           quality: 0.8
         })
 
+        // Revoke old converted URL to prevent memory leak
+        if (convertedUrl) {
+          URL.revokeObjectURL(convertedUrl)
+        }
+        
         const url = URL.createObjectURL(result.blob)
         setConvertedUrl(url)
         setConvertedFormat(format)
@@ -78,6 +83,23 @@ export const Content = () => {
     },
     [handleConvert, file]
   )
+
+  // Cleanup converted URL on unmount or when file changes
+  useEffect(() => {
+    return () => {
+      if (convertedUrl) {
+        URL.revokeObjectURL(convertedUrl)
+      }
+    }
+  }, [convertedUrl])
+
+  // Cleanup converted URL when file is cleared
+  useEffect(() => {
+    if (!file && convertedUrl) {
+      URL.revokeObjectURL(convertedUrl)
+      setConvertedUrl('')
+    }
+  }, [file, convertedUrl])
 
   return (
     <main className='h-screen'>

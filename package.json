@@ -57,6 +57,6 @@
     "@webgpu/types": "^0.1.60",
     "eslint": "^9.22.0",
     "eslint-config-next": "16.0.7",
-    "typescript": "^5.8.2"
+    "typescript": "5.9.3"
   }
 }

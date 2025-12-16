@@ -1,5 +1,5 @@
 // hooks/useImageConverter.ts
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface ConversionOptions {
   format: 'avif' | 'webp' | 'jpeg'
@@ -36,6 +36,9 @@ export const useImageConverter = () => {
         const reader = new FileReader()
 
         reader.onload = async (e: ProgressEvent<FileReader>) => {
+          let imageBitmap: ImageBitmap | null = null
+          let canvas: HTMLCanvasElement | null = null
+          
           try {
             const arrayBuffer = e.target?.result as ArrayBuffer
             if (!arrayBuffer) {
@@ -45,10 +48,10 @@ export const useImageConverter = () => {
 
             // Create an image bitmap from the file
             const blob = new Blob([arrayBuffer], { type: file.type })
-            const imageBitmap = await createImageBitmap(blob)
+            imageBitmap = await createImageBitmap(blob)
 
             // Create a canvas to extract ImageData
-            const canvas = document.createElement('canvas')
+            canvas = document.createElement('canvas')
             canvas.width = imageBitmap.width
             canvas.height = imageBitmap.height
             const ctx = canvas.getContext('2d')
@@ -63,6 +66,16 @@ export const useImageConverter = () => {
 
             // Set up worker message handler
             const handleMessage = (event: MessageEvent) => {
+              // Clean up event listeners
+              worker.removeEventListener('message', handleMessage)
+              worker.removeEventListener('error', handleError)
+              
+              // Clean up resources
+              if (imageBitmap) {
+                imageBitmap.close()
+              }
+              canvas = null
+              
               if ('error' in event.data) {
                 setConverting(false)
                 reject(new Error(event.data.error))
@@ -76,13 +89,21 @@ export const useImageConverter = () => {
                 resolve(result)
               }
               setConverting(false)
-              worker.removeEventListener('message', handleMessage)
             }
 
             const handleError = (error: ErrorEvent) => {
+              // Clean up event listeners
+              worker.removeEventListener('message', handleMessage)
+              worker.removeEventListener('error', handleError)
+              
+              // Clean up resources
+              if (imageBitmap) {
+                imageBitmap.close()
+              }
+              canvas = null
+              
               setConverting(false)
               reject(error)
-              worker.removeEventListener('error', handleError)
             }
 
             worker.addEventListener('message', handleMessage)
@@ -94,14 +115,22 @@ export const useImageConverter = () => {
               format: options.format,
               quality: options.quality
             })
-            setConverting(false)
           } catch (error) {
+            // Clean up resources on error
+            if (imageBitmap) {
+              imageBitmap.close()
+            }
+            canvas = null
+            
             setConverting(false)
             reject(error)
           }
         }
 
-        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.onerror = () => {
+          setConverting(false)
+          reject(new Error('Failed to read file'))
+        }
         reader.readAsArrayBuffer(file)
       })
     },
@@ -114,6 +143,13 @@ export const useImageConverter = () => {
       workerRef.current = null
     }
   }, [])
+
+  // Cleanup worker on unmount
+  useEffect(() => {
+    return () => {
+      terminate()
+    }
+  }, [terminate])
 
   return { convert, terminate, converting, setConverting }
 }
