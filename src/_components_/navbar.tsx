@@ -1,14 +1,17 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { usePathname } from 'next/navigation'
 import { useCallback } from 'react'
-import { Brand } from './brand'
+import { Brand, MadStacks } from './brand'
 import { WalletComp } from './wallet'
 
 export const Navbar = () => {
+  const pathname = usePathname()
+  const route = pathname.split('/').pop()
   return (
     <nav className='z-200 md:h-16 h-12 border-b border-base-300 w-full justify-between bg-black/80 backdrop-blur-2xl hover:bg-black hover:backdrop-blur-2xl fixed top-0 flex items-center gap-8 ps-2 md:px-8'>
-      <Brand title='Launch Day' />
+      {route === 'sepolia' ? <MadStacks title='Mad Stacks' /> : <Brand title='Launch Day' />}
       <WalletComp />
     </nav>
   )

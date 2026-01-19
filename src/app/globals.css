@@ -4,6 +4,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: 'Brk';
+  src: url('/fonts/BerkeleyMono.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal, monospace;
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -134,6 +141,7 @@
   --font-sans: var(--font-figtree);
   --font-bone: var(--font-bone);
   --font-space: var(--font-space);
+  --font-brk: 'Brk', Menlo, Monaco, monospace;
 }
 
 .diamond {

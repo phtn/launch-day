@@ -9,7 +9,9 @@ import { getBalance } from '@wagmi/core'
 import { formatUnits } from 'viem'
 import { polygon, polygonAmoy, sepolia, zeroGGalileoTestnet, zeroGMainnet } from 'viem/chains'
 import { useChainId, useChains } from 'wagmi'
+
 type AllowedNet = 'eth' | 'sepolia' | 'polygon' | 'amoy' | 'zeroG' | 'galileo'
+
 export const WalletComp = () => {
   const { address } = useAppKitAccount()
   const { getBySymbol } = useCrypto()
@@ -107,49 +109,45 @@ export const WalletComp = () => {
 
   return (
     <div
-      className={cn('flex items-center space-x-4 transition-transform', {
+      className={cn('flex items-center space-x-1 md:space-x-4 transition-transform', {
         'portrait:translate-x-0': !isFetching
       })}>
-      <button className='btn btn-ghost hover:bg-transparent'>
+      <button className='btn btn-ghost hover:bg-transparent rounded-full'>
         {isFetching ? (
           <Icon name='spinner-ring' className={cn('size-3 opacity-80 text-orange-300')} />
         ) : balance ? (
           <label className='swap swap-flip'>
             <input type='checkbox' defaultChecked />
-            <div className='font-space text-lg swap-on flex items-center'>{balance}</div>
-            <div className='flex items-center font-space text-lg swap-off'>
-              <div>$</div> <div className='text-2xl mt-2 pl-1'>*****</div>
+            <div className='font-brk md:text-lg swap-on flex items-center'>{balance}</div>
+            <div className='flex items-center font-space md:text-lg swap-off'>
+              <div className='font-space opacity-60'>$</div> <div className='text-2xl mt-2 pl-1'>*****</div>
             </div>
           </label>
         ) : (
           <label className='swap swap-flip'>
             <input type='checkbox' defaultChecked />
-            <div className='font-space text-lg swap-on flex items-center'>
+            <div className='font-space md:text-lg swap-on flex items-center'>
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
-                unitDisplay: 'narrow',
                 maximumFractionDigits: 2,
-                minimumFractionDigits: 2,
-                currencyDisplay: 'symbol'
+                minimumFractionDigits: 2
               }).format(0)}
             </div>
-            <div className='flex items-center font-space text-lg swap-off'>
-              <div>$</div> <div className='text-2xl mt-2 pl-1'>*****</div>
+            <div className='flex items-center font-space md:text-lg swap-off'>
+              <div className='md:text-2xl mt-2'>*****</div>
             </div>
           </label>
         )}
       </button>
-      <WalletConnector />
+      <div className='items-center flex whitespace-nowrap justify-start text-xs w-fit rounded-full overflow-hidden'>
+        <WalletConnector />
+      </div>
     </div>
   )
 }
 const WalletConnector = () => {
-  return (
-    <div className='items-center flex justify-start text-xs w-[80px] rounded-full overflow-hidden'>
-      <w3m-button balance='hide' loadingLabel='Connecting...' size='sm' label='→' />
-    </div>
-  )
+  return <w3m-button balance='hide' loadingLabel='Connecting...' size='sm' label='→' />
 }
 export const chainMap = {
   sepolia: sepolia.id,

@@ -719,6 +719,18 @@ export const icons = {
       '<path fill="currentColor" d="M11.944 17.97L4.58 13.62L11.943 24l7.37-10.38l-7.372 4.35zM12.056 0L4.69 12.223l7.365 4.354l7.365-4.35z"/>',
     viewBox: '0 0 24 24',
     set: 'simple-icons'
+  },
+  'play-rounded': {
+    symbol:
+      '<path fill="currentColor" d="M9 15.714V8.287q0-.368.244-.588q.243-.22.568-.22q.102 0 .213.028q.11.027.211.083l5.843 3.733q.186.13.28.298q.093.167.093.379t-.093.379t-.28.298l-5.843 3.733q-.101.055-.213.083t-.213.028q-.326 0-.568-.22T9 15.714"/>',
+    viewBox: '0 0 24 24',
+    set: 'material-symbols-light'
+  },
+  clipboard: {
+    symbol:
+      '<g fill="none" stroke="currentColor" stroke-width="1.5"><rect width="16.5" height="18.5" x="3.75" y="2.75" rx="3.5"/><path d="M8.25 2.75h7.5v2.5a2 2 0 0 1-2 2h-3.5a2 2 0 0 1-2-2z"/></g>',
+    viewBox: '0 0 24 24',
+    set: 'proicons'
   }
 }
 

@@ -8,7 +8,8 @@ export const Sidebar = () => {
     { id: '2', label: 'Crypto', description: 'Trends & Prices', href: '/crypto', icon: 'pyramid-chart' },
     { id: '3', label: 'Icons', description: 'Icon Sets', href: '/icons', icon: 'line' },
     { id: '4', label: 'Imager', description: 'Convert Images', href: '/image-converter', icon: 'img-rol-line' },
-    { id: '5', label: 'ToneJS', description: 'Synths', href: '/tone', icon: 'piano' }
+    { id: '5', label: 'ToneJS', description: 'Synths', href: '/tone', icon: 'piano' },
+    { id: '6', label: 'Sepolia', description: 'Send, Receive, Swap', href: '/sepolia', icon: 'ethereum' }
   ]
   return (
     <div className='col-span-3 h-full w-full flex justify-center p-2 md:p-2'>
