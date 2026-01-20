@@ -26,6 +26,7 @@ export const CryptoWidget = () => {
   const { copy, isCopied } = useCopy({})
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
+  const [sendTabKey, setSendTabKey] = useState(0)
   const [localError, setLocalError] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -78,7 +79,7 @@ export const CryptoWidget = () => {
   // Format balance
   const formattedBalance = useMemo(() => {
     if (!balance) return null
-    return Number.parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(6)
+    return Number.parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(8)
   }, [balance])
 
   const handleSend = useCallback(() => {
@@ -196,7 +197,7 @@ export const CryptoWidget = () => {
     }
   }, [hash, isConfirming, startTransition])
 
-  // Show success animation when transaction is confirmed
+  // Show success animation and refetch balance when transaction is confirmed
   useEffect(() => {
     if (receipt && receipt.status === 'success') {
       let isMounted = true
@@ -205,6 +206,29 @@ export const CryptoWidget = () => {
           setShowSuccess(true)
         }
       })
+
+      // Refetch balance after successful transaction
+      if (address && chainId) {
+        getBalance(config, {
+          address: address as `0x${string}`,
+          chainId
+        })
+          .then((bal) => {
+            if (isMounted) {
+              startTransition(() => {
+                setBalance({
+                  value: bal.value,
+                  symbol: bal.symbol,
+                  decimals: bal.decimals
+                })
+              })
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to refetch balance after transaction:', err)
+          })
+      }
+
       const timer = setTimeout(() => {
         if (isMounted) {
           startTransition(() => {
@@ -217,9 +241,20 @@ export const CryptoWidget = () => {
         clearTimeout(timer)
       }
     }
-  }, [receipt, startTransition])
+  }, [receipt, address, chainId, startTransition])
 
   const displayError = localError || error?.message
+
+  // Reset form after successful transaction
+  const handleReset = useCallback(() => {
+    setTo('')
+    setAmount('')
+    setLocalError(null)
+    setShowPreview(false)
+    setShowSuccess(false)
+    // Force remount by changing key
+    setSendTabKey((prev) => prev + 1)
+  }, [])
 
   return (
     <div className='relative w-full max-w-md mx-auto'>
@@ -230,7 +265,7 @@ export const CryptoWidget = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className='relative bg-linear-to-br from-stone-900 via-stone-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
+        className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
         <div className='relative p-6 pb-0'>
           <div className='flex items-center justify-between mb-10'>
@@ -260,7 +295,7 @@ export const CryptoWidget = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', damping: 80, stiffness: 50 }}
                   className={cn(
                     'outline-none relative flex-1 flex items-center justify-center h-10 gap-3 transition-colors z-10',
@@ -285,19 +320,27 @@ export const CryptoWidget = () => {
                 onSend={handleSend}
                 addressInputRef={inputRef}
                 amountInputRef={amountInputRef}
-                disabled={isPending || !isValidAddress || hasInsufficientBalance || !isFormValid}
+                disabled={isPending || isConfirming || !isValidAddress || hasInsufficientBalance || !isFormValid}
                 setTo={setTo}
                 setAmount={setAmount}
+                to={to}
+                amount={amount}
                 formattedBalance={formattedBalance}
                 balance={balance}
                 tokenPrice={ethPrice}
-                key='send'
+                isPending={isPending}
+                isConfirming={isConfirming}
+                receipt={receipt}
+                hash={hash}
+                explorerUrl={explorerUrl}
+                onReset={handleReset}
+                key={`send-${sendTabKey}`}
               />
             )}
           </AnimatePresence>
         </div>
 
-        <AccentLine />
+        {/*<AccentLine />*/}
       </motion.div>
 
       {/* Preview Modal */}

@@ -7,7 +7,6 @@ export const Haul = () => {
     <main className='min-h-screen space-x-12 flex items-start justify-center'>
       <div className='flex items-start md:mt-28 h-full w-full'>
         <CryptoWidget />
-        {/*<Content />*/}
       </div>
     </main>
   )

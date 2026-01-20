@@ -26,22 +26,24 @@ export const TokenDisplay = ({ token, balance, price, showBalance = true, size =
   }
 
   return (
-    <div className='flex items-center justify-start w-full gap-2'>
+    <div className='flex items-center justify-start w-full gap-1'>
       <motion.div
         whileHover={{ scale: 1.05 }}
         className={`relative ${sizes[size].icon} rounded-full flex items-center justify-center w-auto h-6 md:h-7 aspect-square`}>
-        <Icon name='ethereum' className='size-6 md:size-7 absolute z-5 text-indigo-400/60 blur-xl' />
-        <Icon name='ethereum' className='size-5 md:size-6 absolute z-10 text-indigo-400' />
+        <Icon name='ethereum' className='size-6 md:size-6 absolute z-5 text-indigo-400/60 blur-xl' />
+        <Icon name='ethereum' className='size-5 md:size-5 absolute z-10 text-indigo-400' />
       </motion.div>
       <div className='flex items-center justify-between w-full'>
-        <p className={`font-brk text-indigo-100 font-thin text-left text-lg`}>
-          {balance?.toLocaleString('en-US', { maximumFractionDigits: 11 })}
-          <span className='text-white/50 font-thin text-xs px-0.5'>{token}</span>
+        <p className={`text-left space-x-1`}>
+          <span className='font-okxs font-normal text-indigo-100 text-lg'>
+            {balance?.toLocaleString('en-US', { maximumFractionDigits: 11 })}
+          </span>
+          <span className='text-white/50 font-okxs font-light text-xs px-0.5'>{token}</span>
         </p>
         {showBalance && (
           <p className={`md:text-base text-sm font-brk px-2`}>
-            <span className='font-thin pr-0.5 text-teal-300/60'>$</span>
-            <span className='text-white/90 font-normal font-brk'>
+            <span className='font-okxs font-light pr-0.5 opacity-80'>$</span>
+            <span className='font-normal font-okxs'>
               {((balance ?? 0) * (price ?? 1)).toLocaleString('en-US', {
                 maximumFractionDigits: 2,
                 currency: 'USD',
