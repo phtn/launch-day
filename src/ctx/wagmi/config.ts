@@ -2,6 +2,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
   base,
   baseSepolia,
+  bitcoin,
   mainnet,
   polygon,
   polygonAmoy,
@@ -22,6 +23,7 @@ if (!projectId) {
 }
 
 export const networks = [
+  bitcoin,
   sepolia,
   baseSepolia,
   mainnet,

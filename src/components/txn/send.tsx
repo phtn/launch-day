@@ -7,6 +7,7 @@ import { formatUnits } from 'viem'
 import { AmountInputField } from './amount-input'
 import { AddressInputField, Title } from './components'
 import { tokenData, TokenDisplay } from './token-display'
+import { TransactionHashLink } from './transaction-hash-link'
 import { Balance } from './types'
 
 interface SendingStateProps {
@@ -111,17 +112,13 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
           {hash && (
             <div className='flex items-center justify-between pt-2'>
               <span className='text-xs font-brk text-white/50'>Transaction</span>
-              {explorerUrl ? (
-                <a
-                  href={explorerUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-xs font-brk text-emerald-300 hover:text-emerald-200 underline truncate max-w-50'>
-                  {hash.substring(0, 10)}...
-                </a>
-              ) : (
-                <span className='text-xs font-brk text-white/60 truncate max-w-50'>{hash.substring(0, 10)}...</span>
-              )}
+              <TransactionHashLink
+                hash={hash}
+                explorerUrl={explorerUrl}
+                truncate
+                className='text-xs font-brk max-w-50'
+                linkClassName='text-emerald-300 hover:text-emerald-200'
+              />
             </div>
           )}
         </div>

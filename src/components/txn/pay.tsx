@@ -1,10 +1,19 @@
-import { Icon, IconName } from '@/lib/icons'
+import { useNetworkTokens } from '@/hooks/use-network-tokens'
+import { useSend } from '@/hooks/x-use-send'
+import { Icon } from '@/lib/icons'
+import { getTransactionExplorerUrl } from '@/lib/explorer'
+import { getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
 import { cn } from '@/lib/utils'
+import { mainnet, polygon, sepolia } from '@reown/appkit/networks'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { formatUnits, parseUnits, type Address } from 'viem'
+import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { Title } from './components'
+import type { Token } from './token'
+import { ReceiptModal } from './receipt-modal'
 import { Tokens } from './token-list'
+import { TransactionHashLink } from './transaction-hash-link'
 import { Balance, PayTabProps } from './types'
 
 interface PayStateProps {
@@ -20,34 +29,41 @@ const PayState = ({ amount, recipient, balance, usdValue }: PayStateProps) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className='rounded-xl bg-white/5 border border-white/10 space-y-0 overflow-hidden'>
+      className='relative rounded-xl bg-white/5 border border-white/10 space-y-0 overflow-hidden'>
+      <div className='absolute bg-[url("/svg/noise.svg")] opacity-15 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
       <div className='relative px-4 py-6'>
         <div className='flex flex-col items-center justify-center gap-4'>
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className='w-12 h-12 rounded-full border-2 border-rose-300/30 border-t-rose-300 flex items-center justify-center'>
-            <Icon name='mail-send' className='w-6 h-6 text-rose-300' />
+            <Icon name='spinner-ring' className='w-6 h-6 text-rose-100' />
           </motion.div>
           <div className='text-center space-y-1'>
-            <p className='text-sm font-brk text-white/80'>Sending Transaction</p>
+            <p className='font-polyn font-bold text-xl text-white/80'>Processing Payment</p>
             <p className='text-xs font-brk text-white/50'>Please confirm in your wallet</p>
           </div>
         </div>
-        <div className='mt-6 pt-4 border-t border-white/10 space-y-3'>
-          <div className='flex items-center justify-between'>
+        <div className='mt-6 pt-4 border-t border-white/10 border-dashed space-y-3'>
+          {/*<div className='flex items-center justify-between'>
             <span className='text-xs font-brk text-white/50'>To</span>
             <span className='text-xs font-brk text-white/80 truncate max-w-50'>{recipient}</span>
-          </div>
+          </div>*/}
           <div className='flex items-center justify-between'>
-            <span className='text-xs font-brk text-white/50'>Amount</span>
+            <span className='text-xs font-exo font-bold italic uppercase opacity-60'>Amount</span>
             <div className='text-right'>
-              <span className='text-sm font-brk text-white'>
-                {amount} {balance?.symbol ?? 'ETH'}
+              <span className='text-sm font-okxs text-white'>
+                {amount} {balance?.symbol}
               </span>
               {usdValue !== null && (
-                <p className='text-xs font-brk text-white/50'>
-                  ≈ ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                <p className='text-sm font-okxs leading-none flex items-center space-x-1'>
+                  <span className='font-mono text-lg'>≈</span>
+                  <span>
+                    <span className='opacity-70'>$</span>
+                    <span className=''>
+                      {usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </span>
                 </p>
               )}
             </div>
@@ -73,53 +89,52 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className='rounded-xl bg-emerald-500/10 border border-emerald-400/30 space-y-0 overflow-hidden'>
-      <div className='relative px-4 py-6'>
+      className='relative rounded-xl border border-emerald-400/30 space-y-0 overflow-hidden'>
+      <div className='absolute bg-[url("/svg/noise.svg")] opacity-15 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
+      <div className='relative bg-emerald-500/10 px-4 py-6'>
         <div className='flex flex-col items-center justify-center gap-4'>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            className='w-12 h-12 rounded-full bg-emerald-400/20 flex items-center justify-center'>
-            <Icon name='check' className='w-6 h-6 text-emerald-400' />
+            className='w-12 h-12 relative rounded-full border border-emerald-300/0 bg-emerald-400/20 flex items-center justify-center'>
+            <Icon name='check' className='w-8 h-8 absolute blur-xl text-emerald-300 animate-pulse' />
+            <Icon name='check' className='w-6 h-6 absolute blur-xs text-white' />
+            <Icon name='check' className='w-6 h-6 relative text-emerald-200' />
           </motion.div>
           <div className='text-center space-y-1'>
-            <p className='text-sm font-brk text-emerald-300'>Transaction Successful</p>
+            <p className='text-lg font-polyn font-bold text-emerald-100'>Transaction Successful</p>
             <p className='text-xs font-brk text-white/60'>Your transaction has been confirmed</p>
           </div>
         </div>
-        <div className='mt-6 pt-4 border-t border-emerald-400/20 space-y-3'>
-          <div className='flex items-center justify-between'>
+        <div className='mt-6 pt-4 border-t border-emerald-200/20 border-dashed space-y-3'>
+          {/*<div className='flex items-center justify-between'>
             <span className='text-xs font-brk text-white/50'>To</span>
             <span className='text-xs font-brk text-white/80 truncate max-w-50'>{recipient}</span>
-          </div>
+          </div>*/}
           <div className='flex items-center justify-between'>
-            <span className='text-xs font-brk text-white/50'>Amount</span>
+            <span className='text-xs font-exo font-bold italic uppercase opacity-70'>Amount</span>
             <div className='text-right'>
-              <span className='text-sm font-brk text-white'>
-                {amount} {balance?.symbol ?? 'ETH'}
+              <span className='text-sm font-okxs font-medium text-white'>
+                {amount} {balance?.symbol}
               </span>
               {usdValue !== null && (
-                <p className='text-xs font-brk text-white/50'>
-                  ≈ ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                <p className='text-sm font-okxs text-white/50'>
+                  ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               )}
             </div>
           </div>
           {hash && (
             <div className='flex items-center justify-between pt-2'>
-              <span className='text-xs font-brk text-white/50'>Transaction</span>
-              {explorerUrl ? (
-                <a
-                  href={explorerUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-xs font-brk text-emerald-300 hover:text-emerald-200 underline truncate max-w-50'>
-                  {hash.substring(0, 10)}...
-                </a>
-              ) : (
-                <span className='text-xs font-brk text-white/60 truncate max-w-50'>{hash.substring(0, 10)}...</span>
-              )}
+              <span className='text-xs font-exo font-bold italic uppercase opacity-60'>txn hash</span>
+              <TransactionHashLink
+                hash={hash}
+                explorerUrl={explorerUrl}
+                truncate
+                className='text-xs font-brk max-w-50'
+                linkClassName='text-emerald-300 hover:text-emerald-200'
+              />
             </div>
           )}
         </div>
@@ -129,19 +144,18 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
 }
 
 export const PayTab = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   formattedBalance: _formattedBalance,
   balance,
   tokenPrice,
   disabled,
   onSend,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   amountInputRef: _amountInputRef,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   addressInputRef: _addressInputRef,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   setTo: _setTo,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   setAmount: _setAmountProp,
   to: toProp,
   amount: amountProp,
@@ -164,24 +178,300 @@ export const PayTab = ({
     setAmount(amountProp)
   }, [amountProp])
 
+  // Selected token state
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null)
+  // Payment amount state (always in USD)
+  const [paymentAmountUsd, setPaymentAmountUsd] = useState('1')
+
+  const chainId = useChainId()
+  const chains = useChains()
+  const { mutateAsync } = useSwitchChain()
+  const { tokens: networkTokens, isLoading: tokensLoading } = useNetworkTokens()
+  const [, startTransition] = useTransition()
+  const [showReceiptModal, setShowReceiptModal] = useState(false)
+
+  const currentChain = useMemo(() => chains.find((c) => c.id === chainId), [chains, chainId])
+
   // Get actual balance from props
   const actualBalance = useMemo(() => {
     if (!balance) return null
     return Number.parseFloat(formatUnits(balance.value, balance.decimals))
   }, [balance])
 
-  const usdValue = useMemo(() => {
-    if (!tokenPrice || !amount) return null
-    const parsedAmount = Number.parseFloat(amount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return null
-    return parsedAmount * tokenPrice
-  }, [amount, tokenPrice])
+  // Get token price (USDC = $1, ETH = tokenPrice prop)
+  const getTokenPrice = useCallback(
+    (token: Token | null): number | null => {
+      if (!token) return null
+      if (token === 'usdc') return 1 // USDC is always $1
+      if (token === 'ethereum') return tokenPrice
+      return null
+    },
+    [tokenPrice]
+  )
 
-  // const handleOnChangeAmount = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-  //   setAmount(e.target.value)
-  // }, [setAmount])
-  //
-  const allowedNetworks = ['ethereum', 'polygon', 'bitcoin']
+  // Calculate token amount from USD amount
+  const tokenAmount = useMemo(() => {
+    if (!selectedToken || !paymentAmountUsd) return null
+    const usdAmount = Number.parseFloat(paymentAmountUsd)
+    if (Number.isNaN(usdAmount) || usdAmount <= 0) return null
+    const price = getTokenPrice(selectedToken)
+    if (!price) return null
+    return usdAmount / price
+  }, [selectedToken, paymentAmountUsd, getTokenPrice])
+
+  // USD value is the payment amount itself (since it's already in USD)
+  const usdValue = useMemo(() => {
+    if (!paymentAmountUsd) return null
+    const parsedAmount = Number.parseFloat(paymentAmountUsd)
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return null
+    return parsedAmount
+  }, [paymentAmountUsd])
+
+  // Map network names to chain IDs
+  const networkChainMap: Record<string, number> = useMemo(
+    () => ({
+      sepolia: sepolia.id,
+      ethereum: mainnet.id,
+      polygon: polygon.id
+      // bitcoin is not an EVM chain, so we'll skip it for now
+    }),
+    []
+  )
+
+  const allowedNetworks = ['sepolia', 'ethereum', 'polygon'] as const
+
+  // Get current network name from chainId
+  const currentNetwork = useMemo(() => {
+    if (chainId === sepolia.id) return 'sepolia'
+    if (chainId === mainnet.id) return 'ethereum'
+    if (chainId === polygon.id) return 'polygon'
+    return null
+  }, [chainId])
+
+  // Handle network selection
+  const handleNetworkClick = useCallback(
+    (network: string) => {
+      const targetChainId = networkChainMap[network]
+      if (targetChainId && targetChainId !== chainId) {
+        startTransition(() => {
+          mutateAsync({ chainId: targetChainId })
+        })
+      }
+    },
+    [chainId, mutateAsync, startTransition, networkChainMap]
+  )
+
+  // Extract token list from network tokens
+  const availableTokens = useMemo<Token[]>(() => {
+    return networkTokens.map((t) => t.token)
+  }, [networkTokens])
+
+  // Get selected token balance
+  const selectedTokenBalance = useMemo(() => {
+    if (!selectedToken) return null
+    return networkTokens.find((t) => t.token === selectedToken) ?? null
+  }, [selectedToken, networkTokens])
+
+  // Check if selected token has insufficient balance
+  const hasInsufficientBalance = useMemo(() => {
+    if (!selectedTokenBalance || !tokenAmount) return false
+    const balance = Number.parseFloat(selectedTokenBalance.formatted)
+    return tokenAmount > balance
+  }, [selectedTokenBalance, tokenAmount])
+
+  // Handle token selection
+  const handleTokenSelect = useCallback((token: Token) => {
+    setSelectedToken(token)
+  }, [])
+
+  // Get payment destination from environment variable
+  const paymentDestination = useMemo(() => {
+    const dest = process.env.NEXT_PUBLIC_PAYMENT_DESTINATION_ONE
+    if (!dest) {
+      console.warn('NEXT_PUBLIC_PAYMENT_DESTINATION_ONE is not set')
+      return null
+    }
+    return dest as Address
+  }, [])
+
+  // Hook for sending transactions
+  const {
+    send: sendEth,
+    isPending: isEthPending,
+    isConfirming: isEthConfirming,
+    hash: ethHash,
+    receipt: ethReceipt
+  } = useSend()
+
+  // Hook for writing contracts (USDC transfers)
+  const { mutate, data: usdcHash, isPending: isUsdcPending, error: usdcError } = useWriteContract()
+
+  // Wait for USDC transaction receipt
+  const { isLoading: isUsdcConfirming, data: usdcReceipt } = useWaitForTransactionReceipt({
+    hash: usdcHash,
+    query: {
+      enabled: !!usdcHash,
+      retry: 5,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+      refetchInterval: (query) => {
+        if (query.state.data) return false
+        return 2000
+      }
+    }
+  })
+
+  // Determine which transaction state to use (use local state if available, otherwise use props)
+  const localIsPending = selectedToken === 'ethereum' ? isEthPending : isUsdcPending
+  const localIsConfirming = selectedToken === 'ethereum' ? isEthConfirming : isUsdcConfirming
+  const localHash = selectedToken === 'ethereum' ? ethHash : usdcHash
+  const localReceipt =
+    selectedToken === 'ethereum'
+      ? ethReceipt
+        ? {
+            blockNumber: ethReceipt.blockNumber,
+            status: ethReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
+          }
+        : null
+      : usdcReceipt
+      ? {
+          blockNumber: usdcReceipt.blockNumber,
+          status: usdcReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
+        }
+      : null
+
+  // Use local transaction state if we have an active transaction, otherwise use props
+  const activeIsPending = localIsPending || isPending
+  const activeIsConfirming = localIsConfirming || isConfirming
+  const activeHash = localHash || hash
+  const activeReceipt = localReceipt || receipt
+
+  const receiptExplorerUrl = useMemo(
+    () => getTransactionExplorerUrl(currentChain, activeHash) ?? explorerUrl,
+    [currentChain, activeHash, explorerUrl]
+  )
+
+  // Log pay button conditions (only in development)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const conditions = {
+        'disabled (prop)': disabled,
+        activeIsConfirming: activeIsConfirming,
+        activeIsPending: activeIsPending,
+        hasInsufficientBalance: hasInsufficientBalance,
+        noSelectedToken: !selectedToken,
+        noPaymentAmount: !paymentAmountUsd,
+        noPaymentDestination: !paymentDestination
+      }
+
+      const isDisabled = Object.values(conditions).some(Boolean)
+
+      // Create a detailed table with all conditions
+      const conditionTable: Record<string, string> = {}
+
+      Object.entries(conditions).forEach(([key, value]) => {
+        conditionTable[key] = value ? '❌ DISABLES BUTTON' : '✅ OK'
+      })
+
+      conditionTable['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'] = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+      conditionTable['FINAL BUTTON STATE'] = isDisabled ? '❌ DISABLED' : '✅ ENABLED'
+
+      console.table(conditionTable)
+
+      // Also log detailed values for debugging
+      console.group('🔍 Pay Button Condition Details')
+      console.log('Condition Values:', {
+        'disabled (prop)': disabled,
+        activeIsConfirming: activeIsConfirming,
+        activeIsPending: activeIsPending,
+        hasInsufficientBalance: hasInsufficientBalance,
+        selectedToken: selectedToken || 'null',
+        paymentAmountUsd: paymentAmountUsd || 'empty',
+        paymentDestination: paymentDestination || 'null'
+      })
+      console.log('Calculated States:', {
+        localIsPending: localIsPending,
+        localIsConfirming: localIsConfirming,
+        'isPending (prop)': isPending,
+        'isConfirming (prop)': isConfirming,
+        activeIsPending: activeIsPending,
+        activeIsConfirming: activeIsConfirming
+      })
+      console.log('Final Result:', {
+        isDisabled: isDisabled,
+        buttonWillBe: isDisabled ? 'DISABLED' : 'ENABLED'
+      })
+      console.groupEnd()
+    }
+  }, [
+    disabled,
+    activeIsConfirming,
+    activeIsPending,
+    hasInsufficientBalance,
+    selectedToken,
+    paymentAmountUsd,
+    paymentDestination,
+    localIsPending,
+    localIsConfirming,
+    isPending,
+    isConfirming
+  ])
+
+  // Handle payment
+  const handlePay = useCallback(() => {
+    if (!selectedToken || !paymentAmountUsd || !paymentDestination || hasInsufficientBalance) {
+      return
+    }
+
+    const usdAmount = Number.parseFloat(paymentAmountUsd)
+    if (Number.isNaN(usdAmount) || usdAmount <= 0) {
+      return
+    }
+
+    try {
+      if (selectedToken === 'ethereum') {
+        // Send ETH using the existing send function
+        sendEth({ to: paymentDestination, usd: usdAmount })
+      } else if (selectedToken === 'usdc') {
+        // Send USDC using writeContract
+        if (!isUsdcSupportedChain(chainId)) {
+          throw new Error('USDC is not supported on this chain')
+        }
+
+        const usdcAddress = getUsdcAddress(chainId)
+        if (!usdcAddress) {
+          throw new Error('USDC address not found for this chain')
+        }
+
+        // USDC is $1, so USD amount = USDC amount
+        // USDC uses 6 decimals
+        const usdcAmount = parseUnits(usdAmount.toFixed(6), 6)
+
+        // ERC20 transfer ABI
+        const ERC20_TRANSFER_ABI = [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' }
+            ],
+            outputs: [{ name: '', type: 'bool' }]
+          }
+        ] as const
+
+        mutate({
+          abi: ERC20_TRANSFER_ABI,
+          address: usdcAddress,
+          functionName: 'transfer',
+          args: [paymentDestination, usdcAmount]
+        })
+      }
+    } catch (error) {
+      console.error('Payment error:', error)
+      // Error will be handled by the hooks
+    }
+  }, [selectedToken, paymentAmountUsd, paymentDestination, hasInsufficientBalance, chainId, sendEth, mutate])
 
   return (
     <motion.div
@@ -202,104 +492,254 @@ export const PayTab = ({
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
-            className='bg-zinc-100/5 py-2 flex items-center rounded-xl justify-evenly space-x-4'>
-            {allowedNetworks.map((net) => (
-              <div key={net} className='flex items-center space-x-1'>
-                <Icon
-                  name={net as IconName}
-                  className={cn('size-4', {
-                    'text-polygon': net === 'polygon',
-                    'text-bitcoin': net === 'bitcoin',
-                    'text-ethereum': net === 'ethereum'
-                  })}
-                />
-                <span
-                  className={cn('lowercase', {
-                    ' font-polyn font-bold': net === 'polygon',
-                    ' font-bold tracking-tight': net === 'ethereum',
-                    'italic font-bitcoin font-bold': net === 'bitcoin'
+            className='bg-zinc-200/5 py-2 flex items-center rounded-xl justify-between px-3'>
+            {allowedNetworks.map((net) => {
+              const isActive = currentNetwork === net
+              return (
+                <motion.button
+                  key={net}
+                  onClick={() => handleNetworkClick(net)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn('flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors', {
+                    'bg-white/10': isActive,
+                    'hover:bg-white/2 ': !isActive,
+                    'cursor-pointer': true
                   })}>
-                  {net}
-                </span>
-              </div>
-            ))}
+                  <Icon
+                    name={net === 'sepolia' ? 'ethereum' : net === 'polygon' ? 'polygon' : 'ethereum'}
+                    className={cn('text-zinc-100/50 size-4', {
+                      'text-rose-400': net === 'sepolia' && isActive,
+                      'text-polygon': net === 'polygon' && isActive,
+                      'text-ethereum': net === 'ethereum' && isActive
+                    })}
+                  />
+                  <span
+                    className={cn('lowercase', {
+                      ' font-polyn font-bold': net === 'polygon',
+                      ' font-bold tracking-tight': net === 'ethereum',
+                      'font-semibold tracking-tight': net === 'sepolia'
+                    })}>
+                    {net}
+                  </span>
+                </motion.button>
+              )
+            })}
           </motion.div>
 
-          <Tokens tokens={['usdc', 'ethereum']} />
+          {tokensLoading ? (
+            <div className='flex items-center justify-center py-8'>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+              </motion.div>
+            </div>
+          ) : availableTokens.length > 0 ? (
+            <Tokens
+              tokens={availableTokens}
+              tokenBalances={networkTokens}
+              selectedToken={selectedToken}
+              paymentAmountUsd={paymentAmountUsd}
+              tokenPrices={{ usdc: 1, ethereum: tokenPrice }}
+              onTokenSelect={handleTokenSelect}
+            />
+          ) : (
+            <div className='text-center py-8 text-white/40 text-sm'>No tokens with balance found on this network</div>
+          )}
         </div>
       </motion.div>
+
+      {/* Amount Input */}
+      {selectedToken && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className='mt-4 hidden '>
+          <div className='flex justify-between items-center mb-2'>
+            <Title id='pay-amount'>Amount to Pay (USD)</Title>
+            {selectedTokenBalance && tokenAmount && (
+              <button
+                onClick={() => {
+                  // Set max USD amount based on token balance
+                  const balance = Number.parseFloat(selectedTokenBalance.formatted)
+                  const price = getTokenPrice(selectedToken)
+                  if (price) {
+                    setPaymentAmountUsd((balance * price).toFixed(2))
+                  }
+                }}
+                className='text-xs md:hover:text-indigo-300 transition-colors'>
+                <span className='uppercase font-okxs font-bold text-indigo-200'>Max</span>{' '}
+                <span className='font-okxs'>
+                  {tokenAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                </span>
+                <span className='font-okxs font-light opacity-50 ml-1 uppercase'>{selectedToken}</span>
+              </button>
+            )}
+          </div>
+          <div className='relative rounded-2xl border border-zinc-700 overflow-hidden bg-zinc-900/50'>
+            <div className='relative px-4 py-4'>
+              <div className='flex items-center gap-2'>
+                <span className='text-white/40 text-lg'>$</span>
+                <input
+                  id='pay-amount'
+                  type='number'
+                  value={paymentAmountUsd}
+                  onChange={(e) => setPaymentAmountUsd(e.target.value)}
+                  placeholder='0.00'
+                  step='0.01'
+                  min='0'
+                  className='w-full bg-transparent text-2xl font-okxs font-light text-white placeholder-white/20 outline-none'
+                />
+              </div>
+              {tokenAmount && (
+                <div className='mt-2 text-sm text-white/50'>
+                  ≈ {tokenAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}{' '}
+                  <span className='uppercase'>{selectedToken}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Amount Input / Sending / Success State */}
       <div className='mt-4'>
         <AnimatePresence mode='wait'>
-          {receipt && receipt.status === 'success' ? (
+          {activeReceipt && activeReceipt.status === 'success' ? (
             <SuccessState
               key='success'
-              amount={amount}
-              recipient={recipient}
+              amount={paymentAmountUsd || amount}
+              recipient={paymentDestination || recipient}
               balance={balance}
               usdValue={usdValue}
-              hash={hash}
-              explorerUrl={explorerUrl}
+              hash={activeHash || null}
+              explorerUrl={receiptExplorerUrl}
             />
-          ) : isPending || isConfirming ? (
-            <PayState key='sending' amount={amount} recipient={recipient} balance={balance} usdValue={usdValue} />
+          ) : activeIsPending || activeIsConfirming ? (
+            <PayState
+              key='sending'
+              amount={paymentAmountUsd || amount}
+              recipient={paymentDestination || recipient}
+              balance={balance}
+              usdValue={usdValue}
+            />
           ) : (
             <div></div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Warning for high amount */}
-      {actualBalance !== null && amount && parseFloat(amount) > actualBalance && (
+      {/* Warning for insufficient balance */}
+      {hasInsufficientBalance && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className='p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2'>
+          className='p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 mt-4'>
           <Icon name='alert-02' className='w-4 h-4 text-red-400 shrink-0' />
           <p className='text-sm text-red-300'>Insufficient balance for this transaction</p>
         </motion.div>
       )}
 
       {/* Amount Info */}
-      <div className='h-px border-dashed-lg' />
-      <div className='p-4 border-0 decoration-1 border-white/10'>
-        <div className='flex items-center justify-between text-xs md:text-sm'>
-          <span className='opacity-70 font-exo font-bold uppercase italic'>Amount</span>
-          <span className='text-white text-xl font-okxs'>
-            <span className='opacity-60 pr-0.5'>$</span>3.89
-          </span>
-        </div>
-      </div>
+      {paymentAmountUsd && usdValue && !activeReceipt && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ ease: 'easeInOut' }}>
+          <div className='h-px border-dashed-lg' />
+          <div className='p-4 border-0 decoration-1 border-white/10'>
+            <div className='flex items-center justify-between text-xs md:text-sm'>
+              <span className='opacity-70 font-exo font-bold uppercase italic'>Total</span>
+              <div className='text-right'>
+                <span className='text-white text-2xl font-okxs'>
+                  ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Send Button / Send Another Button */}
       <motion.div
-        whileHover={{ scale: disabled || isConfirming ? 1 : 1.02 }}
+        whileHover={{ scale: disabled || activeIsConfirming ? 1 : 1.02 }}
         whileTap={{ scale: 0.98 }}
         className='mt-4'>
-        {receipt && receipt.status === 'success' && onReset ? (
+        {activeReceipt && activeReceipt.status === 'success' && onReset ? (
           <button
-            onClick={onReset}
-            className='flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-white border-0 shadow-lg transition-all'>
-            <span className='flex items-center gap-2'>
-              Send Another
-              <Icon name='arrow-right-02' className='w-5 h-5' />
+            onClick={() => setShowReceiptModal(true)}
+            className='flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-500 via-slate-400 to-cyan-100 hover:from-slate-500 hover:to-slate-100 text-white border-0 shadow-lg transition-all'>
+            <span className='flex items-center font-exo font-semibold italic gap-2'>
+              View Receipt
+              <Icon name='invoice' className='w-5 h-5' />
             </span>
           </button>
         ) : (
           <button
-            onClick={onSend}
-            disabled={disabled || isConfirming}
+            onClick={handlePay}
+            disabled={(() => {
+              const conditions = {
+                disabled: disabled,
+                activeIsConfirming: activeIsConfirming,
+                activeIsPending: activeIsPending,
+                hasInsufficientBalance: hasInsufficientBalance,
+                noSelectedToken: !selectedToken,
+                noPaymentAmount: !paymentAmountUsd,
+                noPaymentDestination: !paymentDestination
+              }
+
+              const isDisabled = Object.values(conditions).some(Boolean)
+
+              // Log conditions in a table format
+              if (process.env.NODE_ENV === 'development') {
+                console.table({
+                  Condition: 'Status',
+                  'disabled (prop)': disabled ? '❌ DISABLED' : '✅ ENABLED',
+                  activeIsConfirming: activeIsConfirming ? '❌ DISABLED' : '✅ ENABLED',
+                  activeIsPending: activeIsPending ? '❌ DISABLED' : '✅ ENABLED',
+                  hasInsufficientBalance: hasInsufficientBalance ? '❌ DISABLED' : '✅ ENABLED',
+                  noSelectedToken: !selectedToken ? '❌ DISABLED' : '✅ ENABLED',
+                  noPaymentAmount: !paymentAmountUsd ? '❌ DISABLED' : '✅ ENABLED',
+                  noPaymentDestination: !paymentDestination ? '❌ DISABLED' : '✅ ENABLED',
+                  '---': '---',
+                  'FINAL STATE': isDisabled ? '❌ BUTTON DISABLED' : '✅ BUTTON ENABLED'
+                })
+
+                // Also log the actual values for debugging
+                console.log('Pay Button Conditions - Values:', {
+                  disabled,
+                  activeIsConfirming,
+                  activeIsPending,
+                  hasInsufficientBalance,
+                  selectedToken,
+                  paymentAmountUsd,
+                  paymentDestination,
+                  isDisabled
+                })
+              }
+
+              return isDisabled
+            })()}
             className={cn(
-              'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-300 via-rose-300 to-rose-300 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
-              { 'hover:from-slate-200 hover:to-rose-300': !disabled && !isConfirming }
+              'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-400 via-slate-400 to-rose-200 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
+              {
+                'hover:from-slate-200 hover:to-rose-100':
+                  !disabled &&
+                  !activeIsConfirming &&
+                  !activeIsPending &&
+                  !hasInsufficientBalance &&
+                  selectedToken &&
+                  paymentAmountUsd &&
+                  paymentDestination
+              }
             )}>
-            {isPending || isConfirming ? (
+            {activeIsPending || activeIsConfirming ? (
               <motion.div animate={{ x: [0, 10, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
                 <Icon name='mail-send' className='w-5 h-5' />
               </motion.div>
             ) : (
-              <span className='flex items-center gap-2 font-exo font-bold italic drop-shadow-2xs'>
+              <span className='flex items-center text-white opacity-100 gap-2 font-exo font-bold italic drop-shadow-2xs'>
                 Pay
                 <Icon name='send-block' className='w-5 h-5' />
               </span>
@@ -307,6 +747,19 @@ export const PayTab = ({
           </button>
         )}
       </motion.div>
+
+      <ReceiptModal
+        open={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        amount={paymentAmountUsd || amount}
+        symbol={balance?.symbol ?? selectedToken ?? '—'}
+        usdValue={usdValue}
+        hash={activeHash ?? null}
+        explorerUrl={receiptExplorerUrl}
+        recipient={paymentDestination}
+        blockNumber={activeReceipt?.blockNumber}
+        timestamp={new Date().toISOString()}
+      />
     </motion.div>
   )
 }

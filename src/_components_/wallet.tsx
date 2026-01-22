@@ -32,8 +32,8 @@ export const WalletComp = () => {
 
   // Map chainId to AllowedNet type
   const networkId = useMemo((): AllowedNet | null => {
-    if (chainId === sepolia.id) return 'sepolia'
     if (chainId === 1) return 'eth'
+    if (chainId === sepolia.id) return 'sepolia'
     if (chainId === polygon.id) return 'polygon'
     if (chainId === polygonAmoy.id) return 'amoy'
     if (chainId === zeroGMainnet.id) return 'zeroG'

@@ -19,9 +19,17 @@ interface TokenDisplayProps {
   showBalance?: boolean
   price: number | null
   size?: 'sm' | 'md' | 'lg'
+  isInsufficient?: boolean | ''
 }
 
-export const TokenModern = ({ token, balance, price, showBalance = true }: TokenDisplayProps) => {
+export const TokenModern = ({ token, balance, price, isInsufficient, showBalance = true }: TokenDisplayProps) => {
+  // Format balance for display
+  const formattedBalance = balance
+    ? balance.toLocaleString('en-US', {
+        minimumFractionDigits: token === 'usdc' ? 2 : 0,
+        maximumFractionDigits: token === 'usdc' ? 6 : 11
+      })
+    : '0'
 
   return (
     <div className='flex items-center justify-start w-full gap-4'>
@@ -38,17 +46,23 @@ export const TokenModern = ({ token, balance, price, showBalance = true }: Token
         <TokenCoaster size='lg' token={token} />
       </motion.div>
       <div className='flex items-center justify-between w-full'>
-        <div className='text-left -space-y-2'>
+        <div className='text-left -space-y-1'>
           <p className={cn('')}>
-            {token === 'usdc' ? (
+            {token === 'usdc' && balance === null ? (
+              // Fallback to UsdcBalance component if balance not provided
               <UsdcBalance compact />
             ) : (
-              <span className='font-okxs font-normal text-indigo-100 text-xl'>
-                {balance?.toLocaleString('en-US', { maximumFractionDigits: 11 })}
-              </span>
+              <span className='font-okxs font-normal text-indigo-100 text-xl'>{formattedBalance}</span>
             )}
           </p>
-          <span className='text-white/50 font-okxs font-normal text-xs px-0.5 uppercase'>{token}</span>
+          <div className='flex items-center space-x-2'>
+            <span className='text-white/60 font-okxs font-normal text-[8px] px-0.5 uppercase'>{token}</span>
+            {isInsufficient && (
+              <span className='text-[8px] uppercase text-red-400/80 font-okxs font-medium whitespace-nowrap'>
+                Low balance
+              </span>
+            )}
+          </div>
         </div>
         {showBalance && (
           <p className={`md:text-base text-sm font-brk px-2`}>

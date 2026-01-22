@@ -1,6 +1,7 @@
 import { config } from '@/ctx/wagmi/config'
 import { useSend } from '@/hooks/x-use-send'
 import { Icon } from '@/lib/icons'
+import { getTransactionExplorerUrl } from '@/lib/explorer'
 import { cn } from '@/lib/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { getBalance } from '@wagmi/core'
@@ -27,6 +28,7 @@ export const CryptoWidget = () => {
   const [amount, setAmount] = useState('')
   const [sendTabKey, setSendTabKey] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const [balance, setBalance] = useState<{ value: bigint; symbol: string; decimals: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -36,11 +38,11 @@ export const CryptoWidget = () => {
   const chains = useChains()
   const currentChain = useMemo(() => chains.find((chain) => chain.id === chainId), [chains, chainId])
 
-  // Get block explorer URL
-  const explorerUrl = useMemo(() => {
-    if (!hash || !currentChain?.blockExplorers?.default) return null
-    return `${currentChain.blockExplorers.default.url}/tx/${hash}`
-  }, [hash, currentChain])
+  // Get block explorer URL for transaction hash (linkable)
+  const explorerUrl = useMemo(
+    () => getTransactionExplorerUrl(currentChain, hash),
+    [currentChain, hash]
+  )
 
   // Validate address
   const isValidAddress = useMemo(() => {
@@ -95,15 +97,16 @@ export const CryptoWidget = () => {
     setShowPreview(true)
   }, [amount, isValidAddress, hasInsufficientBalance])
 
-
   const confirmSend = useCallback(() => {
     if (!ethPrice || !amount) {
+      setLocalError('Unable to convert amount: ETH price not available')
       setShowPreview(false)
       return
     }
 
     const tokenAmount = Number.parseFloat(amount)
     if (Number.isNaN(tokenAmount) || tokenAmount <= 0) {
+      setLocalError('Please enter a valid amount greater than 0')
       setShowPreview(false)
       return
     }
@@ -114,7 +117,8 @@ export const CryptoWidget = () => {
     try {
       send({ to: to as `0x${string}`, usd: usdAmount })
       setShowPreview(false)
-    } catch {
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Failed to send transaction')
       setShowPreview(false)
     }
   }, [send, to, amount, ethPrice])
@@ -208,6 +212,7 @@ export const CryptoWidget = () => {
   const handleReset = useCallback(() => {
     setTo('')
     setAmount('')
+    setLocalError(null)
     setShowPreview(false)
     // Force remount by changing key
     setSendTabKey((prev) => prev + 1)
@@ -285,7 +290,8 @@ export const CryptoWidget = () => {
                 onSend={handleSend}
                 addressInputRef={inputRef}
                 amountInputRef={amountInputRef}
-                disabled={isPending || isConfirming || !isValidAddress || hasInsufficientBalance || !isFormValid}
+                // disabled={isPending || isConfirming || !isValidAddress || hasInsufficientBalance || !isFormValid}
+                disabled={isPending || isConfirming || hasInsufficientBalance}
                 setTo={setTo}
                 setAmount={setAmount}
                 to={to}
@@ -327,7 +333,6 @@ export const CryptoWidget = () => {
             )}
           </AnimatePresence>
         </div>
-
       </motion.div>
 
       {/* Preview Modal */}
