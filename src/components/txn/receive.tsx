@@ -1,20 +1,40 @@
 import { Icon } from '@/lib/icons'
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Title } from './components'
 import { TokenSelector } from './token-selector'
 
 export const ReceiveTab = () => {
   const [selectedToken, setSelectedToken] = useState('ETH')
   const [copied, setCopied] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const walletAddress = '0x1a2B3c4D5e6F7g8H9i0J1k2L3m4N5o6P7q8R9s0T'
 
   const handleCopy = () => {
+    // Clear any existing timeout
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = null
+    }
+
     navigator.clipboard.writeText(walletAddress)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    copyTimeoutRef.current = setTimeout(() => {
+      setCopied(false)
+      copyTimeoutRef.current = null
+    }, 2000)
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+        copyTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <motion.div

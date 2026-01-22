@@ -28,7 +28,7 @@ interface AudioWorkletNodeOptions {
   channelCount?: number
   channelCountMode?: ChannelCountMode
   channelInterpretation?: ChannelInterpretation
-  processorOptions?: any
+  processorOptions?: Record<string, unknown>
 }
 
 interface AudioParamDescriptor {

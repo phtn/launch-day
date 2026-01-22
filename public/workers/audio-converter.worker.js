@@ -12,7 +12,7 @@ if (typeof self !== 'undefined' && 'location' in self && self.location) {
             .origin;
         pathsToTry.unshift(`${origin}/workers/lame.min.js`);
     }
-    catch (_a) {
+    catch {
         // Ignore if location not available
     }
 }
@@ -22,7 +22,7 @@ for (const path of pathsToTry) {
         lamejsLoaded = true;
         break;
     }
-    catch (e) {
+    catch {
         // Try next path
         continue;
     }
@@ -30,7 +30,7 @@ for (const path of pathsToTry) {
 if (!lamejsLoaded) {
     throw new Error(`Failed to load lamejs from any of these paths: ${pathsToTry.join(', ')}`);
 }
-self.addEventListener('message', async (event) => {
+const messageHandler = async (event) => {
     try {
         // Validate event.data exists first
         if (!event || !event.data) {
@@ -220,5 +220,10 @@ self.addEventListener('message', async (event) => {
             error: errorMessage,
         });
     }
+};
+self.addEventListener('message', messageHandler);
+// Cleanup support: remove listener if worker is terminated
+self.addEventListener('beforeunload', () => {
+    self.removeEventListener('message', messageHandler);
 });
 export {};

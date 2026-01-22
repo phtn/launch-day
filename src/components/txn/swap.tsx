@@ -1,6 +1,6 @@
 import { Icon } from '@/lib/icons'
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { tokenData } from './token-display'
 import { TokenSelector } from './token-selector'
 
@@ -11,6 +11,7 @@ export const SwapTab = () => {
   const [toToken, setToToken] = useState('USDT')
   const [fromAmount, setFromAmount] = useState('')
   const [isSwapping, setIsSwapping] = useState(false)
+  const swapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const exchangeRates: Record<SwapPair, number> = {
     'ETH-USDT': 3245.67,
@@ -37,9 +38,28 @@ export const SwapTab = () => {
   }
 
   const handleSwap = () => {
+    // Clear any existing timeout
+    if (swapTimeoutRef.current) {
+      clearTimeout(swapTimeoutRef.current)
+      swapTimeoutRef.current = null
+    }
+
     setIsSwapping(true)
-    setTimeout(() => setIsSwapping(false), 2000)
+    swapTimeoutRef.current = setTimeout(() => {
+      setIsSwapping(false)
+      swapTimeoutRef.current = null
+    }, 2000)
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (swapTimeoutRef.current) {
+        clearTimeout(swapTimeoutRef.current)
+        swapTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   const fromData = tokenData[fromToken] || { color: '#6366f1' }
   const toData = tokenData[toToken] || { color: '#6366f1' }

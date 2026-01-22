@@ -51,6 +51,8 @@ export const useSend = (): UseSendReturn => {
   } = useSendTransaction()
 
   // Wait for transaction receipt once we have a hash
+  // Note: wagmi's useWaitForTransactionReceipt automatically cleans up the refetchInterval
+  // when the component unmounts or when the query is disabled
   const {
     isLoading: isConfirming,
     isSuccess: isConfirmed,

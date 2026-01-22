@@ -22,7 +22,7 @@ for (const path of pathsToTry) {
     importScripts(path)
     lamejsLoaded = true
     break
-  } catch (e) {
+  } catch {
     // Try next path
     continue
   }
@@ -54,10 +54,8 @@ interface AudioConversionRequest {
   duration?: number
 }
 
-self.addEventListener(
-  'message',
-  async (event: MessageEvent<AudioConversionRequest>) => {
-    try {
+const messageHandler = async (event: MessageEvent<AudioConversionRequest>) => {
+  try {
       // Validate event.data exists first
       if (!event || !event.data) {
         throw new Error('Worker received message with no data')
@@ -298,6 +296,13 @@ self.addEventListener(
         error: errorMessage,
       })
     }
-  },
-)
+  }
+
+self.addEventListener('message', messageHandler)
+
+// Cleanup support: remove listener if worker is terminated
+self.addEventListener('beforeunload', () => {
+  self.removeEventListener('message', messageHandler)
+})
+
 export {}

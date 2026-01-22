@@ -12,7 +12,9 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
-    'legacy'
+    'legacy',
+    // Ignore minified third-party files
+    'public/workers/*.min.js'
   ])
 ])
 

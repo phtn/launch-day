@@ -1,4 +1,4 @@
-self.addEventListener('message', async (event) => {
+const messageHandler = async (event) => {
     try {
         const { imageData, format, quality = 0.8 } = event.data;
         // Create an OffscreenCanvas (available in workers)
@@ -30,5 +30,10 @@ self.addEventListener('message', async (event) => {
         };
         self.postMessage(errorResponse);
     }
+};
+self.addEventListener('message', messageHandler);
+// Cleanup support: remove listener if worker is terminated
+self.addEventListener('beforeunload', () => {
+    self.removeEventListener('message', messageHandler);
 });
 export {};

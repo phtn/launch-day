@@ -8,6 +8,7 @@ const UPDATE_INTERVAL = 60; // Update every 60ms (normal speed of our eyes)
 
 export const Content = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     const initWebGPU = async () => {
       try {
@@ -365,7 +366,7 @@ export const Content = () => {
           device.queue.submit([encoder.finish()]);
         }
 
-        setInterval(updateGrid, UPDATE_INTERVAL);
+        intervalRef.current = setInterval(updateGrid, UPDATE_INTERVAL);
       } catch (error) {
         console.error(
           "WebGPU initialization failed:",
@@ -375,6 +376,12 @@ export const Content = () => {
       }
     };
     initWebGPU();
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, []);
 
   return (
