@@ -1,7 +1,6 @@
 import { config } from '@/ctx/wagmi/config'
 import { useSend } from '@/hooks/x-use-send'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
-import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { getBalance } from '@wagmi/core'
@@ -9,6 +8,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
+import { NetworkHeader } from './network-header'
 import { PayTab } from './pay'
 import { SendTab } from './send'
 import { SwapTab } from './swap'
@@ -226,32 +226,8 @@ export const CryptoWidget = () => {
         animate={{ opacity: 1, y: 0 }}
         className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
-        <div className='relative px-6 pt-8 pb-6'>
-          <div className='flex flex-col gap-2 mt-10 md:mt-2 mb-4'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-1'>
-                {currentChain && (
-                  <Icon
-                    name={
-                      (currentChain.name === 'sepolia'
-                        ? 'ethereum'
-                        : currentChain.name === 'polygon'
-                        ? 'polygon'
-                        : 'ethereum') as IconName
-                    }
-                    className={cn('size-3 text-rose-400', {
-                      'text-ethereum': currentChain.name === 'ethereum',
-                      'text-polygon': currentChain.name === 'polygon'
-                    })}
-                  />
-                )}
-                <span className='font-okxs'>{currentChain?.name}</span>
-              </div>
-              <span className='font-brk text-xs text-lime-100'>
-                {address?.substring(0, 4)}...{address?.substring(address?.length - 6)}
-              </span>
-            </div>
-          </div>
+        <div className='relative px-6 pt-8 pb-0'>
+          <NetworkHeader chain={currentChain} address={address} />
 
           {/* Tab Navigation */}
           <div className='relative z-200 flex py-0.5 md:py-1 rounded-2xl bg-white/0'>
@@ -291,7 +267,7 @@ export const CryptoWidget = () => {
 
         <GlowDivider />
 
-        <div className='px-2 pb-4 md:p-6 pt-5 min-h-105'>
+        <div className='px-2 pb-4 md:p-6 pt-8 min-h-105'>
           <AnimatePresence mode='wait'>
             {activeTab === 'pay' && (
               <PayTab

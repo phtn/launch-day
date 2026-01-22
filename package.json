@@ -3,8 +3,8 @@
   "version": "0.5.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "build": "next build --turbo 2>&1 | sed '/Found.*warning.*CSS/,/inherits: true/d'",
+    "dev": "bun scripts/dev-qr.ts --turbo",
+    "build": "next build --turbo",
     "start": "next start",
     "dev:worker": "next dev -H 127.0.0.1 -p 3111 --turbopack",
     "work": "tsc -p tsconfig.worker.json --watch",
@@ -52,6 +52,7 @@
     "@changesets/cli": "^2.29.8",
     "@eslint/eslintrc": "^3.3.0",
     "@types/node": "^24.10.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.11",
     "@types/react-dom": "^19.0.4",
     "@webgpu/types": "^0.1.60",

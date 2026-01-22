@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { Title } from './components'
+import { NetworkSelector } from './network-selector'
 import { ReceiptModal } from './receipt-modal'
 import type { Token } from './token'
 import { Tokens } from './token-list'
@@ -231,8 +232,6 @@ export const PayTab = ({
     []
   )
 
-  const allowedNetworks = ['sepolia', 'ethereum', 'polygon', 'amoy'] as const
-
   // Get current network name from chainId
   const currentNetwork = useMemo(() => {
     if (chainId === sepolia.id) return 'sepolia'
@@ -243,9 +242,8 @@ export const PayTab = ({
   }, [chainId])
 
   // Handle network selection
-  const handleNetworkClick = useCallback(
-    (network: string) => {
-      console.log(network)
+  const handleNetworkSelect = useCallback(
+    (network: string) => () => {
       const targetChainId = networkChainMap[network]
       if (targetChainId && targetChainId !== chainId) {
         startTransition(() => {
@@ -512,64 +510,38 @@ export const PayTab = ({
         <Title id='pay-network-selector'>Network</Title>
 
         <div className='space-y-2 my-2'>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            className='bg-zinc-200/5 py-2 flex items-center rounded-xl justify-between px-3'>
-            {allowedNetworks.map((net) => {
-              const isActive = currentNetwork === net
-              return (
-                <motion.button
-                  key={net}
-                  onClick={() => handleNetworkClick(net)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={cn('flex items-center space-x-0.5 px-2 py-1 rounded-lg transition-colors', {
-                    'bg-white/10': isActive,
-                    'hover:bg-white/2 ': !isActive,
-                    'cursor-pointer': true
-                  })}>
-                  <Icon
-                    name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
-                    className={cn('text-zinc-100/50 size-3.25', {
-                      'text-rose-400': net === 'sepolia' && isActive,
-                      'text-polygon': net === 'polygon' && isActive,
-                      'text-ethereum': net === 'ethereum' && isActive,
-                      'text-rose-300': net === 'amoy' && isActive
-                    })}
-                  />
-                  <span
-                    className={cn('lowercase', {
-                      ' font-polyn font-bold': net === 'polygon',
-                      ' font-bold tracking-tight': net === 'ethereum',
-                      'font-semibold tracking-tight': net === 'sepolia' || net === 'amoy'
-                    })}>
-                    {net}
-                  </span>
-                </motion.button>
-              )
-            })}
-          </motion.div>
+          <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
 
-          {tokensLoading ? (
-            <div className='flex items-center justify-center py-8'>
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
-              </motion.div>
-            </div>
-          ) : availableTokens.length > 0 ? (
-            <Tokens
-              tokens={availableTokens}
-              tokenBalances={networkTokens}
-              selectedToken={selectedToken}
-              paymentAmountUsd={paymentAmountUsd}
-              tokenPrices={{ usdc: 1, ethereum: tokenPrice }}
-              onTokenSelect={handleTokenSelect}
-            />
-          ) : (
-            <div className='text-center py-8 text-white/40 text-sm'>No tokens with balance found on this network</div>
-          )}
+          <div className='min-h-32 mx-4'>
+            {tokensLoading ? (
+              <div className='flex items-center justify-center py-8'>
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                  <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+                </motion.div>
+              </div>
+            ) : availableTokens.length > 0 ? (
+              <Tokens
+                tokens={availableTokens}
+                tokenBalances={networkTokens}
+                selectedToken={selectedToken}
+                paymentAmountUsd={paymentAmountUsd}
+                tokenPrices={{ usdc: 1, ethereum: tokenPrice }}
+                onTokenSelect={handleTokenSelect}
+              />
+            ) : (
+              <div className='relative h-32 rounded-xl overflow-hidden flex items-center bg-linear-to-r from-black/60 mt-4 via-black/20 to-zinc-950/50 justify-center text-white/60 text-sm'>
+                <div className='absolute bg-[url("/svg/noise.svg")] opacity-10 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
+                <motion.div
+                  animate={{ x: [0, 100, 0] }}
+                  transition={{ duration: 40, ease: 'easeInOut', repeat: Number.MAX_SAFE_INTEGER }}
+                  className='space-y-3 sm:space-y-4 bg-no-repeat opacity-60 bg-[url("/svg/dots.svg")] bg-blend-lighten blur-px w-full h-full absolute -top-1 right-0 bg-top-right'
+                />
+                <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
+                  No tokens with balance found on this network
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -688,7 +660,7 @@ export const PayTab = ({
       <motion.div
         whileHover={{ scale: disabled || activeIsConfirming ? 1 : 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className='mt-4'>
+        className='mt-4 mx-4'>
         {activeReceipt && activeReceipt.status === 'success' && onReset ? (
           <button
             onClick={() => setShowReceiptModal(true)}
