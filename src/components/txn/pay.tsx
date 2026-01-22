@@ -525,14 +525,14 @@ export const PayTab = ({
                   onClick={() => handleNetworkClick(net)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={cn('flex items-center space-x-1 px-2 py-1.5 rounded-lg transition-colors', {
+                  className={cn('flex items-center space-x-0.5 px-2 py-1 rounded-lg transition-colors', {
                     'bg-white/10': isActive,
                     'hover:bg-white/2 ': !isActive,
                     'cursor-pointer': true
                   })}>
                   <Icon
                     name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
-                    className={cn('text-zinc-100/50 size-4', {
+                    className={cn('text-zinc-100/50 size-3.25', {
                       'text-rose-400': net === 'sepolia' && isActive,
                       'text-polygon': net === 'polygon' && isActive,
                       'text-ethereum': net === 'ethereum' && isActive,

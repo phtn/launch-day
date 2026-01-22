@@ -226,8 +226,8 @@ export const CryptoWidget = () => {
         animate={{ opacity: 1, y: 0 }}
         className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
-        <div className='relative p-6 pb-0'>
-          <div className='flex flex-col gap-2 mt-7 md:mt-2 mb-4'>
+        <div className='relative px-6 pt-8 pb-6'>
+          <div className='flex flex-col gap-2 mt-10 md:mt-2 mb-4'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-1'>
                 {currentChain && (
