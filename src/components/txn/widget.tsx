@@ -1,6 +1,6 @@
 import { config } from '@/ctx/wagmi/config'
-import { useCopy } from '@/hooks/use-copy'
 import { useSend } from '@/hooks/x-use-send'
+import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { getBalance } from '@wagmi/core'
@@ -8,31 +8,27 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
-import { ReceiveTab } from './receive'
+import { PayTab } from './pay'
 import { SendTab } from './send'
 import { SwapTab } from './swap'
 
 const tabs = [
-  { id: 'receive', label: 'wallet', icon: 'arrow-down' },
+  { id: 'pay', label: 'pay', icon: 'icon' },
   { id: 'swap', label: 'convert', icon: 'arrow-down' },
   { id: 'send', label: 'send', icon: 'icon' }
 ]
 
 export const CryptoWidget = () => {
-  const [activeTab, setActiveTab] = useState('receive')
+  const [activeTab, setActiveTab] = useState('pay')
 
-  const { send, isPending, isConfirming, error, hash, receipt, ethPrice, usdToEth } = useSend()
+  const { send, isPending, isConfirming, hash, receipt, ethPrice } = useSend()
   const { address } = useAppKitAccount()
-  const { copy, isCopied } = useCopy({})
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [sendTabKey, setSendTabKey] = useState(0)
-  const [localError, setLocalError] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
   const [, startTransition] = useTransition()
   const [balance, setBalance] = useState<{ value: bigint; symbol: string; decimals: number } | null>(null)
-  const [confirmationTimeout, setConfirmationTimeout] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const amountInputRef = useRef<HTMLInputElement>(null)
 
@@ -83,37 +79,31 @@ export const CryptoWidget = () => {
   }, [balance])
 
   const handleSend = useCallback(() => {
-    setLocalError(null)
-
     if (!isValidAddress) {
-      setLocalError('Please enter a valid Ethereum address')
       return
     }
 
     const tokenAmount = Number.parseFloat(amount)
     if (Number.isNaN(tokenAmount) || tokenAmount <= 0) {
-      setLocalError('Please enter a valid amount greater than 0')
       return
     }
 
     if (hasInsufficientBalance) {
-      setLocalError('Insufficient balance')
       return
     }
 
     setShowPreview(true)
   }, [amount, isValidAddress, hasInsufficientBalance])
 
+
   const confirmSend = useCallback(() => {
     if (!ethPrice || !amount) {
-      setLocalError('Unable to convert amount: ETH price not available')
       setShowPreview(false)
       return
     }
 
     const tokenAmount = Number.parseFloat(amount)
     if (Number.isNaN(tokenAmount) || tokenAmount <= 0) {
-      setLocalError('Please enter a valid amount greater than 0')
       setShowPreview(false)
       return
     }
@@ -124,23 +114,10 @@ export const CryptoWidget = () => {
     try {
       send({ to: to as `0x${string}`, usd: usdAmount })
       setShowPreview(false)
-    } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Failed to send transaction')
+    } catch {
       setShowPreview(false)
     }
   }, [send, to, amount, ethPrice])
-
-  const handleCopyAddress = useCallback(() => {
-    if (to) {
-      copy('address', to)
-    }
-  }, [to, copy])
-
-  const handleCopyHash = useCallback(() => {
-    if (hash) {
-      copy('hash', hash)
-    }
-  }, [hash, copy])
 
   // Fetch balance when address or chainId changes
   useEffect(() => {
@@ -187,25 +164,17 @@ export const CryptoWidget = () => {
   useEffect(() => {
     if (hash && isConfirming) {
       const timeout = setTimeout(() => {
-        startTransition(() => {
-          setConfirmationTimeout(true)
-        })
+        // Timeout reached - could show a message or handle differently
+        console.log('Transaction confirmation timeout')
       }, 30000) // 30 seconds timeout
       return () => clearTimeout(timeout)
-    } else {
-      startTransition(() => setConfirmationTimeout(false))
     }
-  }, [hash, isConfirming, startTransition])
+  }, [hash, isConfirming])
 
   // Show success animation and refetch balance when transaction is confirmed
   useEffect(() => {
     if (receipt && receipt.status === 'success') {
       let isMounted = true
-      startTransition(() => {
-        if (isMounted) {
-          setShowSuccess(true)
-        }
-      })
 
       // Refetch balance after successful transaction
       if (address && chainId) {
@@ -229,29 +198,17 @@ export const CryptoWidget = () => {
           })
       }
 
-      const timer = setTimeout(() => {
-        if (isMounted) {
-          startTransition(() => {
-            setShowSuccess(false)
-          })
-        }
-      }, 3000)
       return () => {
         isMounted = false
-        clearTimeout(timer)
       }
     }
   }, [receipt, address, chainId, startTransition])
-
-  const displayError = localError || error?.message
 
   // Reset form after successful transaction
   const handleReset = useCallback(() => {
     setTo('')
     setAmount('')
-    setLocalError(null)
     setShowPreview(false)
-    setShowSuccess(false)
     // Force remount by changing key
     setSendTabKey((prev) => prev + 1)
   }, [])
@@ -268,13 +225,23 @@ export const CryptoWidget = () => {
         className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
         <div className='relative p-6 pb-0'>
-          <div className='flex items-center justify-between mb-10'>
-            <span>{currentChain?.name}</span>
-            <span>{address?.substring(0, 12)}</span>
+          <div className='flex flex-col gap-2 mt-7 md:mt-2 mb-4'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center space-x-1'>
+                <Icon name='ethereum' className='size-3 text-rose-400' />
+                <span className='font-okxs'>{currentChain?.name}</span>
+              </div>
+              <span className='font-brk text-xs text-lime-200'>{address?.substring(0, 12)}</span>
+            </div>
+            {/*{address && (
+              <div className='flex items-center justify-end'>
+                <UsdcBalance />
+              </div>
+            )}*/}
           </div>
 
           {/* Tab Navigation */}
-          <div className='relative flex py-0.5 md:py-1 rounded-2xl bg-white/0'>
+          <div className='relative z-200 flex py-0.5 md:py-1 rounded-2xl bg-white/0'>
             {/* Active Tab Indicator */}
             <motion.div
               className={cn(
@@ -298,11 +265,11 @@ export const CryptoWidget = () => {
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', damping: 80, stiffness: 50 }}
                   className={cn(
-                    'outline-none relative flex-1 flex items-center justify-center h-10 gap-3 transition-colors z-10',
-                    'text-white/50 hover:text-white/70 tracking-widest md:tracking-normal',
-                    { 'text-white outline-1 focus-within:outline-1': isActive, '': activeTab === 'receive' }
+                    'outline-none relative flex-1 flex items-center justify-center h-8 gap-3 transition-colors z-10',
+                    'text-white/50 hover:text-white/70 tracking-widest',
+                    { 'text-white outline-1 focus-within:outline-1': isActive, '': activeTab === 'pay' }
                   )}>
-                  <span className='font-brk text-xs md:text-lg font-medium uppercase md:lowercase'>{tab.label}</span>
+                  <span className='font-brk text-xs font-medium uppercase'>{tab.label}</span>
                 </motion.button>
               )
             })}
@@ -313,7 +280,28 @@ export const CryptoWidget = () => {
 
         <div className='px-2 pb-4 md:p-6 pt-5 min-h-105'>
           <AnimatePresence mode='wait'>
-            {activeTab === 'receive' && <ReceiveTab key='receive' />}
+            {activeTab === 'pay' && (
+              <PayTab
+                onSend={handleSend}
+                addressInputRef={inputRef}
+                amountInputRef={amountInputRef}
+                disabled={isPending || isConfirming || !isValidAddress || hasInsufficientBalance || !isFormValid}
+                setTo={setTo}
+                setAmount={setAmount}
+                to={to}
+                amount={amount}
+                formattedBalance={formattedBalance}
+                balance={balance}
+                tokenPrice={ethPrice}
+                isPending={isPending}
+                isConfirming={isConfirming}
+                receipt={receipt}
+                hash={hash}
+                explorerUrl={explorerUrl}
+                onReset={handleReset}
+                key={`send-${sendTabKey}`}
+              />
+            )}
             {activeTab === 'swap' && <SwapTab key='swap' />}
             {activeTab === 'send' && (
               <SendTab
@@ -340,7 +328,6 @@ export const CryptoWidget = () => {
           </AnimatePresence>
         </div>
 
-        {/*<AccentLine />*/}
       </motion.div>
 
       {/* Preview Modal */}
@@ -399,4 +386,3 @@ const GlowDivider = () => (
     <div className='absolute inset-0 bg-linear-to-r from-transparent via-indigo-400/40 to-transparent blur-[3px]' />
   </div>
 )
-const AccentLine = () => <div className='h-1 bg-linear-to-r from-indigo-300 via-orange-300 to-cyan-200' />

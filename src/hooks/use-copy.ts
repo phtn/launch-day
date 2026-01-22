@@ -36,7 +36,7 @@ export function useCopy({ timeout = 2000 }: useCopyProps) {
         clearTimeout(timeoutRef.current)
       }
 
-      const copied = await handleAsync(copyFn)({ name, text })
+      const copied = await handleAsync(copyFn)({ text })
       if (!copied.error) {
         setIsCopied(true)
         timeoutRef.current = setTimeout(() => {

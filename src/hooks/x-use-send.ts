@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { type Address, type Chain, parseEther, formatEther } from 'viem'
+import { type Address, type Chain, formatEther, parseEther } from 'viem'
 import { useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
 import { useCrypto } from './use-crypto'
 
@@ -43,12 +43,7 @@ const MIN_USD_AMOUNT = 0.01
  */
 export const useSend = (): UseSendReturn => {
   const { getBySymbol } = useCrypto()
-  const {
-    sendTransaction,
-    isPending,
-    error,
-    data: transactionHash
-  } = useSendTransaction()
+  const { mutateAsync, isPending, error, data: transactionHash } = useSendTransaction()
 
   // Wait for transaction receipt once we have a hash
   // Note: wagmi's useWaitForTransactionReceipt automatically cleans up the refetchInterval
@@ -141,11 +136,11 @@ export const useSend = (): UseSendReturn => {
             'ETH Amount': ethString,
             'Wei Value': value.toString(),
             'ETH Price': `$${ethPrice?.toFixed(2) ?? FALLBACK_ETH_PRICE.toFixed(2)}`,
-            'Recipient': to
+            Recipient: to
           })
         }
 
-        sendTransaction({
+        mutateAsync({
           to,
           value
         })
@@ -157,7 +152,7 @@ export const useSend = (): UseSendReturn => {
         )
       }
     },
-    [sendTransaction, usdToEth, ethPrice]
+    [mutateAsync, usdToEth, ethPrice]
   )
 
   // Determine if we're still confirming - we have a hash but no receipt yet
@@ -187,9 +182,9 @@ export const useSend = (): UseSendReturn => {
     }
     // Log polling status in dev
     if (process.env.NODE_ENV === 'development') {
-      console.log('⏳ Still confirming:', { 
-        isConfirming, 
-        fetchStatus, 
+      console.log('⏳ Still confirming:', {
+        isConfirming,
+        fetchStatus,
         hasReceipt: !!receipt,
         isConfirmed,
         isError: isReceiptError

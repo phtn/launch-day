@@ -1,22 +1,20 @@
-import { usePaste } from '@/hooks/use-paste'
-import { Icon } from '@/lib/icons'
+import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChangeEvent, Dispatch, Ref, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
-import { AmountInputField } from './amount-input'
-import { AddressInputField, Title } from './components'
-import { tokenData, TokenDisplay } from './token-display'
-import { Balance } from './types'
+import { Title } from './components'
+import { Tokens } from './token-list'
+import { Balance, PayTabProps } from './types'
 
-interface SendingStateProps {
+interface PayStateProps {
   amount: string
   recipient: string
   balance: Balance | null
   usdValue: number | null
 }
 
-const SendingState = ({ amount, recipient, balance, usdValue }: SendingStateProps) => {
+const PayState = ({ amount, recipient, balance, usdValue }: PayStateProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -130,37 +128,21 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
   )
 }
 
-type ReceiptStatus = { blockNumber: bigint; status: 'success' | 'reverted' } | null
-
-interface SendTabProps {
-  onSend: VoidFunction
-  formattedBalance: string | null
-  balance: Balance | null
-  tokenPrice: number | null
-  disabled: boolean
-  amountInputRef: Ref<HTMLInputElement>
-  addressInputRef: Ref<HTMLInputElement>
-  setTo: Dispatch<SetStateAction<string>>
-  setAmount: Dispatch<SetStateAction<string>>
-  to: string
-  amount: string
-  isPending?: boolean
-  isConfirming?: boolean
-  receipt?: ReceiptStatus
-  hash?: `0x${string}` | null
-  explorerUrl?: string | null
-  onReset?: VoidFunction
-}
-export const SendTab = ({
-  formattedBalance,
+export const PayTab = ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  formattedBalance: _formattedBalance,
   balance,
   tokenPrice,
   disabled,
   onSend,
-  amountInputRef,
-  addressInputRef,
-  setTo,
-  setAmount: setAmountProp,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  amountInputRef: _amountInputRef,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  addressInputRef: _addressInputRef,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setTo: _setTo,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setAmount: _setAmountProp,
   to: toProp,
   amount: amountProp,
   isPending = false,
@@ -169,11 +151,9 @@ export const SendTab = ({
   hash = null,
   explorerUrl = null,
   onReset
-}: SendTabProps) => {
-  const [selectedToken] = useState('ETH')
+}: PayTabProps) => {
   const [recipient, setRecipient] = useState(toProp)
   const [amount, setAmount] = useState(amountProp)
-  const [isValid, setIsValid] = useState<boolean | null>(null)
 
   // Sync local state with parent props
   useEffect(() => {
@@ -184,31 +164,11 @@ export const SendTab = ({
     setAmount(amountProp)
   }, [amountProp])
 
-  // Sync amount to parent
-  const handleAmountChange = useCallback(
-    (value: string) => {
-      setAmount(value)
-      setAmountProp(value)
-    },
-    [setAmountProp]
-  )
-
-  const data = tokenData[selectedToken] || { color: '#6366f1' }
-
   // Get actual balance from props
   const actualBalance = useMemo(() => {
     if (!balance) return null
     return Number.parseFloat(formatUnits(balance.value, balance.decimals))
   }, [balance])
-
-  const validateAddress = (address: string) => {
-    if (!address) {
-      setIsValid(null)
-      return
-    }
-    // Simple validation - starts with 0x and has 40+ chars
-    setIsValid(address.startsWith('0x') && address.length >= 40)
-  }
 
   const usdValue = useMemo(() => {
     if (!tokenPrice || !amount) return null
@@ -217,60 +177,60 @@ export const SendTab = ({
     return parsedAmount * tokenPrice
   }, [amount, tokenPrice])
 
-  const { paste } = usePaste({})
-
-  const handlePaste = useCallback(async () => {
-    const pastedText = await paste()
-    if (pastedText) {
-      setRecipient(pastedText)
-      setTo(pastedText)
-      validateAddress(pastedText)
-    }
-  }, [paste, setTo])
-
-  const handleOnChangeAddress = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setRecipient(e.target.value)
-      setTo(e.target.value)
-      validateAddress(e.target.value)
-    },
-    [setRecipient, setTo]
-  )
+  // const handleOnChangeAmount = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  //   setAmount(e.target.value)
+  // }, [setAmount])
+  //
+  const allowedNetworks = ['ethereum', 'polygon', 'bitcoin']
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, y: -10 }}
       className='space-y-0'>
       {/* Token Selection */}
-      <div className='mb-5'>
-        <Title id='send-token-selector'>Token</Title>
-        <div className='mt-2'>
-          {balance && (
-            <TokenDisplay
-              token={balance.symbol}
-              price={tokenPrice}
-              balance={Number.parseFloat(formatUnits(balance.value, balance.decimals))}
-              size='sm'
-            />
-          )}
-        </div>
-        {/*<TokenSelector id='send-token-selector' selected={selectedToken} onSelect={setSelectedToken} />*/}
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className='mb-5'>
+        <Title id='pay-network-selector'>Network</Title>
 
-      {/* Recipient Address */}
-      <AddressInputField
-        label='To'
-        isValid={isValid}
-        value={recipient}
-        pasteFn={handlePaste}
-        inputRef={addressInputRef}
-        onChange={handleOnChangeAddress}
-      />
+        <div className='space-y-2 my-2'>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            className='bg-zinc-100/5 py-2 flex items-center rounded-xl justify-evenly space-x-4'>
+            {allowedNetworks.map((net) => (
+              <div key={net} className='flex items-center space-x-1'>
+                <Icon
+                  name={net as IconName}
+                  className={cn('size-4', {
+                    'text-polygon': net === 'polygon',
+                    'text-bitcoin': net === 'bitcoin',
+                    'text-ethereum': net === 'ethereum'
+                  })}
+                />
+                <span
+                  className={cn('lowercase', {
+                    ' font-polyn font-bold': net === 'polygon',
+                    ' font-bold tracking-tight': net === 'ethereum',
+                    'italic font-bitcoin font-bold': net === 'bitcoin'
+                  })}>
+                  {net}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+
+          <Tokens tokens={['usdc', 'ethereum']} />
+        </div>
+      </motion.div>
 
       {/* Amount Input / Sending / Success State */}
-      <div className=''>
+      <div className='mt-4'>
         <AnimatePresence mode='wait'>
           {receipt && receipt.status === 'success' ? (
             <SuccessState
@@ -283,16 +243,9 @@ export const SendTab = ({
               explorerUrl={explorerUrl}
             />
           ) : isPending || isConfirming ? (
-            <SendingState key='sending' amount={amount} recipient={recipient} balance={balance} usdValue={usdValue} />
+            <PayState key='sending' amount={amount} recipient={recipient} balance={balance} usdValue={usdValue} />
           ) : (
-            <AmountInputField
-              balance={balance}
-              tokenData={data}
-              usdValue={usdValue}
-              formattedBalance={formattedBalance}
-              onChange={handleAmountChange}
-              amountInputRef={amountInputRef}
-            />
+            <div></div>
           )}
         </AnimatePresence>
       </div>
@@ -308,13 +261,13 @@ export const SendTab = ({
         </motion.div>
       )}
 
-      {/* Network Fee Info */}
-      <div className='p-4 rounded-xl bg-white/0 border border-white/0'>
+      {/* Amount Info */}
+      <div className='h-px border-dashed-lg' />
+      <div className='p-4 border-0 decoration-1 border-white/10'>
         <div className='flex items-center justify-between text-xs md:text-sm'>
-          <span className='opacity-70 font-exo font-bold uppercase italic'>Estimated Network Fee</span>
-          <span className='text-white font-okxs'>
-            ~0.0012 <span className='font-okxs font-light opacity-70'>ETH</span> ({' '}
-            <span className='opacity-60 pr-0.5'>$</span>3.89 )
+          <span className='opacity-70 font-exo font-bold uppercase italic'>Amount</span>
+          <span className='text-white text-xl font-okxs'>
+            <span className='opacity-60 pr-0.5'>$</span>3.89
           </span>
         </div>
       </div>
@@ -347,7 +300,7 @@ export const SendTab = ({
               </motion.div>
             ) : (
               <span className='flex items-center gap-2 font-exo font-bold italic drop-shadow-2xs'>
-                Send
+                Pay
                 <Icon name='send-block' className='w-5 h-5' />
               </span>
             )}

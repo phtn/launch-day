@@ -56,7 +56,7 @@ export const Content = () => {
         setConverting(false)
       }
     },
-    [file, convert, setConverting]
+    [file, convert, setConverting, convertedUrl]
   )
 
   const handleDownload = useCallback(() => {

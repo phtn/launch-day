@@ -1,7 +1,7 @@
 import { Icon } from '@/lib/icons'
 import { AnimatePresence, motion } from 'motion/react'
 import { Dispatch, SetStateAction, useState } from 'react'
-import { tokenData } from './token-display'
+import { tokenData, TokenDisplay } from './token-display'
 
 interface TokenSelectorProps {
   id: string
@@ -53,17 +53,16 @@ export const TokenSelector = ({ id, selected, onSelect, excludeToken }: TokenSel
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.05 }}
-              className='absolute min-h-82 z-50 w-full mt-px md:p-2 rounded-xl bg-stone-950 backdrop-blur-xl border border-white/10 shadow-2xl'>
+              className='absolute min-h-82 z-50 w-full mt-px md:p-2 rounded-xl bg-zinc-950 backdrop-blur-xl border border-white/10 shadow-2xl'>
               {filteredTokens.map((token) => (
                 <motion.button
                   key={token.symbol}
-                  whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                   onClick={() => {
                     onSelect(token.symbol)
                     setIsOpen(false)
                   }}
-                  className='w-full flex items-center justify-between py-4 px-3 rounded-lg'>
-                  {/*<TokenDisplay token={token.symbol} balance={token.balance} size='sm' />*/}
+                  className='w-full md:hover:bg-zinc-100/5 flex items-center justify-between py-4 px-3 rounded-lg transition-colors duration-75'>
+                  <TokenDisplay price={token.balance} token={token.symbol} balance={token.balance} size='sm' />
                   {selected === token.symbol && <Icon name='check' className='w-3 h-3 text-cyan-100/60' />}
                 </motion.button>
               ))}

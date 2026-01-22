@@ -19,7 +19,8 @@ export const WalletComp = () => {
   const chains = useChains()
 
   const currentChain = useMemo(() => chains.find((chain) => chain.id === chainId), [chains, chainId])
-  const networkName = useMemo(() => currentChain?.name ?? 'Unknown', [currentChain])
+  // const networkName = useMemo(() => currentChain?.name ?? 'Unknown', [currentChain])
+  const nc = currentChain?.nativeCurrency.symbol
   const chainBalId = useMemo(() => {
     if (chainId === 1) return 1
     if (chainId === sepolia.id) return sepolia.id
@@ -56,9 +57,7 @@ export const WalletComp = () => {
     }
 
     const usdValue = balanceAsNumber * currentPrice
-    console.log('Balance:', balanceAsNumber)
-    console.log('USD Value:', usdValue)
-    console.table({ 'Balance ': balanceAsNumber, 'USD Value': usdValue, symbol: balance.symbol })
+    console.table({ 'Balance ': balanceAsNumber, 'USD Value': usdValue, symbol: balance.symbol, native: nc })
 
     return usdValue.toLocaleString('en-US', {
       style: 'currency',
@@ -68,7 +67,7 @@ export const WalletComp = () => {
       minimumFractionDigits: 2,
       currencyDisplay: 'symbol'
     })
-  }, [address, chainBalId, getBySymbol])
+  }, [address, chainBalId, getBySymbol, nc])
 
   const [balance, setBalance] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(false)

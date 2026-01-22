@@ -1,5 +1,4 @@
 export type CopyFnParams = {
-  name: string
   text: string
   limit?: number
 }
@@ -9,7 +8,7 @@ export const charLimit = (text: string | undefined, chars?: number): string | un
   if (!text) return
   return text.substring(0, chars ?? 35)
 }
-export const copyFn: CopyFn = async ({ name, text }) => {
+export const copyFn: CopyFn = async ({ text }) => {
   if (!navigator?.clipboard) {
     return false
   }
@@ -20,7 +19,7 @@ export const copyFn: CopyFn = async ({ name, text }) => {
     .then(() => {
       return true
     })
-    .catch((e) => {
+    .catch(() => {
       return false
     })
 }

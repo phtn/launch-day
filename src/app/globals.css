@@ -35,6 +35,35 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Gens';
+  src: url('/fonts/gs-med.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gens';
+  src: url('/fonts/gs-sb.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Polyn';
+  src: url('/fonts/poly-nm.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Polyn';
+  src: url('/fonts/PolySansTrial-Bulky.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -159,6 +188,10 @@
   --color-avocado-light: oklch(0.8 0.16 148);
   --color-card-table: oklch(0.6 0.16 148);
   --color-brood: oklch(0.58 0.2 32);
+  --color-usdc: oklch(0.562 0.1504 253.19);
+  --color-polygon: oklch(0.5284 0.2186 291.48);
+  --color-ethereum: oklch(0.6416 0.1738 268.95);
+  --color-bitcoin: oklch(0.7523 0.1663 62.59);
   --font-geist: var(--font-geist-sans);
   --font-abril: var(--font-abril);
   --font-exo: var(--font-exo);
@@ -167,6 +200,9 @@
   --font-space: var(--font-space);
   --font-brk: 'Brk', Menlo, Monaco, monospace;
   --font-okxs: 'Okxs', sans-serif;
+  --font-gs: 'Gens', sans-serif;
+  --font-polyn: 'Polyn', sans-serif;
+  --font-bitcoin: var(--font-bitcoin);
 }
 
 .diamond {
@@ -204,5 +240,14 @@
 
   *::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+@layer components {
+  .border-dashed-lg {
+    background-image: linear-gradient(transparent, transparent),
+      repeating-linear-gradient(90deg, #222 0, #14141b 2px, transparent 10px, transparent 10px);
+    background-clip: padding-box, border-box;
+    background-origin: padding-box, border-box;
   }
 }

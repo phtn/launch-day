@@ -1,4 +1,6 @@
-import { ReactNode } from 'react'
+import { Icon } from '@/lib/icons'
+import { motion } from 'motion/react'
+import { ChangeEvent, ReactNode, Ref, useId } from 'react'
 import { AnimatedNumber } from '../animated-number'
 
 interface TitleProps {
@@ -32,6 +34,69 @@ export const USDValue = ({ value }: USDValueProps) => {
         <AnimatedNumber value={value} precision={2} stiffness={100} mass={0.1} damping={120} />
         {/*{value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}*/}
       </span>
+    </div>
+  )
+}
+
+interface AddressInputFieldProps {
+  label: string
+  isValid: boolean | null
+  value: string
+  inputRef: Ref<HTMLInputElement>
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void
+  pasteFn: VoidFunction
+}
+export const AddressInputField = ({ label, isValid, value, inputRef, onChange, pasteFn }: AddressInputFieldProps) => {
+  const id = useId()
+  return (
+    <div className='mb-7'>
+      <Title id={id}>{label}</Title>
+      <div className='relative group mt-2'>
+        <div
+          className={`absolute inset-0 rounded-xl blur-md transition-opacity duration-300 ${
+            isValid === true
+              ? 'bg-linear-to-r from-emerald-500/5 to-emerald-400/5'
+              : isValid === false
+              ? 'bg-red-500/20 opacity-100'
+              : 'opacity-0'
+          }`}
+        />
+        <div
+          className={`relative flex items-center md:gap-0 gap-0 p-1 md:p-3 rounded-xl bg-white/5 border transition-colors ${
+            isValid === true
+              ? 'border-emerald-400/50'
+              : isValid === false
+              ? 'border-red-500/50'
+              : 'border-white/10 group-hover:border-white/20'
+          }`}>
+          <input
+            type='text'
+            id={id}
+            value={value}
+            spellCheck='false'
+            placeholder='0x...'
+            ref={inputRef}
+            onChange={onChange}
+            className='flex-1 p-2 bg-transparent text-white font-brk text-xs md:text-sm placeholder-white/30 outline-none'
+          />
+          {isValid !== null && (
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+              {isValid ? (
+                <Icon name='check' className='size-4 text-emerald-400' />
+              ) : (
+                <Icon name='alert-02' className='size-4 text-red-400' />
+              )}
+            </motion.div>
+          )}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={pasteFn}
+            className='p-2 rounded-lg bg-white/0 hover:bg-white/5 transition-colors'>
+            <Icon name='clipboard' className='size-5 text-white/60' />
+          </motion.button>
+        </div>
+      </div>
     </div>
   )
 }

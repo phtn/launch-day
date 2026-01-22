@@ -1,5 +1,8 @@
 import { Icon, IconName } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import { motion } from 'motion/react'
+import { Token, TokenCoaster } from './token'
+import { UsdcBalance } from './usdc-balance'
 
 const tokenData: Record<string, { name: string; color: string; icon: IconName }> = {
   BTC: { name: 'Bitcoin', color: '#f7931a', icon: 'ethereum' },
@@ -11,35 +14,42 @@ const tokenData: Record<string, { name: string; color: string; icon: IconName }>
 }
 
 interface TokenDisplayProps {
-  token: string | null
+  token: Token
   balance: number | null
   showBalance?: boolean
   price: number | null
   size?: 'sm' | 'md' | 'lg'
 }
 
-export const TokenDisplay = ({ token, balance, price, showBalance = true, size = 'md' }: TokenDisplayProps) => {
-  const sizes = {
-    sm: { icon: 'w-8 h-8 text-sm', text: 'text-sm', balance: 'text-xs' },
-    md: { icon: 'w-10 h-10 text-base', text: 'text-base', balance: 'text-sm' },
-    lg: { icon: 'w-12 h-12 text-lg', text: 'text-lg', balance: 'text-base' }
-  }
+export const TokenModern = ({ token, balance, price, showBalance = true }: TokenDisplayProps) => {
 
   return (
-    <div className='flex items-center justify-start w-full gap-1'>
+    <div className='flex items-center justify-start w-full gap-4'>
       <motion.div
         whileHover={{ scale: 1.05 }}
-        className={`relative ${sizes[size].icon} rounded-full flex items-center justify-center w-auto h-6 md:h-7 aspect-square`}>
-        <Icon name='ethereum' className='size-6 md:size-6 absolute z-5 text-indigo-400/60 blur-xl' />
-        <Icon name='ethereum' className='size-5 md:size-5 absolute z-10 text-indigo-400' />
+        className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-12 aspect-square`)}>
+        <Icon
+          name='squircle'
+          className={cn('size-16 absolute', {
+            'text-ethereum/10': token === 'ethereum',
+            'text-usdc/10': token === 'usdc'
+          })}
+        />
+        <TokenCoaster size='lg' token={token} />
       </motion.div>
       <div className='flex items-center justify-between w-full'>
-        <p className={`text-left space-x-1`}>
-          <span className='font-okxs font-normal text-indigo-100 text-lg'>
-            {balance?.toLocaleString('en-US', { maximumFractionDigits: 11 })}
-          </span>
-          <span className='text-white/50 font-okxs font-light text-xs px-0.5'>{token}</span>
-        </p>
+        <div className='text-left -space-y-2'>
+          <p className={cn('')}>
+            {token === 'usdc' ? (
+              <UsdcBalance compact />
+            ) : (
+              <span className='font-okxs font-normal text-indigo-100 text-xl'>
+                {balance?.toLocaleString('en-US', { maximumFractionDigits: 11 })}
+              </span>
+            )}
+          </p>
+          <span className='text-white/50 font-okxs font-normal text-xs px-0.5 uppercase'>{token}</span>
+        </div>
         {showBalance && (
           <p className={`md:text-base text-sm font-brk px-2`}>
             <span className='font-okxs font-light pr-0.5 opacity-80'>$</span>
