@@ -1,29 +1,28 @@
 import { useNetworkTokens } from '@/hooks/use-network-tokens'
 import { useSend } from '@/hooks/x-use-send'
-import { Icon } from '@/lib/icons'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
+import { Icon } from '@/lib/icons'
 import { getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
 import { cn } from '@/lib/utils'
-import { mainnet, polygon, sepolia } from '@reown/appkit/networks'
+import { mainnet, polygon, polygonAmoy, sepolia } from '@reown/appkit/networks'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { Title } from './components'
-import type { Token } from './token'
 import { ReceiptModal } from './receipt-modal'
+import type { Token } from './token'
 import { Tokens } from './token-list'
 import { TransactionHashLink } from './transaction-hash-link'
-import { Balance, PayTabProps } from './types'
+import { PayTabProps } from './types'
 
 interface PayStateProps {
-  amount: string
-  recipient: string
-  balance: Balance | null
+  tokenAmount: string
+  tokenSymbol: string
   usdValue: number | null
 }
 
-const PayState = ({ amount, recipient, balance, usdValue }: PayStateProps) => {
+const PayState = ({ tokenAmount, tokenSymbol, usdValue }: PayStateProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -45,15 +44,11 @@ const PayState = ({ amount, recipient, balance, usdValue }: PayStateProps) => {
           </div>
         </div>
         <div className='mt-6 pt-4 border-t border-white/10 border-dashed space-y-3'>
-          {/*<div className='flex items-center justify-between'>
-            <span className='text-xs font-brk text-white/50'>To</span>
-            <span className='text-xs font-brk text-white/80 truncate max-w-50'>{recipient}</span>
-          </div>*/}
           <div className='flex items-center justify-between'>
             <span className='text-xs font-exo font-bold italic uppercase opacity-60'>Amount</span>
             <div className='text-right'>
               <span className='text-sm font-okxs text-white'>
-                {amount} {balance?.symbol}
+                {tokenAmount} <span className='uppercase'>{tokenSymbol}</span>
               </span>
               {usdValue !== null && (
                 <p className='text-sm font-okxs leading-none flex items-center space-x-1'>
@@ -75,21 +70,20 @@ const PayState = ({ amount, recipient, balance, usdValue }: PayStateProps) => {
 }
 
 interface SuccessStateProps {
-  amount: string
-  recipient: string
-  balance: Balance | null
+  tokenAmount: string
+  tokenSymbol: string
   usdValue: number | null
   hash: `0x${string}` | null
   explorerUrl: string | null
 }
 
-const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl }: SuccessStateProps) => {
+const SuccessState = ({ tokenAmount, tokenSymbol, usdValue, hash, explorerUrl }: SuccessStateProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className='relative rounded-xl border border-emerald-400/30 space-y-0 overflow-hidden'>
+      className='relative rounded-3xl border border-emerald-400/30 space-y-0 overflow-hidden'>
       <div className='absolute bg-[url("/svg/noise.svg")] opacity-15 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
       <div className='relative bg-emerald-500/10 px-4 py-6'>
         <div className='flex flex-col items-center justify-center gap-4'>
@@ -97,26 +91,22 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            className='w-12 h-12 relative rounded-full border border-emerald-300/0 bg-emerald-400/20 flex items-center justify-center'>
+            className='w-14 h-14 relative rounded-full border-6 border-emerald-300/2 bg-emerald-400/10 backdrop-blur-3xl flex items-center justify-center'>
             <Icon name='check' className='w-8 h-8 absolute blur-xl text-emerald-300 animate-pulse' />
             <Icon name='check' className='w-6 h-6 absolute blur-xs text-white' />
             <Icon name='check' className='w-6 h-6 relative text-emerald-200' />
           </motion.div>
           <div className='text-center space-y-1'>
-            <p className='text-lg font-polyn font-bold text-emerald-100'>Transaction Successful</p>
-            <p className='text-xs font-brk text-white/60'>Your transaction has been confirmed</p>
+            <p className='text-lg font-polyn font-bold text-emerald-50'>Transaction Successful</p>
+            <p className='text-xs font-brk opacity-70'>Your transaction has been confirmed</p>
           </div>
         </div>
         <div className='mt-6 pt-4 border-t border-emerald-200/20 border-dashed space-y-3'>
-          {/*<div className='flex items-center justify-between'>
-            <span className='text-xs font-brk text-white/50'>To</span>
-            <span className='text-xs font-brk text-white/80 truncate max-w-50'>{recipient}</span>
-          </div>*/}
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-exo font-bold italic uppercase opacity-70'>Amount</span>
+          <div className='flex items-start justify-between'>
+            <span className='text-sm font-exo font-bold italic uppercase opacity-70'>Amount</span>
             <div className='text-right'>
               <span className='text-sm font-okxs font-medium text-white'>
-                {amount} {balance?.symbol}
+                {tokenAmount} <span className='uppercase'>{tokenSymbol}</span>
               </span>
               {usdValue !== null && (
                 <p className='text-sm font-okxs text-white/50'>
@@ -127,7 +117,7 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
           </div>
           {hash && (
             <div className='flex items-center justify-between pt-2'>
-              <span className='text-xs font-exo font-bold italic uppercase opacity-60'>txn hash</span>
+              <span className='text-sm font-exo font-bold italic uppercase opacity-60'>txn hash</span>
               <TransactionHashLink
                 hash={hash}
                 explorerUrl={explorerUrl}
@@ -181,7 +171,9 @@ export const PayTab = ({
   // Selected token state
   const [selectedToken, setSelectedToken] = useState<Token | null>(null)
   // Payment amount state (always in USD)
-  const [paymentAmountUsd, setPaymentAmountUsd] = useState('1')
+  const [paymentAmountUsd, setPaymentAmountUsd] = useState('0.25')
+  // Token used for the last/in-flight payment (so we show correct symbol and use correct tx state)
+  const [lastPaymentToken, setLastPaymentToken] = useState<Token | null>(null)
 
   const chainId = useChainId()
   const chains = useChains()
@@ -232,25 +224,28 @@ export const PayTab = ({
     () => ({
       sepolia: sepolia.id,
       ethereum: mainnet.id,
-      polygon: polygon.id
+      polygon: polygon.id,
+      amoy: polygonAmoy.id
       // bitcoin is not an EVM chain, so we'll skip it for now
     }),
     []
   )
 
-  const allowedNetworks = ['sepolia', 'ethereum', 'polygon'] as const
+  const allowedNetworks = ['sepolia', 'ethereum', 'polygon', 'amoy'] as const
 
   // Get current network name from chainId
   const currentNetwork = useMemo(() => {
     if (chainId === sepolia.id) return 'sepolia'
     if (chainId === mainnet.id) return 'ethereum'
     if (chainId === polygon.id) return 'polygon'
+    if (chainId === polygonAmoy.id) return 'amoy'
     return null
   }, [chainId])
 
   // Handle network selection
   const handleNetworkClick = useCallback(
     (network: string) => {
+      console.log(network)
       const targetChainId = networkChainMap[network]
       if (targetChainId && targetChainId !== chainId) {
         startTransition(() => {
@@ -283,6 +278,30 @@ export const PayTab = ({
   const handleTokenSelect = useCallback((token: Token) => {
     setSelectedToken(token)
   }, [])
+
+  // Formatted token amount for processing state (selected token)
+  const processingTokenAmountFormatted = useMemo(() => {
+    if (tokenAmount == null) return ''
+    return tokenAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: selectedToken === 'usdc' ? 6 : 8
+    })
+  }, [tokenAmount, selectedToken])
+
+  // For success/receipt: use lastPaymentToken and USD-based token amount
+  const successTokenAmountFormatted = useMemo(() => {
+    const tok = lastPaymentToken
+    if (!tok || !usdValue) return ''
+    const price = getTokenPrice(tok)
+    if (!price) return ''
+    const amt = usdValue / price
+    return amt.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: tok === 'usdc' ? 6 : 8
+    })
+  }, [lastPaymentToken, usdValue, getTokenPrice])
+
+  const displayTokenSymbol = (t: Token | null) => (t === 'usdc' ? 'USDC' : t === 'ethereum' ? 'ETH' : '—')
 
   // Get payment destination from environment variable
   const paymentDestination = useMemo(() => {
@@ -320,12 +339,15 @@ export const PayTab = ({
     }
   })
 
+  // Use lastPaymentToken to resolve tx state (token we actually paid with), fallback to selectedToken
+  const tokenForTxState = lastPaymentToken ?? selectedToken
+
   // Determine which transaction state to use (use local state if available, otherwise use props)
-  const localIsPending = selectedToken === 'ethereum' ? isEthPending : isUsdcPending
-  const localIsConfirming = selectedToken === 'ethereum' ? isEthConfirming : isUsdcConfirming
-  const localHash = selectedToken === 'ethereum' ? ethHash : usdcHash
+  const localIsPending = tokenForTxState === 'ethereum' ? isEthPending : isUsdcPending
+  const localIsConfirming = tokenForTxState === 'ethereum' ? isEthConfirming : isUsdcConfirming
+  const localHash = tokenForTxState === 'ethereum' ? ethHash : usdcHash
   const localReceipt =
-    selectedToken === 'ethereum'
+    tokenForTxState === 'ethereum'
       ? ethReceipt
         ? {
             blockNumber: ethReceipt.blockNumber,
@@ -427,6 +449,8 @@ export const PayTab = ({
       return
     }
 
+    setLastPaymentToken(selectedToken)
+
     try {
       if (selectedToken === 'ethereum') {
         // Send ETH using the existing send function
@@ -501,24 +525,25 @@ export const PayTab = ({
                   onClick={() => handleNetworkClick(net)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={cn('flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors', {
+                  className={cn('flex items-center space-x-1 px-2 py-1.5 rounded-lg transition-colors', {
                     'bg-white/10': isActive,
                     'hover:bg-white/2 ': !isActive,
                     'cursor-pointer': true
                   })}>
                   <Icon
-                    name={net === 'sepolia' ? 'ethereum' : net === 'polygon' ? 'polygon' : 'ethereum'}
+                    name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
                     className={cn('text-zinc-100/50 size-4', {
                       'text-rose-400': net === 'sepolia' && isActive,
                       'text-polygon': net === 'polygon' && isActive,
-                      'text-ethereum': net === 'ethereum' && isActive
+                      'text-ethereum': net === 'ethereum' && isActive,
+                      'text-rose-300': net === 'amoy' && isActive
                     })}
                   />
                   <span
                     className={cn('lowercase', {
                       ' font-polyn font-bold': net === 'polygon',
                       ' font-bold tracking-tight': net === 'ethereum',
-                      'font-semibold tracking-tight': net === 'sepolia'
+                      'font-semibold tracking-tight': net === 'sepolia' || net === 'amoy'
                     })}>
                     {net}
                   </span>
@@ -608,9 +633,8 @@ export const PayTab = ({
           {activeReceipt && activeReceipt.status === 'success' ? (
             <SuccessState
               key='success'
-              amount={paymentAmountUsd || amount}
-              recipient={paymentDestination || recipient}
-              balance={balance}
+              tokenAmount={successTokenAmountFormatted}
+              tokenSymbol={displayTokenSymbol(lastPaymentToken)}
               usdValue={usdValue}
               hash={activeHash || null}
               explorerUrl={receiptExplorerUrl}
@@ -618,9 +642,8 @@ export const PayTab = ({
           ) : activeIsPending || activeIsConfirming ? (
             <PayState
               key='sending'
-              amount={paymentAmountUsd || amount}
-              recipient={paymentDestination || recipient}
-              balance={balance}
+              tokenAmount={processingTokenAmountFormatted}
+              tokenSymbol={displayTokenSymbol(selectedToken)}
               usdValue={usdValue}
             />
           ) : (
@@ -751,12 +774,12 @@ export const PayTab = ({
       <ReceiptModal
         open={showReceiptModal}
         onClose={() => setShowReceiptModal(false)}
-        amount={paymentAmountUsd || amount}
-        symbol={balance?.symbol ?? selectedToken ?? '—'}
+        amount={successTokenAmountFormatted}
+        symbol={displayTokenSymbol(lastPaymentToken)}
         usdValue={usdValue}
         hash={activeHash ?? null}
         explorerUrl={receiptExplorerUrl}
-        recipient={paymentDestination}
+        recipient={null}
         blockNumber={activeReceipt?.blockNumber}
         timestamp={new Date().toISOString()}
       />

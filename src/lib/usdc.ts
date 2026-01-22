@@ -12,11 +12,11 @@ export const USDC_ADDRESS_BY_CHAIN_ID: Record<number, Address> = {
   11155111: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as Address,
   /** Polygon Mainnet (native USDC) */
   137: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as Address,
-  /** Polygon Amoy testnet – no official Circle USDC; omit or use mock if needed */
-  // 80002: '0x...' as Address,
+  /** Polygon Amoy testnet (test USDC token) */
+  80002: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582' as Address,
 }
 
-export const SUPPORTED_USDC_CHAINS = [1, 11155111, 137] as const
+export const SUPPORTED_USDC_CHAINS = [1, 11155111, 137, 80002] as const
 export type SupportedUsdcChainId = (typeof SUPPORTED_USDC_CHAINS)[number]
 
 export function getUsdcAddress(chainId: number): Address | undefined {

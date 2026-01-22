@@ -3,7 +3,6 @@
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback } from 'react'
 import { TransactionHashLink } from './transaction-hash-link'
 
 export interface ReceiptModalProps {
@@ -31,7 +30,9 @@ function buildReceiptText(data: ReceiptData): string {
     '',
     `Date: ${data.timestamp ?? new Date().toISOString()}`,
     `Amount: ${data.amount} ${data.symbol}`,
-    data.usdValue !== null ? `USD Value: $${data.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+    data.usdValue !== null
+      ? `USD Value: $${data.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : null,
     `To: ${data.recipient ?? '—'}`,
     data.blockNumber !== undefined ? `Block: ${data.blockNumber.toString()}` : null,
     data.hash ? `Transaction: ${data.hash}` : null,
@@ -83,31 +84,28 @@ export function ReceiptModal({
     timestamp
   }
 
-  const handleDownload = useCallback(
-    (format: 'txt' | 'json') => {
-      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
-      const base = `payment-receipt-${ts}`
+  const handleDownload = (format: 'txt' | 'json') => {
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+    const base = `payment-receipt-${ts}`
 
-      if (format === 'txt') {
-        const blob = new Blob([buildReceiptText(receiptData)], { type: 'text/plain;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${base}.txt`
-        a.click()
-        URL.revokeObjectURL(url)
-      } else {
-        const blob = new Blob([buildReceiptJson(receiptData)], { type: 'application/json;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${base}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-    },
-    [amount, symbol, usdValue, hash, explorerUrl, recipient, blockNumber, timestamp]
-  )
+    if (format === 'txt') {
+      const blob = new Blob([buildReceiptText(receiptData)], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${base}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      const blob = new Blob([buildReceiptJson(receiptData)], { type: 'application/json;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${base}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -175,7 +173,7 @@ export function ReceiptModal({
                   {blockNumber !== undefined && (
                     <div className='flex justify-between text-sm'>
                       <span className='text-white/50 font-exo uppercase italic'>Block</span>
-                      <span className='font-mono text-white/80'>{blockNumber.toString()}</span>
+                      <span className='font-brk text-white/80'>{blockNumber.toString()}</span>
                     </div>
                   )}
                   {hash && (
@@ -192,20 +190,25 @@ export function ReceiptModal({
                   )}
                 </div>
 
-                <div className='flex flex-wrap gap-2 mt-4'>
+                <div className='flex items-center flex-wrap gap-2 mt-4'>
+                  <span className='text-xs font-brk'>Download options:</span>
                   <button
                     type='button'
                     onClick={() => handleDownload('txt')}
-                    className='flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors'>
-                    <Icon name='download' className='size-4' />
-                    Download (.txt)
+                    className='font-okxs flex items-center px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors'>
+                    TXT
                   </button>
                   <button
                     type='button'
                     onClick={() => handleDownload('json')}
-                    className='flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors'>
-                    <Icon name='download' className='size-4' />
-                    Download (.json)
+                    className='font-okxs flex items-center px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors'>
+                    JSON
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => handleDownload('json')}
+                    className='font-okxs flex items-center px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors'>
+                    JPG
                   </button>
                 </div>
               </div>

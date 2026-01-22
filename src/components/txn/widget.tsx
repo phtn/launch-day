@@ -1,7 +1,7 @@
 import { config } from '@/ctx/wagmi/config'
 import { useSend } from '@/hooks/x-use-send'
-import { Icon } from '@/lib/icons'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
+import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { getBalance } from '@wagmi/core'
@@ -39,10 +39,7 @@ export const CryptoWidget = () => {
   const currentChain = useMemo(() => chains.find((chain) => chain.id === chainId), [chains, chainId])
 
   // Get block explorer URL for transaction hash (linkable)
-  const explorerUrl = useMemo(
-    () => getTransactionExplorerUrl(currentChain, hash),
-    [currentChain, hash]
-  )
+  const explorerUrl = useMemo(() => getTransactionExplorerUrl(currentChain, hash), [currentChain, hash])
 
   // Validate address
   const isValidAddress = useMemo(() => {
@@ -233,16 +230,27 @@ export const CryptoWidget = () => {
           <div className='flex flex-col gap-2 mt-7 md:mt-2 mb-4'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-1'>
-                <Icon name='ethereum' className='size-3 text-rose-400' />
+                {currentChain && (
+                  <Icon
+                    name={
+                      (currentChain.name === 'sepolia'
+                        ? 'ethereum'
+                        : currentChain.name === 'polygon'
+                        ? 'polygon'
+                        : 'ethereum') as IconName
+                    }
+                    className={cn('size-3 text-rose-400', {
+                      'text-ethereum': currentChain.name === 'ethereum',
+                      'text-polygon': currentChain.name === 'polygon'
+                    })}
+                  />
+                )}
                 <span className='font-okxs'>{currentChain?.name}</span>
               </div>
-              <span className='font-brk text-xs text-lime-200'>{address?.substring(0, 12)}</span>
+              <span className='font-brk text-xs text-lime-100'>
+                {address?.substring(0, 4)}...{address?.substring(address?.length - 6)}
+              </span>
             </div>
-            {/*{address && (
-              <div className='flex items-center justify-end'>
-                <UsdcBalance />
-              </div>
-            )}*/}
           </div>
 
           {/* Tab Navigation */}
