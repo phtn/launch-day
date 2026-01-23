@@ -1,3 +1,4 @@
+import { useCrypto } from '@/hooks/use-crypto'
 import { useNetworkTokens } from '@/hooks/use-network-tokens'
 import { useSend } from '@/hooks/x-use-send'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
@@ -9,6 +10,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { AnimatedNumber } from '../animated-number'
 import { Title } from './components'
 import { NetworkSelector } from './network-selector'
 import { ReceiptModal } from './receipt-modal'
@@ -182,6 +184,7 @@ export const PayTab = ({
   const { tokens: networkTokens, isLoading: tokensLoading } = useNetworkTokens()
   const [, startTransition] = useTransition()
   const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const { getBySymbol } = useCrypto()
 
   const currentChain = useMemo(() => chains.find((c) => c.id === chainId), [chains, chainId])
 
@@ -191,15 +194,24 @@ export const PayTab = ({
     return Number.parseFloat(formatUnits(balance.value, balance.decimals))
   }, [balance])
 
-  // Get token price (USDC = $1, ETH = tokenPrice prop)
+  // Get native token price based on current network
+  const nativeTokenPrice = useMemo(() => {
+    // For Polygon and Amoy, use MATIC price; for Ethereum/Sepolia, use ETH price
+    const isPolygonNetwork = chainId === polygon.id || chainId === polygonAmoy.id
+    const symbol = isPolygonNetwork ? 'MATIC' : 'ETH'
+    const quote = getBySymbol(symbol)
+    return quote?.price ?? (isPolygonNetwork ? null : tokenPrice) // Fallback to tokenPrice prop for ETH networks
+  }, [chainId, getBySymbol, tokenPrice])
+
+  // Get token price (USDC = $1, native token = nativeTokenPrice)
   const getTokenPrice = useCallback(
     (token: Token | null): number | null => {
       if (!token) return null
       if (token === 'usdc') return 1 // USDC is always $1
-      if (token === 'ethereum') return tokenPrice
+      if (token === 'ethereum') return nativeTokenPrice // This handles ETH, MATIC, etc. based on network
       return null
     },
-    [tokenPrice]
+    [nativeTokenPrice]
   )
 
   // Calculate token amount from USD amount
@@ -299,7 +311,8 @@ export const PayTab = ({
     })
   }, [lastPaymentToken, usdValue, getTokenPrice])
 
-  const displayTokenSymbol = (t: Token | null) => (t === 'usdc' ? 'USDC' : t === 'ethereum' ? 'ETH' : '—')
+  const nativeSymbol = chainId === polygon.id || chainId === polygonAmoy.id ? 'MATIC' : 'ETH'
+  const displayTokenSymbol = (t: Token | null) => (t === 'usdc' ? 'USDC' : t === 'ethereum' ? nativeSymbol : '—')
 
   // Get payment destination from environment variable
   const paymentDestination = useMemo(() => {
@@ -495,6 +508,12 @@ export const PayTab = ({
     }
   }, [selectedToken, paymentAmountUsd, paymentDestination, hasInsufficientBalance, chainId, sendEth, mutate])
 
+  const spinRandomAmount = useCallback(() => {
+    // range only from 1 to 12
+    const randomAmount = Math.random() * 120
+    setPaymentAmountUsd(String(randomAmount.toFixed(2)))
+  }, [])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -507,9 +526,7 @@ export const PayTab = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         className='mb-5'>
-        <Title id='pay-network-selector'>Network</Title>
-
-        <div className='space-y-2 my-2'>
+        <div className='space-y-6 my-2'>
           <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
 
           <div className='min-h-32 mx-4'>
@@ -525,7 +542,8 @@ export const PayTab = ({
                 tokenBalances={networkTokens}
                 selectedToken={selectedToken}
                 paymentAmountUsd={paymentAmountUsd}
-                tokenPrices={{ usdc: 1, ethereum: tokenPrice }}
+                tokenPrices={{ usdc: 1, ethereum: nativeTokenPrice }}
+                nativeSymbol={nativeSymbol}
                 onTokenSelect={handleTokenSelect}
               />
             ) : (
@@ -629,7 +647,7 @@ export const PayTab = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className='p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 mt-4'>
+          className='p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 mx-auto max-w-xs'>
           <Icon name='alert-02' className='w-4 h-4 text-red-400 shrink-0' />
           <p className='text-sm text-red-300'>Insufficient balance for this transaction</p>
         </motion.div>
@@ -642,13 +660,37 @@ export const PayTab = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ ease: 'easeInOut' }}>
-          <div className='h-px border-dashed-lg' />
           <div className='p-4 border-0 decoration-1 border-white/10'>
             <div className='flex items-center justify-between text-xs md:text-sm'>
-              <span className='opacity-70 font-exo font-bold uppercase italic'>Total</span>
+              <div className='flex items-center space-x-8'>
+                <button
+                  onClick={spinRandomAmount}
+                  className='btn btn-ghost btn-lg btn-soft btn-circle bg-slate-300/0 hover:bg-transparent'>
+                  <motion.div
+                    whileTap={{ rotate: 720 }}
+                    transition={{ duration: 2, bounceStiffness: 10 }}
+                    className='relative flex items-center justify-center h-6 w-6 aspect-square'>
+                    <Icon name='refresh' className='absolute size-6 rotate-15 text-purple-400/80 stroke-2 blur-sm' />
+                    <Icon name='confirm-circle' className='absolute size-4 text-orange-300/50 blur-xs stroke-1.5' />
+                    <Icon name='refresh' className='absolute size-4 text-rose-100 stroke-1.5 blur-px' />
+                  </motion.div>
+                </button>
+                <button className='relative btn btn-ghost btn-lg btn-circle bg-transparent backdrop-blur-lg hover:bg-transparent'>
+                  <Icon name='qrcode' className='absolute size-7 text-cyan-200 blur-md' />
+                  <Icon name='qrcode' className='size-6 opacity-90' />
+                </button>
+              </div>
+              {/*<span className='opacity-70 font-exo font-bold uppercase italic'>Total</span>*/}
               <div className='text-right'>
                 <span className='text-white text-2xl font-okxs'>
-                  ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  $
+                  <AnimatedNumber
+                    value={usdValue}
+                    format={(v) => v.toPrecision(4)}
+                    precision={2}
+                    stiffness={100}
+                    damping={10}
+                  />
                 </span>
               </div>
             </div>

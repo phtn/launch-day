@@ -1,5 +1,6 @@
 'use client'
 
+import { ClassName } from '@/app/types'
 import { motion, MotionValue, useSpring, useTransform } from 'motion/react'
 import { useEffect } from 'react'
 
@@ -12,6 +13,7 @@ interface AnimatedNumberProps {
   format?: (value: number) => string
   onAnimationStart?: () => void
   onAnimationComplete?: () => void
+  className?: ClassName
 }
 
 export function AnimatedNumber({
@@ -20,6 +22,7 @@ export function AnimatedNumber({
   stiffness = 75,
   damping = 15,
   precision = 0,
+  className,
   format = (num) => num.toLocaleString(),
   onAnimationStart,
   onAnimationComplete
@@ -36,5 +39,5 @@ export function AnimatedNumber({
     return () => unsubscribe()
   }, [spring, value, onAnimationStart, onAnimationComplete])
 
-  return <motion.span>{display}</motion.span>
+  return <motion.span className={className}>{display}</motion.span>
 }

@@ -1,6 +1,7 @@
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { AnimatedNumber } from '../animated-number'
 import { Token, TokenCoaster } from './token'
 import { UsdcBalance } from './usdc-balance'
 
@@ -20,9 +21,18 @@ interface TokenDisplayProps {
   price: number | null
   size?: 'sm' | 'md' | 'lg'
   isInsufficient?: boolean | ''
+  /** Symbol for the native gas token when token is 'ethereum' (e.g. 'ETH', 'MATIC'). */
+  nativeSymbol?: string
 }
 
-export const TokenModern = ({ token, balance, price, isInsufficient, showBalance = true }: TokenDisplayProps) => {
+export const TokenModern = ({
+  token,
+  balance,
+  price,
+  isInsufficient,
+  showBalance = true,
+  nativeSymbol
+}: TokenDisplayProps) => {
   // Format balance for display
   const formattedBalance = balance
     ? balance.toLocaleString('en-US', {
@@ -56,26 +66,44 @@ export const TokenModern = ({ token, balance, price, isInsufficient, showBalance
             )}
           </p>
           <div className='flex items-center space-x-2'>
-            <span className='text-white/60 font-okxs font-normal text-[8px] px-0.5 uppercase'>{token}</span>
-            {isInsufficient && (
-              <span className='text-[8px] uppercase text-red-400/80 font-okxs font-medium whitespace-nowrap'>
-                Low balance
-              </span>
-            )}
+            <span className='text-white/60 font-okxs font-normal text-[8px] px-0.5 uppercase'>
+              {token === 'ethereum' && nativeSymbol ? nativeSymbol : token}
+            </span>
           </div>
         </div>
-        {showBalance && (
-          <p className={`md:text-base text-sm font-brk px-2`}>
-            <span className='font-okxs font-light pr-0.5 opacity-80'>$</span>
-            <span className='font-normal font-okxs'>
-              {((balance ?? 0) * (price ?? 1)).toLocaleString('en-US', {
-                maximumFractionDigits: 2,
-                currency: 'USD',
-                currencyDisplay: 'symbol'
-              })}
-            </span>
-          </p>
-        )}
+        <div className='text-right'>
+          {showBalance && (
+            <p className={`md:text-base text-sm font-brk px-2`}>
+              <span className='font-okxs font-light pr-0.5 opacity-80'>$</span>
+              <AnimatedNumber
+                value={balance ?? 0}
+                format={(v) =>
+                  (v * (price ?? 1)).toLocaleString('en-US', {
+                    maximumFractionDigits: 2,
+                    currency: 'USD',
+                    currencyDisplay: 'symbol'
+                  })
+                }
+                className='font-normal font-okxs'
+                precision={3}
+              />
+            </p>
+          )}
+          <div className='h-5 flex items-center justify-end overflow-hidden w-24 mr-1'>
+            <AnimatePresence mode='wait'>
+              {isInsufficient && (
+                <motion.span
+                  initial={{ opacity: 0.4, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0.5, y: 5 }}
+                  transition={{ ease: 'easeOut' }}
+                  className='text-[8px] uppercase text-red-400/80 font-brk tracking-widest whitespace-nowrap'>
+                  Low balance
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </div>
   )

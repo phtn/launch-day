@@ -12,6 +12,8 @@ interface TokensProps {
   selectedToken?: Token | null
   paymentAmountUsd?: string
   tokenPrices?: { usdc: number; ethereum: number | null }
+  /** Symbol for the native gas token (e.g. 'ETH' or 'MATIC'). Used when token is 'ethereum'. */
+  nativeSymbol?: string
   onTokenSelect?: (token: Token) => void
 }
 
@@ -22,6 +24,7 @@ export const Tokens = ({
   selectedToken,
   paymentAmountUsd = '',
   tokenPrices,
+  nativeSymbol,
   onTokenSelect
 }: TokensProps) => {
   const filteredTokens = tokens.filter((t) => t !== excludeToken)
@@ -51,8 +54,8 @@ export const Tokens = ({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
         transition={{ duration: 0.15, ease: 'easeInOut' }}
-        className='absolute z-50 w-full mt-px rounded-3xl bg-zinc-950 backdrop-blur-xl border border-white/10 shadow-2xl'>
-        {filteredTokens.map((token) => {
+        className='absolute z-50 w-full mt-px overflow-hidden rounded-3xl bg-zinc-950 backdrop-blur-xl border border-white/10 shadow-2xl'>
+        {filteredTokens.map((token, i) => {
           const tokenBalance = balanceMap.get(token)
           const balance = tokenBalance ? Number.parseFloat(tokenBalance.formatted) : 0
           const price = getTokenPrice(token)
@@ -69,8 +72,11 @@ export const Tokens = ({
             <motion.button
               key={token}
               onClick={handleTokenSelect(token)}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.1 * i }}
               className={cn(
-                'w-full md:hover:bg-zinc-100/5 flex items-center justify-between py-4 px-3 rounded-3xl transition-colors duration-75',
+                'w-full md:hover:bg-white/2 flex items-center justify-between py-4 px-3 transition-colors duration-75',
                 {
                   'bg-white/5': selectedToken === token
                 }
@@ -82,6 +88,7 @@ export const Tokens = ({
                   token={token}
                   balance={balance}
                   size='sm'
+                  nativeSymbol={nativeSymbol}
                 />
               </div>
               {selectedToken === token && <Icon name='check' className='w-3 h-3 text-cyan-100/60 shrink-0' />}

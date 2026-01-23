@@ -51,7 +51,7 @@ export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSele
             />
             <Icon
               name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
-              className={cn('text-zinc-100/30 size-5', {
+              className={cn('text-zinc-300/20 size-5', {
                 'text-rose-400': net === 'sepolia' && isActive,
                 'text-polygon': net === 'polygon' && isActive,
                 'text-ethereum': net === 'ethereum' && isActive,
