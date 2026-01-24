@@ -34,19 +34,34 @@ export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSele
             className={cn(
               'relative flex items-center justify-center -space-x-1.5 py-1 px-1.5 h-8 overflow-hidden rounded-lg transition-colors',
               {
-                'bg-white/5': isActive,
+                'bg-white/5 border-[0.33px]': isActive,
                 'hover:bg-white/2 ': !isActive,
                 'cursor-pointer': true
+              },
+              {
+                'border-rose-400/70': net === 'sepolia',
+                'border-rose-300/70': net === 'amoy',
+                'border-ethereum/70': net === 'ethereum',
+                'border-polygon/70': net === 'polygon'
               }
             )}>
             <Icon
               name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
-              className={cn('absolute left-1 blur-md -rotate-25 text-zinc-100/30 size-7 opacity-50', {
+              className={cn('absolute left-1 blur-sm -rotate-30 text-zinc-100/30 size-7 opacity-50', {
                 'opacity-100': isActive,
                 'text-rose-400': net === 'sepolia' && isActive,
                 'text-polygon': net === 'polygon' && isActive,
                 'text-ethereum': net === 'ethereum' && isActive,
                 'text-rose-300': net === 'amoy' && isActive
+              })}
+            />
+            <Icon
+              name={net === 'sepolia' ? 'ethereum' : net === 'polygon' || net === 'amoy' ? 'polygon' : 'ethereum'}
+              className={cn('absolute text-zinc-300/20 left-2 blur-0.5 size-4', {
+                'text-rose-300/50': net === 'sepolia' && isActive,
+                'text-polygon/50': net === 'polygon' && isActive,
+                'text-ethereum/50': net === 'ethereum' && isActive,
+                'text-rose-200/50': net === 'amoy' && isActive
               })}
             />
             <Icon
@@ -59,11 +74,12 @@ export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSele
               })}
             />
             <span
-              className={cn('lowercase drop-shadow-md', {
+              className={cn('lowercase drop-shadow-xs opacity-50', {
                 ' font-polyn font-bold': net === 'polygon' || net === 'amoy',
                 ' font-bold tracking-tight': net === 'ethereum',
                 'font-normal font-okxs tracking-tight': net === 'sepolia',
-                ' font-polyn font-semibold tracking-tighter': net === 'amoy'
+                ' font-polyn font-semibold tracking-tighter': net === 'amoy',
+                'opacity-100': isActive
               })}>
               {net}
             </span>

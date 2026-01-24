@@ -141,7 +141,6 @@ export const PayTab = ({
   balance,
   tokenPrice,
   disabled,
-  onSend,
 
   amountInputRef: _amountInputRef,
 
@@ -150,7 +149,6 @@ export const PayTab = ({
   setTo: _setTo,
 
   setAmount: _setAmountProp,
-  to: toProp,
   amount: amountProp,
   isPending = false,
   isConfirming = false,
@@ -159,18 +157,6 @@ export const PayTab = ({
   explorerUrl = null,
   onReset
 }: PayTabProps) => {
-  const [recipient, setRecipient] = useState(toProp)
-  const [amount, setAmount] = useState(amountProp)
-
-  // Sync local state with parent props
-  useEffect(() => {
-    setRecipient(toProp)
-  }, [toProp])
-
-  useEffect(() => {
-    setAmount(amountProp)
-  }, [amountProp])
-
   // Selected token state
   const [selectedToken, setSelectedToken] = useState<Token | null>(null)
   // Payment amount state (always in USD)
@@ -198,7 +184,7 @@ export const PayTab = ({
   const nativeTokenPrice = useMemo(() => {
     // For Polygon and Amoy, use MATIC price; for Ethereum/Sepolia, use ETH price
     const isPolygonNetwork = chainId === polygon.id || chainId === polygonAmoy.id
-    const symbol = isPolygonNetwork ? 'MATIC' : 'ETH'
+    const symbol = isPolygonNetwork ? 'POL' : 'ETH'
     const quote = getBySymbol(symbol)
     return quote?.price ?? (isPolygonNetwork ? null : tokenPrice) // Fallback to tokenPrice prop for ETH networks
   }, [chainId, getBySymbol, tokenPrice])

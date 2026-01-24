@@ -19,7 +19,6 @@ export interface PayTabProps {
   addressInputRef: Ref<HTMLInputElement>
   setTo: Dispatch<SetStateAction<string>>
   setAmount: Dispatch<SetStateAction<string>>
-  to: string
   amount: string
   isPending?: boolean
   isConfirming?: boolean

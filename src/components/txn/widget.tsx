@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { getBalance } from '@wagmi/core'
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
 import { NetworkHeader } from './network-header'
@@ -195,13 +195,19 @@ export const CryptoWidget = () => {
             }
           })
           .catch((err) => {
-            console.error('Failed to refetch balance after transaction:', err)
+            if (isMounted) {
+              console.error('Failed to refetch balance after transaction:', err)
+            }
           })
       }
 
       return () => {
         isMounted = false
       }
+    }
+    // Always return cleanup function, even when condition is false
+    return () => {
+      // No-op cleanup when condition is false
     }
   }, [receipt, address, chainId, startTransition])
 
@@ -214,6 +220,8 @@ export const CryptoWidget = () => {
     // Force remount by changing key
     setSendTabKey((prev) => prev + 1)
   }, [])
+
+  const id = useId()
 
   return (
     <div className='relative w-full max-w-md mx-auto'>
@@ -274,11 +282,9 @@ export const CryptoWidget = () => {
                 onSend={handleSend}
                 addressInputRef={inputRef}
                 amountInputRef={amountInputRef}
-                // disabled={isPending || isConfirming || !isValidAddress || hasInsufficientBalance || !isFormValid}
                 disabled={isPending || isConfirming || hasInsufficientBalance}
                 setTo={setTo}
                 setAmount={setAmount}
-                to={to}
                 amount={amount}
                 formattedBalance={formattedBalance}
                 balance={balance}
@@ -289,7 +295,7 @@ export const CryptoWidget = () => {
                 hash={hash}
                 explorerUrl={explorerUrl}
                 onReset={handleReset}
-                key={`send-${sendTabKey}`}
+                key={`pay-${id}`}
               />
             )}
             {activeTab === 'swap' && <SwapTab key='swap' />}
