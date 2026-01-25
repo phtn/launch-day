@@ -1,3 +1,4 @@
+import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { config } from '@/ctx/wagmi/config'
 import { useSend } from '@/hooks/x-use-send'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
@@ -8,8 +9,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
-import { useSearchParams } from '@/app/sepolia/search-params-context'
-import { NetworkHeader } from './network-header'
 import { PayTab } from './pay'
 import { SendTab } from './send'
 import { SwapTab } from './swap'
@@ -23,28 +22,37 @@ const tabs = [
 export const CryptoWidget = () => {
   const { params, setParams } = useSearchParams()
   const activeTab = params.tabId ?? 'pay'
-  
-  const setActiveTab = useCallback((tab: string) => {
-    void setParams({ tabId: tab })
-  }, [setParams])
+
+  const setActiveTab = useCallback(
+    (tab: string) => {
+      void setParams({ tabId: tab })
+    },
+    [setParams]
+  )
 
   const { send, isPending, isConfirming, hash, receipt, ethPrice } = useSend()
   const { address } = useAppKitAccount()
-  
+
   // Use search params for to and amount
   const to = params.to ?? ''
   const amount = params.amount ?? ''
-  
-  const setTo = useCallback((value: string | ((prev: string) => string)) => {
-    const newValue = typeof value === 'function' ? value(to) : value
-    void setParams({ to: newValue || null })
-  }, [setParams, to])
-  
-  const setAmount = useCallback((value: string | ((prev: string) => string)) => {
-    const newValue = typeof value === 'function' ? value(amount) : value
-    void setParams({ amount: newValue || null })
-  }, [setParams, amount])
-  
+
+  const setTo = useCallback(
+    (value: string | ((prev: string) => string)) => {
+      const newValue = typeof value === 'function' ? value(to) : value
+      void setParams({ to: newValue || null })
+    },
+    [setParams, to]
+  )
+
+  const setAmount = useCallback(
+    (value: string | ((prev: string) => string)) => {
+      const newValue = typeof value === 'function' ? value(amount) : value
+      void setParams({ amount: newValue || null })
+    },
+    [setParams, amount]
+  )
+
   const [sendTabKey, setSendTabKey] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -243,27 +251,23 @@ export const CryptoWidget = () => {
 
   return (
     <div className='relative w-full max-w-md mx-auto'>
-      {/* Ambient Glow Effects */}
-      <div className='absolute -inset-4 bg-linear-to-r from-cyan-100/20 to-orange-100/10 rounded-3xl blur-xl opacity-50' />
-
       {/* Main Widget Container */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
-        <div className='relative px-6 pt-8 pb-0'>
-          <NetworkHeader chain={currentChain} address={address} />
+        <div className='relative md:pt-28 pt-12 pb-0'>
+          {/*<NetworkHeader chain={currentChain} address={address} />*/}
 
           {/* Tab Navigation */}
-          <div className='relative z-200 flex py-0.5 md:py-1 rounded-2xl bg-white/0'>
+          <div className='relative z-200 flex md:py-1 border-b-[0.33px] border-white/10'>
             {/* Active Tab Indicator */}
             <motion.div
-              className={cn(
-                'absolute top-1 bottom-1 rounded-xl bg-linear-to-r from-stone-100/30 to-slate-100/20 border-0 border-white/25',
-                { '': activeTab === '1' }
-              )}
-              style={{ width: `calc(${100 / 3}% - 4px)` }}
+              className={cn('absolute top-0.5 bottom-0.5 bg-linear-to-r from-stone-100/30 to-slate-100/20', {
+                '': activeTab === '1'
+              })}
+              style={{ width: `calc(${100 / 3}% - 3.5px)` }}
               animate={{
                 left: `calc(${tabs.findIndex((t) => t.id === activeTab) * (100 / 3)}% + 2px)`
               }}
@@ -280,8 +284,8 @@ export const CryptoWidget = () => {
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', damping: 80, stiffness: 50 }}
                   className={cn(
-                    'outline-none relative flex-1 flex items-center justify-center h-8 gap-3 transition-colors z-10',
-                    'text-white/50 hover:text-white/70 tracking-widest',
+                    'outline-none relative h-10 gap-3 z-10',
+                    'text-white/50 tracking-widest flex-1 flex items-center justify-center',
                     { 'text-white outline-1 focus-within:outline-1': isActive, '': activeTab === 'pay' }
                   )}>
                   <span className='font-brk text-xs font-medium uppercase'>{tab.label}</span>
@@ -291,9 +295,7 @@ export const CryptoWidget = () => {
           </div>
         </div>
 
-        <GlowDivider />
-
-        <div className='px-2 pb-4 md:p-6 pt-8 min-h-105'>
+        <div className='md:p-6 min-h-105'>
           <AnimatePresence mode='wait'>
             {activeTab === 'pay' && (
               <PayTab
@@ -392,10 +394,3 @@ export const CryptoWidget = () => {
     </div>
   )
 }
-
-const GlowDivider = () => (
-  <div className='relative h-px translate-y-2 mx-6'>
-    <div className='absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent' />
-    <div className='absolute inset-0 bg-linear-to-r from-transparent via-indigo-400/40 to-transparent blur-[3px]' />
-  </div>
-)

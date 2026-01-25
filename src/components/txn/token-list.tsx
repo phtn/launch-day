@@ -57,7 +57,7 @@ export const Tokens = ({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
         transition={{ duration: 0.15, ease: 'easeInOut' }}
-        className='absolute z-50 w-full mt-px overflow-hidden rounded-3xl bg-zinc-950 backdrop-blur-xl border border-white/10 shadow-2xl'>
+        className='absolute z-50 w-full mt-px overflow-hidden'>
         {filteredTokens.map((token, i) => {
           const tokenBalance = balanceMap.get(token)
           const balance = tokenBalance ? Number.parseFloat(tokenBalance.formatted) : 0
@@ -79,7 +79,7 @@ export const Tokens = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 * i }}
               className={cn(
-                'relative w-full md:hover:bg-white/2 flex items-start justify-between py-4 px-3 transition-colors duration-75',
+                'relative w-full md:hover:bg-white/2 flex items-start justify-between p-3 transition-colors duration-75',
                 {
                   'bg-white/3': selectedToken === token
                 }

@@ -100,3 +100,9 @@ export const AddressInputField = ({ label, isValid, value, inputRef, onChange, p
     </div>
   )
 }
+export const GlowDivider = () => (
+  <div className='relative h-px translate-y-2 mx-6'>
+    <div className='absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent' />
+    <div className='absolute inset-0 bg-linear-to-r from-transparent via-indigo-400/40 to-transparent blur-[3px]' />
+  </div>
+)

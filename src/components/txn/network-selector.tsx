@@ -1,21 +1,73 @@
+import { HyperList } from '@/_components_/hyperlist'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { motion } from 'motion/react'
+import { useMemo } from 'react'
+
+type AllowedNetworks = 'sepolia' | 'ethereum' | 'polygon' | 'amoy'
+
 interface NetworkSelectorProps {
   currentNetwork: string | null
   onSelectNetwork: (network: string) => () => void
 }
 
 export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSelectorProps) => {
-  const allowedNetworks = ['sepolia', 'ethereum', 'polygon', 'amoy'] as const
+  const network_list = useMemo(
+    () =>
+      ['sepolia', 'ethereum', 'polygon', 'amoy'].map((net) => ({
+        name: net,
+        icon: net === 'sepolia' ? 'sepolia' : net === 'ethereum' ? 'ethereum' : net === 'polygon' ? 'polygon' : 'amoy',
+        onSelect: onSelectNetwork(net),
+        selected: currentNetwork === net
+      })) as NetworkButtonRoundProps[],
+    [currentNetwork, onSelectNetwork]
+  )
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6 }}
       transition={{ duration: 0.2 }}
-      className='bg-linear-to-r from-zinc-300/1 via-zinc-300/3 to-zinc-300/1 py-2 px-1.5 flex items-center rounded-xl justify-between'>
-      {allowedNetworks.map((net, i) => {
+      className='flex items-center justify-between p-4 border-b-[0.33px] border-white/10'>
+      <Icon name='network' className='text-white/70 size-5' />
+      <HyperList data={network_list} component={NetworkButtonRound} direction='right' container='flex space-x-6' />
+    </motion.div>
+  )
+}
+
+interface NetworkButtonRoundProps {
+  name: AllowedNetworks
+  onSelect: VoidFunction
+  selected: boolean
+}
+const NetworkButtonRound = ({ name, onSelect, selected }: NetworkButtonRoundProps) => {
+  return (
+    <motion.button
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onSelect}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className={cn('relative flex items-center justify-center w-7 h-7 aspect-square rounded-full overflow-hidden', {
+        'bg-white': selected,
+        'hover:bg-white/2 ': !selected,
+        'cursor-pointer': true
+      })}>
+      <Icon
+        name={name === 'sepolia' ? 'ethereum' : name === 'polygon' || name === 'amoy' ? 'polygon' : 'ethereum'}
+        className={cn('text-zinc-300/20 size-5', {
+          'text-rose-400': name === 'sepolia' && selected,
+          'text-polygon': name === 'polygon' && selected,
+          'text-ethereum': name === 'ethereum' && selected,
+          'text-rose-300': name === 'amoy' && selected
+        })}
+      />
+    </motion.button>
+  )
+}
+{
+  /*{allowedNetworks.map((net, i) => {
         const isActive = currentNetwork === net
         return (
           <motion.button
@@ -71,7 +123,5 @@ export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSele
             </span>
           </motion.button>
         )
-      })}
-    </motion.div>
-  )
+      })}*/
 }

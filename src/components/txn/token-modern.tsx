@@ -1,7 +1,6 @@
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
-import { AnimatedNumber } from '../animated-number'
 import { Token, TokenCoaster } from './token'
 import { UsdcBalance } from './usdc-balance'
 
@@ -42,19 +41,22 @@ export const TokenModern = ({
     : '0'
 
   return (
-    <div className='flex items-center justify-start w-full gap-4'>
+    <div className='flex items-center justify-start w-full p-3 gap-4'>
       <div className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-12 aspect-square`)}>
         <Icon
           name='squircle'
           className={cn('size-16 absolute', {
-            'text-ethereum/10': token === 'ethereum',
-            'text-usdc/10': token === 'usdc'
+            'text-ethereum': token === 'ethereum',
+            'text-usdc': token === 'usdc',
+            'text-polygon': token === 'ethereum' && nativeSymbol === 'matic',
+            'text-bitcoin/10': token === 'bitcoin',
+            'text-white/10': token === 'usdt'
           })}
         />
-        <TokenCoaster size='lg' token={token} />
+        <TokenCoaster nativeSymbol={nativeSymbol} size='lg' token={token} />
       </div>
       <div className='flex items-center justify-between w-full'>
-        <div className='text-left -space-y-0.5'>
+        <div className='text-left -space-y-px'>
           <p className={cn('')}>
             {token === 'usdc' && balance === null ? (
               // Fallback to UsdcBalance component if balance not provided
@@ -64,27 +66,22 @@ export const TokenModern = ({
             )}
           </p>
           <div className='flex items-center space-x-2'>
-            <span className='text-white/60 font-okxs font-normal text-xs px-0.5 uppercase'>
+            <span className='text-white/60 font-okxs font-medium text-xs px-0.5 uppercase'>
               {token === 'ethereum' && nativeSymbol ? nativeSymbol : token}
             </span>
           </div>
         </div>
         <div className='text-right'>
           {showBalance && (
-            <p className={`md:text-base text-sm font-brk px-2`}>
-              <span className='font-okxs font-light pr-0.5 opacity-80'>$</span>
-              <AnimatedNumber
-                value={balance ?? 0}
-                format={(v) =>
-                  (v * (price ?? 1)).toLocaleString('en-US', {
-                    maximumFractionDigits: 2,
-                    currency: 'USD',
-                    currencyDisplay: 'symbol'
-                  })
-                }
-                className='font-normal font-okxs'
-                precision={3}
-              />
+            <p className={`md:text-base text-base font-okxs font-medium px-2`}>
+              <span className='pr-0.5 opacity-80'>$</span>
+              <span className=''>
+                {(balance ?? 0 * (price ?? 1)).toLocaleString('en-US', {
+                  maximumFractionDigits: 2,
+                  currency: 'USD',
+                  currencyDisplay: 'symbol'
+                })}
+              </span>
             </p>
           )}
           <div className='h-4.5 flex items-center justify-end overflow-hidden w-24 mr-1'>

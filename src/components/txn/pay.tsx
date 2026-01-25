@@ -1,3 +1,4 @@
+import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { useCrypto } from '@/hooks/use-crypto'
 import { useNetworkTokens } from '@/hooks/use-network-tokens'
 import { useSend } from '@/hooks/x-use-send'
@@ -10,7 +11,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { AmountPayInput } from './amount-pay'
 import { NetworkSelector } from './network-selector'
 import { PayAmount } from './pay-amount'
@@ -159,21 +159,28 @@ export const PayTab = ({
   onReset
 }: PayTabProps) => {
   const { params, setParams } = useSearchParams()
-  
+
   // Selected token state - sync with search params
   const selectedTokenParam = params.tokenSelected
-  const selectedToken: Token | null = selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' ? selectedTokenParam : null
-  const setSelectedToken = useCallback((token: Token | null) => {
-    void setParams({ tokenSelected: token ?? null })
-  }, [setParams])
-  
+  const selectedToken: Token | null =
+    selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' ? selectedTokenParam : null
+  const setSelectedToken = useCallback(
+    (token: Token | null) => {
+      void setParams({ tokenSelected: token ?? null })
+    },
+    [setParams]
+  )
+
   // Payment amount state (always in USD) - sync with search params
   const paymentAmountUsd = params.paymentAmountUsd ?? '0.25'
-  const setPaymentAmountUsd = useCallback((value: string | ((prev: string) => string)) => {
-    const newValue = typeof value === 'function' ? value(paymentAmountUsd) : value
-    void setParams({ paymentAmountUsd: newValue || null })
-  }, [setParams, paymentAmountUsd])
-  
+  const setPaymentAmountUsd = useCallback(
+    (value: string | ((prev: string) => string)) => {
+      const newValue = typeof value === 'function' ? value(paymentAmountUsd) : value
+      void setParams({ paymentAmountUsd: newValue || null })
+    },
+    [setParams, paymentAmountUsd]
+  )
+
   // Token used for the last/in-flight payment (so we show correct symbol and use correct tx state)
   const [lastPaymentToken, setLastPaymentToken] = useState<Token | null>(null)
 
@@ -292,9 +299,12 @@ export const PayTab = ({
   }, [selectedTokenBalance, tokenAmount])
 
   // Handle token selection
-  const handleTokenSelect = useCallback((token: Token) => {
-    setSelectedToken(token)
-  }, [])
+  const handleTokenSelect = useCallback(
+    (token: Token) => {
+      setSelectedToken(token)
+    },
+    [setSelectedToken]
+  )
 
   // Formatted token amount for processing state (selected token)
   const processingTokenAmountFormatted = useMemo(() => {
@@ -318,8 +328,8 @@ export const PayTab = ({
     })
   }, [lastPaymentToken, usdValue, getTokenPrice])
 
-  const nativeSymbol = chainId === polygon.id || chainId === polygonAmoy.id ? 'MATIC' : 'ETH'
-  const displayTokenSymbol = (t: Token | null) => (t === 'usdc' ? 'USDC' : t === 'ethereum' ? nativeSymbol : '—')
+  const nativeSymbol = chainId === polygon.id || chainId === polygonAmoy.id ? 'matic' : 'ethereum'
+  const displayTokenSymbol = (t: Token | null) => (t === 'usdc' ? 'usdc' : t === 'ethereum' ? nativeSymbol : 'matic')
 
   // Get payment destination from environment variable
   const paymentDestination = useMemo(() => {
@@ -543,26 +553,23 @@ export const PayTab = ({
     setPaymentAmountUsd(
       randomAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'never' })
     )
-  }, [])
+  }, [setPaymentAmountUsd])
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-      className='mb-5 space-y-0'>
+      className='space-y-0'>
       {/* Token Selection */}
+      <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
       <motion.div
-        layout
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-        className='space-y-6 pb-4 my-2 transition-transform duration-200 '>
-        <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
-
+        className='space-y-6 pb-4 transition-transform duration-200 '>
         <motion.div
           layout
           transition={{ duration: 0.3, ease: 'easeInOut' }}

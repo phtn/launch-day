@@ -173,8 +173,7 @@ export function PayAmount({
                 onClick={spinRandomAmount}
                 className='btn btn-ghost btn-lg btn-circle hover:bg-transparent backdrop-blur-3xl'>
                 <motion.div className='relative flex items-center justify-center h-6 w-6 aspect-square'>
-                  <Icon name='cash' className='absolute size-4 text-lime-200/50 blur-xs' />
-                  <Icon name='cash' className='absolute size-6 text-lime-100' />
+                  <Icon name='cash' className='absolute size-4 md:size-6 text-white' />
                 </motion.div>
               </button>
               <button
@@ -184,15 +183,11 @@ export function PayAmount({
                 className='relative btn btn-ghost btn-lg btn-circle bg-transparent backdrop-blur-lg hover:bg-transparent'>
                 <Icon
                   name='qrcode'
-                  className={cn('absolute size-7 text-lime-200/50 blur-md', { 'opacity-0': !paymentRequestUri })}
-                />
-                <Icon
-                  name='qrcode'
-                  className={cn('size-6 text-lime-100 ', { 'text-lime-100/40': !paymentRequestUri })}
+                  className={cn('size-4 md:size-6 text-white ', { 'text-white/40': !paymentRequestUri })}
                 />
               </button>
             </div>
-            <div className='text-right'>
+            <div className='text-right px-2'>
               <span className='text-white text-2xl font-okxs'>
                 $
                 <AnimatedNumber
