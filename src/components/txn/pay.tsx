@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { AmountPayInput } from './amount-pay'
 import { NetworkSelector } from './network-selector'
 import { PayAmount } from './pay-amount'
@@ -157,10 +158,22 @@ export const PayTab = ({
   explorerUrl = null,
   onReset
 }: PayTabProps) => {
-  // Selected token state
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null)
-  // Payment amount state (always in USD)
-  const [paymentAmountUsd, setPaymentAmountUsd] = useState('0.25')
+  const { params, setParams } = useSearchParams()
+  
+  // Selected token state - sync with search params
+  const selectedTokenParam = params.tokenSelected
+  const selectedToken: Token | null = selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' ? selectedTokenParam : null
+  const setSelectedToken = useCallback((token: Token | null) => {
+    void setParams({ tokenSelected: token ?? null })
+  }, [setParams])
+  
+  // Payment amount state (always in USD) - sync with search params
+  const paymentAmountUsd = params.paymentAmountUsd ?? '0.25'
+  const setPaymentAmountUsd = useCallback((value: string | ((prev: string) => string)) => {
+    const newValue = typeof value === 'function' ? value(paymentAmountUsd) : value
+    void setParams({ paymentAmountUsd: newValue || null })
+  }, [setParams, paymentAmountUsd])
+  
   // Token used for the last/in-flight payment (so we show correct symbol and use correct tx state)
   const [lastPaymentToken, setLastPaymentToken] = useState<Token | null>(null)
 
@@ -239,17 +252,25 @@ export const PayTab = ({
     return null
   }, [chainId])
 
+  // Sync network to search params when chainId changes
+  useEffect(() => {
+    if (currentNetwork && params.network !== currentNetwork) {
+      void setParams({ network: currentNetwork })
+    }
+  }, [currentNetwork, params.network, setParams])
+
   // Handle network selection
   const handleNetworkSelect = useCallback(
     (network: string) => () => {
       const targetChainId = networkChainMap[network]
       if (targetChainId && targetChainId !== chainId) {
         startTransition(() => {
+          void setParams({ network })
           mutateAsync({ chainId: targetChainId })
         })
       }
     },
-    [chainId, mutateAsync, startTransition, networkChainMap]
+    [chainId, mutateAsync, startTransition, networkChainMap, setParams]
   )
 
   // Extract token list from network tokens
@@ -309,6 +330,28 @@ export const PayTab = ({
     }
     return dest as Address
   }, [])
+
+  // EIP-681 payment request URI for wallet QR scan (ethereum:...)
+  const paymentRequestUri = useMemo(() => {
+    if (!paymentDestination || !selectedToken || !chainId) return null
+    if (selectedToken === 'ethereum') {
+      if (tokenAmount == null || tokenAmount <= 0) return null
+      // Native ETH: ethereum:0x...@chainId?value=0.5e18
+      const value = `${Number(tokenAmount)}e18`
+      return `ethereum:${paymentDestination}@${chainId}?value=${value}`
+    }
+    if (selectedToken === 'usdc') {
+      if (!isUsdcSupportedChain(chainId)) return null
+      const usdcAddress = getUsdcAddress(chainId)
+      if (!usdcAddress || !paymentAmountUsd) return null
+      const usd = Number.parseFloat(paymentAmountUsd)
+      if (Number.isNaN(usd) || usd <= 0) return null
+      // ERC20 transfer: ethereum:token@chainId/transfer?address=0x...&uint256=1.5e6
+      const amount = `${usd.toFixed(6)}e6`
+      return `ethereum:${usdcAddress}@${chainId}/transfer?address=${paymentDestination}&uint256=${amount}`
+    }
+    return null
+  }, [paymentDestination, selectedToken, chainId, tokenAmount, paymentAmountUsd])
 
   // Hook for sending transactions
   const {
@@ -600,7 +643,14 @@ export const PayTab = ({
       {/* Amount Info */}
       <motion.div layout>
         {paymentAmountUsd && usdValue && !activeReceipt && (
-          <PayAmount spinRandomAmount={spinRandomAmount} usdValue={usdValue} />
+          <PayAmount
+            spinRandomAmount={spinRandomAmount}
+            usdValue={usdValue}
+            paymentRequestUri={paymentRequestUri}
+            recipient={paymentDestination}
+            tokenAmountFormatted={processingTokenAmountFormatted}
+            symbol={displayTokenSymbol(selectedToken)}
+          />
         )}
 
         {/* Send Button / Send Another Button */}

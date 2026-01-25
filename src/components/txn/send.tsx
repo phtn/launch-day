@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChangeEvent, Dispatch, Ref, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
+import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { AmountInputField } from './amount-input'
 import { AddressInputField, Title } from './components'
 import { tokenData, TokenDisplay } from './token-display'
@@ -167,27 +168,34 @@ export const SendTab = ({
   explorerUrl = null,
   onReset
 }: SendTabProps) => {
+  const { params, setParams } = useSearchParams()
   const [selectedToken] = useState('ETH')
-  const [recipient, setRecipient] = useState(toProp)
-  const [amount, setAmount] = useState(amountProp)
+  
+  // Use search params for recipient and amount, with fallback to props
+  const recipient = params.to ?? toProp ?? ''
+  const amount = params.amount ?? amountProp ?? ''
   const [isValid, setIsValid] = useState<boolean | null>(null)
 
-  // Sync local state with parent props
+  // Sync search params with props when props change (from external sources)
   useEffect(() => {
-    setRecipient(toProp)
-  }, [toProp])
+    if (toProp && params.to !== toProp) {
+      void setParams({ to: toProp })
+    }
+  }, [toProp, params.to, setParams])
 
   useEffect(() => {
-    setAmount(amountProp)
-  }, [amountProp])
+    if (amountProp && params.amount !== amountProp) {
+      void setParams({ amount: amountProp })
+    }
+  }, [amountProp, params.amount, setParams])
 
-  // Sync amount to parent
+  // Sync amount to parent and search params
   const handleAmountChange = useCallback(
     (value: string) => {
-      setAmount(value)
       setAmountProp(value)
+      void setParams({ amount: value || null })
     },
-    [setAmountProp]
+    [setAmountProp, setParams]
   )
 
   const data = tokenData[selectedToken] || { color: '#6366f1' }
@@ -219,19 +227,20 @@ export const SendTab = ({
   const handlePaste = useCallback(async () => {
     const pastedText = await paste()
     if (pastedText) {
-      setRecipient(pastedText)
       setTo(pastedText)
+      void setParams({ to: pastedText || null })
       validateAddress(pastedText)
     }
-  }, [paste, setTo])
+  }, [paste, setTo, setParams])
 
   const handleOnChangeAddress = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      setRecipient(e.target.value)
-      setTo(e.target.value)
-      validateAddress(e.target.value)
+      const value = e.target.value
+      setTo(value)
+      void setParams({ to: value || null })
+      validateAddress(value)
     },
-    [setRecipient, setTo]
+    [setTo, setParams]
   )
 
   return (
@@ -289,6 +298,7 @@ export const SendTab = ({
               formattedBalance={formattedBalance}
               onChange={handleAmountChange}
               amountInputRef={amountInputRef}
+              amount={amount}
             />
           )}
         </AnimatePresence>

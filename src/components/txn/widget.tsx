@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
+import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { NetworkHeader } from './network-header'
 import { PayTab } from './pay'
 import { SendTab } from './send'
@@ -20,12 +21,30 @@ const tabs = [
 ]
 
 export const CryptoWidget = () => {
-  const [activeTab, setActiveTab] = useState('pay')
+  const { params, setParams } = useSearchParams()
+  const activeTab = params.tabId ?? 'pay'
+  
+  const setActiveTab = useCallback((tab: string) => {
+    void setParams({ tabId: tab })
+  }, [setParams])
 
   const { send, isPending, isConfirming, hash, receipt, ethPrice } = useSend()
   const { address } = useAppKitAccount()
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
+  
+  // Use search params for to and amount
+  const to = params.to ?? ''
+  const amount = params.amount ?? ''
+  
+  const setTo = useCallback((value: string | ((prev: string) => string)) => {
+    const newValue = typeof value === 'function' ? value(to) : value
+    void setParams({ to: newValue || null })
+  }, [setParams, to])
+  
+  const setAmount = useCallback((value: string | ((prev: string) => string)) => {
+    const newValue = typeof value === 'function' ? value(amount) : value
+    void setParams({ amount: newValue || null })
+  }, [setParams, amount])
+  
   const [sendTabKey, setSendTabKey] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -213,13 +232,12 @@ export const CryptoWidget = () => {
 
   // Reset form after successful transaction
   const handleReset = useCallback(() => {
-    setTo('')
-    setAmount('')
+    void setParams({ to: null, amount: null })
     setLocalError(null)
     setShowPreview(false)
     // Force remount by changing key
     setSendTabKey((prev) => prev + 1)
-  }, [])
+  }, [setParams])
 
   const id = useId()
 

@@ -75,7 +75,7 @@ export default async function RootLayout({
         className={`${bitcoin.variable} ${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${abril.variable} ${exo.variable} font-sans antialiased`}>
         <DynamicWagmiContext cookies={cookies}>
           <Providers>
-            <div className='dark'>
+            <div>
               <Navbar />
               <main className='h-screen overflow-hidden'>{children}</main>
             </div>

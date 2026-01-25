@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { ChangeEvent, Ref, useState } from 'react'
+import { ChangeEvent, Ref, useEffect, useState } from 'react'
 import { Title, USDValue } from './components'
 import { Balance, TokenData } from './types'
 
@@ -10,6 +10,7 @@ interface AmountInputProps {
   onChange: (amount: string) => void
   tokenData: TokenData
   usdValue: number | null
+  amount?: string
 }
 
 export const AmountInputField = ({
@@ -18,12 +19,20 @@ export const AmountInputField = ({
   formattedBalance,
   onChange,
   tokenData,
-  usdValue
+  usdValue,
+  amount: amountProp = ''
 }: AmountInputProps) => {
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(amountProp)
+
+  // Sync internal state with prop when prop changes
+  useEffect(() => {
+    setAmount(amountProp)
+  }, [amountProp])
 
   const handleAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setAmount(event.target.value)
+    const value = event.target.value
+    setAmount(value)
+    onChange(value)
   }
 
   const handleMaxClick = () => formattedBalance && onChange(formattedBalance)

@@ -1,5 +1,7 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
+  arbitrum,
+  arbitrumSepolia,
   base,
   baseSepolia,
   bitcoin,
@@ -11,6 +13,8 @@ import {
   solana,
   solanaDevnet,
   solanaTestnet,
+  xLayer,
+  xLayerTestnet,
   zeroGTestnet
 } from '@reown/appkit/networks'
 import { cookieStorage, createStorage } from '@wagmi/core'
@@ -34,7 +38,11 @@ export const networks = [
   zeroGTestnet,
   solanaTestnet,
   solanaDevnet,
-  solana
+  solana,
+  xLayer,
+  xLayerTestnet,
+  arbitrum,
+  arbitrumSepolia
 ]
 
 //Set up the Wagmi Adapter (Config)
