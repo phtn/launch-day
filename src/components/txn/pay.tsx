@@ -10,9 +10,9 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { AnimatedNumber } from '../animated-number'
-import { Title } from './components'
+import { AmountPayInput } from './amount-pay'
 import { NetworkSelector } from './network-selector'
+import { PayAmount } from './pay-amount'
 import { ReceiptModal } from './receipt-modal'
 import type { Token } from './token'
 import { Tokens } from './token-list'
@@ -38,8 +38,8 @@ const PayState = ({ tokenAmount, tokenSymbol, usdValue }: PayStateProps) => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className='w-12 h-12 rounded-full border-2 border-rose-300/30 border-t-rose-300 flex items-center justify-center'>
-            <Icon name='spinner-ring' className='w-6 h-6 text-rose-100' />
+            className='w-12 h-12 rounded-full border-2 border-lime-300/30 border-t-lime-300 flex items-center justify-center'>
+            <Icon name='spinner-ring' className='w-6 h-6 text-lime-100' />
           </motion.div>
           <div className='text-center space-y-1'>
             <p className='font-polyn font-bold text-xl text-white/80'>Processing Payment</p>
@@ -496,115 +496,82 @@ export const PayTab = ({
 
   const spinRandomAmount = useCallback(() => {
     // range only from 1 to 12
-    const randomAmount = Math.random() * 120
-    setPaymentAmountUsd(String(randomAmount.toFixed(2)))
+    const randomAmount = Math.abs(Math.random() * 120)
+    setPaymentAmountUsd(
+      randomAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'never' })
+    )
   }, [])
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className='space-y-0'>
+      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+      className='mb-5 space-y-0'>
       {/* Token Selection */}
       <motion.div
+        layout
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className='mb-5'>
-        <div className='space-y-6 my-2'>
-          <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
+        transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+        className='space-y-6 pb-4 my-2 transition-transform duration-200 '>
+        <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
 
-          <div className='min-h-32 mx-4'>
-            {tokensLoading ? (
-              <div className='flex items-center justify-center py-8'>
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                  <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
-                </motion.div>
-              </div>
-            ) : availableTokens.length > 0 ? (
-              <Tokens
-                tokens={availableTokens}
-                tokenBalances={networkTokens}
-                selectedToken={selectedToken}
-                paymentAmountUsd={paymentAmountUsd}
-                tokenPrices={{ usdc: 1, ethereum: nativeTokenPrice }}
-                nativeSymbol={nativeSymbol}
-                onTokenSelect={handleTokenSelect}
+        <motion.div
+          layout
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className={cn('overflow-hidden', {
+            'h-28': availableTokens.length <= 1,
+            'h-42': availableTokens.length > 1
+          })}>
+          {tokensLoading ? (
+            <div className='flex items-center justify-center h-24'>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+              </motion.div>
+            </div>
+          ) : availableTokens.length > 0 ? (
+            <Tokens
+              tokens={availableTokens}
+              tokenBalances={networkTokens}
+              selectedToken={selectedToken}
+              paymentAmountUsd={paymentAmountUsd}
+              tokenPrices={{ usdc: 1, ethereum: nativeTokenPrice }}
+              nativeSymbol={nativeSymbol}
+              onTokenSelect={handleTokenSelect}
+            />
+          ) : (
+            <div className='relative h-32 rounded-xl overflow-hidden flex items-center bg-linear-to-r from-black/60 mt-4 via-black/20 to-zinc-950/50 justify-center text-white/60 text-sm'>
+              <div className='absolute bg-[url("/svg/noise.svg")] opacity-10 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
+              <motion.div
+                animate={{ x: [0, 100, 0] }}
+                transition={{ duration: 40, ease: 'easeInOut', repeat: Number.MAX_SAFE_INTEGER }}
+                className='space-y-3 sm:space-y-4 bg-no-repeat opacity-60 bg-[url("/svg/dots.svg")] bg-blend-lighten blur-px w-full h-full absolute -top-1 right-0 bg-top-right'
               />
-            ) : (
-              <div className='relative h-32 rounded-xl overflow-hidden flex items-center bg-linear-to-r from-black/60 mt-4 via-black/20 to-zinc-950/50 justify-center text-white/60 text-sm'>
-                <div className='absolute bg-[url("/svg/noise.svg")] opacity-10 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
-                <motion.div
-                  animate={{ x: [0, 100, 0] }}
-                  transition={{ duration: 40, ease: 'easeInOut', repeat: Number.MAX_SAFE_INTEGER }}
-                  className='space-y-3 sm:space-y-4 bg-no-repeat opacity-60 bg-[url("/svg/dots.svg")] bg-blend-lighten blur-px w-full h-full absolute -top-1 right-0 bg-top-right'
-                />
-                <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
-                  No tokens with balance found on this network
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+              <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
+                No tokens with balance found on this network
+              </p>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
 
-      {/* Amount Input */}
       {selectedToken && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className='mt-4 hidden '>
-          <div className='flex justify-between items-center mb-2'>
-            <Title id='pay-amount'>Amount to Pay (USD)</Title>
-            {selectedTokenBalance && tokenAmount && (
-              <button
-                onClick={() => {
-                  // Set max USD amount based on token balance
-                  const balance = Number.parseFloat(selectedTokenBalance.formatted)
-                  const price = getTokenPrice(selectedToken)
-                  if (price) {
-                    setPaymentAmountUsd((balance * price).toFixed(2))
-                  }
-                }}
-                className='text-xs md:hover:text-indigo-300 transition-colors'>
-                <span className='uppercase font-okxs font-bold text-indigo-200'>Max</span>{' '}
-                <span className='font-okxs'>
-                  {tokenAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
-                </span>
-                <span className='font-okxs font-light opacity-50 ml-1 uppercase'>{selectedToken}</span>
-              </button>
-            )}
-          </div>
-          <div className='relative rounded-2xl border border-zinc-700 overflow-hidden bg-zinc-900/50'>
-            <div className='relative px-4 py-4'>
-              <div className='flex items-center gap-2'>
-                <span className='text-white/40 text-lg'>$</span>
-                <input
-                  id='pay-amount'
-                  type='number'
-                  value={paymentAmountUsd}
-                  onChange={(e) => setPaymentAmountUsd(e.target.value)}
-                  placeholder='0.00'
-                  step='0.01'
-                  min='0'
-                  className='w-full bg-transparent text-2xl font-okxs font-light text-white placeholder-white/20 outline-none'
-                />
-              </div>
-              {tokenAmount && (
-                <div className='mt-2 text-sm text-white/50'>
-                  ≈ {tokenAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}{' '}
-                  <span className='uppercase'>{selectedToken}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
+        <AmountPayInput
+          selectedTokenBalance={selectedTokenBalance}
+          tokenAmount={tokenAmount}
+          selectedToken={selectedToken}
+          paymentAmountUsd={paymentAmountUsd}
+          setPaymentAmountUsd={setPaymentAmountUsd}
+          getTokenPrice={getTokenPrice}
+        />
       )}
 
-      {/* Amount Input / Sending / Success State */}
-      <div className='mt-4'>
+      {/* Sending / Success State */}
+      <motion.div layout className='mt-4'>
         <AnimatePresence mode='wait'>
           {activeReceipt && activeReceipt.status === 'success' ? (
             <SuccessState
@@ -622,155 +589,107 @@ export const PayTab = ({
               tokenSymbol={displayTokenSymbol(selectedToken)}
               usdValue={usdValue}
             />
-          ) : (
-            <div></div>
-          )}
+          ) : null}
         </AnimatePresence>
-      </div>
-
-      {/* Warning for insufficient balance */}
-      {hasInsufficientBalance && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className='p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 mx-auto max-w-xs'>
-          <Icon name='alert-02' className='w-4 h-4 text-red-400 shrink-0' />
-          <p className='text-sm text-red-300'>Insufficient balance for this transaction</p>
-        </motion.div>
-      )}
-
-      {/* Amount Info */}
-      {paymentAmountUsd && usdValue && !activeReceipt && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ ease: 'easeInOut' }}>
-          <div className='p-4 border-0 decoration-1 border-white/10'>
-            <div className='flex items-center justify-between text-xs md:text-sm'>
-              <div className='flex items-center space-x-8'>
-                <button
-                  onClick={spinRandomAmount}
-                  className='btn btn-ghost btn-lg btn-soft btn-circle bg-slate-300/0 hover:bg-transparent'>
-                  <motion.div
-                    whileTap={{ rotate: 720 }}
-                    transition={{ duration: 2, bounceStiffness: 10 }}
-                    className='relative flex items-center justify-center h-6 w-6 aspect-square'>
-                    <Icon name='refresh' className='absolute size-6 rotate-15 text-purple-400/80 stroke-2 blur-sm' />
-                    <Icon name='confirm-circle' className='absolute size-4 text-orange-300/50 blur-xs stroke-1.5' />
-                    <Icon name='refresh' className='absolute size-4 text-rose-100 stroke-1.5 blur-px' />
-                  </motion.div>
-                </button>
-                <button className='relative btn btn-ghost btn-lg btn-circle bg-transparent backdrop-blur-lg hover:bg-transparent'>
-                  <Icon name='qrcode' className='absolute size-7 text-cyan-200 blur-md' />
-                  <Icon name='qrcode' className='size-6 opacity-90' />
-                </button>
-              </div>
-              {/*<span className='opacity-70 font-exo font-bold uppercase italic'>Total</span>*/}
-              <div className='text-right'>
-                <span className='text-white text-2xl font-okxs'>
-                  $
-                  <AnimatedNumber
-                    value={usdValue}
-                    format={(v) => v.toPrecision(4)}
-                    precision={2}
-                    stiffness={100}
-                    damping={10}
-                  />
-                </span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Send Button / Send Another Button */}
-      <motion.div
-        whileHover={{ scale: disabled || activeIsConfirming ? 1 : 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className='mt-4 mx-4'>
-        {activeReceipt && activeReceipt.status === 'success' && onReset ? (
-          <button
-            onClick={() => setShowReceiptModal(true)}
-            className='flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-500 via-slate-400 to-cyan-100 hover:from-slate-500 hover:to-slate-100 text-white border-0 shadow-lg transition-all'>
-            <span className='flex items-center font-exo font-semibold italic gap-2'>
-              View Receipt
-              <Icon name='invoice' className='w-5 h-5' />
-            </span>
-          </button>
-        ) : (
-          <button
-            onClick={handlePay}
-            disabled={(() => {
-              const conditions = {
-                disabled: disabled,
-                activeIsConfirming: activeIsConfirming,
-                activeIsPending: activeIsPending,
-                hasInsufficientBalance: hasInsufficientBalance,
-                noSelectedToken: !selectedToken,
-                noPaymentAmount: !paymentAmountUsd,
-                noPaymentDestination: !paymentDestination
-              }
-
-              const isDisabled = Object.values(conditions).some(Boolean)
-
-              // Log conditions in a table format
-              if (process.env.NODE_ENV === 'development') {
-                console.table({
-                  Condition: 'Status',
-                  'disabled (prop)': disabled ? '❌ DISABLED' : '✅ ENABLED',
-                  activeIsConfirming: activeIsConfirming ? '❌ DISABLED' : '✅ ENABLED',
-                  activeIsPending: activeIsPending ? '❌ DISABLED' : '✅ ENABLED',
-                  hasInsufficientBalance: hasInsufficientBalance ? '❌ DISABLED' : '✅ ENABLED',
-                  noSelectedToken: !selectedToken ? '❌ DISABLED' : '✅ ENABLED',
-                  noPaymentAmount: !paymentAmountUsd ? '❌ DISABLED' : '✅ ENABLED',
-                  noPaymentDestination: !paymentDestination ? '❌ DISABLED' : '✅ ENABLED',
-                  '---': '---',
-                  'FINAL STATE': isDisabled ? '❌ BUTTON DISABLED' : '✅ BUTTON ENABLED'
-                })
-
-                // Also log the actual values for debugging
-                console.log('Pay Button Conditions - Values:', {
-                  disabled,
-                  activeIsConfirming,
-                  activeIsPending,
-                  hasInsufficientBalance,
-                  selectedToken,
-                  paymentAmountUsd,
-                  paymentDestination,
-                  isDisabled
-                })
-              }
-
-              return isDisabled
-            })()}
-            className={cn(
-              'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-400 via-slate-400 to-rose-200 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
-              {
-                'hover:from-slate-200 hover:to-rose-100':
-                  !disabled &&
-                  !activeIsConfirming &&
-                  !activeIsPending &&
-                  !hasInsufficientBalance &&
-                  selectedToken &&
-                  paymentAmountUsd &&
-                  paymentDestination
-              }
-            )}>
-            {activeIsPending || activeIsConfirming ? (
-              <motion.div animate={{ x: [0, 10, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
-                <Icon name='mail-send' className='w-5 h-5' />
-              </motion.div>
-            ) : (
-              <span className='flex items-center text-white opacity-100 gap-2 font-exo font-bold italic drop-shadow-2xs'>
-                Pay
-                <Icon name='send-block' className='w-5 h-5' />
-              </span>
-            )}
-          </button>
-        )}
       </motion.div>
 
+      {/*<Activity mode={hasInsufficientBalance ? 'visible' : 'hidden'}>
+        <LowBalance />
+      </Activity>*/}
+
+      {/* Amount Info */}
+      <motion.div layout>
+        {paymentAmountUsd && usdValue && !activeReceipt && (
+          <PayAmount spinRandomAmount={spinRandomAmount} usdValue={usdValue} />
+        )}
+
+        {/* Send Button / Send Another Button */}
+        <motion.div
+          whileHover={{ scale: disabled || activeIsConfirming ? 1 : 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className='mt-4 mx-4'>
+          {activeReceipt && activeReceipt.status === 'success' && onReset ? (
+            <button
+              onClick={() => setShowReceiptModal(true)}
+              className='flex items-center justify-center w-full mx-auto h-14 text-lg font-medium rounded-xl bg-linear-to-r from-slate-500 via-slate-400 to-cyan-100 hover:from-slate-500 hover:to-slate-100 text-white border-0 shadow-lg transition-all'>
+              <span className='flex items-center font-exo font-semibold italic gap-2'>
+                View Receipt
+                <Icon name='invoice' className='w-5 h-5' />
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={handlePay}
+              disabled={(() => {
+                const conditions = {
+                  disabled: disabled,
+                  activeIsConfirming: activeIsConfirming,
+                  activeIsPending: activeIsPending,
+                  hasInsufficientBalance: hasInsufficientBalance,
+                  noSelectedToken: !selectedToken,
+                  noPaymentAmount: !paymentAmountUsd,
+                  noPaymentDestination: !paymentDestination
+                }
+
+                const isDisabled = Object.values(conditions).some(Boolean)
+
+                // Log conditions in a table format
+                if (process.env.NODE_ENV === 'development') {
+                  console.table({
+                    Condition: 'Status',
+                    'disabled (prop)': disabled ? '❌ DISABLED' : '✅ ENABLED',
+                    activeIsConfirming: activeIsConfirming ? '❌ DISABLED' : '✅ ENABLED',
+                    activeIsPending: activeIsPending ? '❌ DISABLED' : '✅ ENABLED',
+                    hasInsufficientBalance: hasInsufficientBalance ? '❌ DISABLED' : '✅ ENABLED',
+                    noSelectedToken: !selectedToken ? '❌ DISABLED' : '✅ ENABLED',
+                    noPaymentAmount: !paymentAmountUsd ? '❌ DISABLED' : '✅ ENABLED',
+                    noPaymentDestination: !paymentDestination ? '❌ DISABLED' : '✅ ENABLED',
+                    '---': '---',
+                    'FINAL STATE': isDisabled ? '❌ BUTTON DISABLED' : '✅ BUTTON ENABLED'
+                  })
+
+                  // Also log the actual values for debugging
+                  console.log('Pay Button Conditions - Values:', {
+                    disabled,
+                    activeIsConfirming,
+                    activeIsPending,
+                    hasInsufficientBalance,
+                    selectedToken,
+                    paymentAmountUsd,
+                    paymentDestination,
+                    isDisabled
+                  })
+                }
+
+                return isDisabled
+              })()}
+              className={cn(
+                'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-400 via-slate-400 to-rose-200 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
+                {
+                  'hover:from-slate-200 hover:to-rose-100':
+                    !disabled &&
+                    !activeIsConfirming &&
+                    !activeIsPending &&
+                    !hasInsufficientBalance &&
+                    selectedToken &&
+                    paymentAmountUsd &&
+                    paymentDestination
+                }
+              )}>
+              {activeIsPending || activeIsConfirming ? (
+                <motion.div animate={{ x: [0, 16, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
+                  <Icon name='cash-fast' className='w-5 h-5' />
+                </motion.div>
+              ) : (
+                <span className='flex items-center text-white opacity-100 gap-2 font-exo font-bold italic drop-shadow-2xs'>
+                  Pay
+                  <Icon name='send-block' className='w-5 h-5' />
+                </span>
+              )}
+            </button>
+          )}
+        </motion.div>
+      </motion.div>
       <ReceiptModal
         open={showReceiptModal}
         onClose={() => setShowReceiptModal(false)}

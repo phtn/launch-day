@@ -48,7 +48,10 @@ export const Tokens = ({
   }
 
   return (
-    <div className='relative min-h-40'>
+    <div
+      className={cn('relative max-h-0 h-44 transition-transform duration-300', {
+        'max-h-48 border-pink-300': filteredTokens.length > 1
+      })}>
       <motion.div
         initial={{ opacity: 0, y: -2, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -74,11 +77,11 @@ export const Tokens = ({
               onClick={handleTokenSelect(token)}
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.1 * i }}
+              transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 * i }}
               className={cn(
-                'w-full md:hover:bg-white/2 flex items-center justify-between py-4 px-3 transition-colors duration-75',
+                'relative w-full md:hover:bg-white/2 flex items-start justify-between py-4 px-3 transition-colors duration-75',
                 {
-                  'bg-white/5': selectedToken === token
+                  'bg-white/3': selectedToken === token
                 }
               )}>
               <div className='flex items-center gap-3 flex-1 min-w-0'>
@@ -91,7 +94,9 @@ export const Tokens = ({
                   nativeSymbol={nativeSymbol}
                 />
               </div>
-              {selectedToken === token && <Icon name='check' className='w-3 h-3 text-cyan-100/60 shrink-0' />}
+              {selectedToken === token && (
+                <Icon name='check' className='absolute right-1 top-5.5 w-3 h-3 text-cyan-100/60 shrink-0' />
+              )}
             </motion.button>
           )
         })}

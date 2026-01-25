@@ -43,9 +43,7 @@ export const TokenModern = ({
 
   return (
     <div className='flex items-center justify-start w-full gap-4'>
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-12 aspect-square`)}>
+      <div className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-12 aspect-square`)}>
         <Icon
           name='squircle'
           className={cn('size-16 absolute', {
@@ -54,9 +52,9 @@ export const TokenModern = ({
           })}
         />
         <TokenCoaster size='lg' token={token} />
-      </motion.div>
+      </div>
       <div className='flex items-center justify-between w-full'>
-        <div className='text-left -space-y-1'>
+        <div className='text-left -space-y-0.5'>
           <p className={cn('')}>
             {token === 'usdc' && balance === null ? (
               // Fallback to UsdcBalance component if balance not provided
@@ -66,7 +64,7 @@ export const TokenModern = ({
             )}
           </p>
           <div className='flex items-center space-x-2'>
-            <span className='text-white/60 font-okxs font-normal text-[8px] px-0.5 uppercase'>
+            <span className='text-white/60 font-okxs font-normal text-xs px-0.5 uppercase'>
               {token === 'ethereum' && nativeSymbol ? nativeSymbol : token}
             </span>
           </div>
@@ -89,7 +87,7 @@ export const TokenModern = ({
               />
             </p>
           )}
-          <div className='h-5 flex items-center justify-end overflow-hidden w-24 mr-1'>
+          <div className='h-4.5 flex items-center justify-end overflow-hidden w-24 mr-1'>
             <AnimatePresence mode='wait'>
               {isInsufficient && (
                 <motion.span
@@ -97,7 +95,7 @@ export const TokenModern = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0.5, y: 5 }}
                   transition={{ ease: 'easeOut' }}
-                  className='text-[8px] uppercase text-red-400/80 font-brk tracking-widest whitespace-nowrap'>
+                  className='text-[8px] uppercase text-red-300 font-brk tracking-widest whitespace-nowrap'>
                   Low balance
                 </motion.span>
               )}
