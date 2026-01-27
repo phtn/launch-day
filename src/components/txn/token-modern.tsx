@@ -1,7 +1,7 @@
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
-import { Token, TokenCoaster } from './token'
+import { Token, TokenCoaster } from './token-coaster'
 import { UsdcBalance } from './usdc-balance'
 
 const tokenData: Record<string, { name: string; color: string; icon: IconName }> = {
@@ -35,22 +35,22 @@ export const TokenModern = ({
   // Format balance for display
   const formattedBalance = balance
     ? balance.toLocaleString('en-US', {
-        minimumFractionDigits: token === 'usdc' ? 2 : 0,
+        minimumFractionDigits: token === 'usdc' ? 2 : 2,
         maximumFractionDigits: token === 'usdc' ? 6 : 11
       })
     : '0'
 
   return (
-    <div className='flex items-center justify-start w-full p-3 gap-4'>
-      <div className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-12 aspect-square`)}>
+    <div className='flex items-center justify-start w-full py-2 gap-4'>
+      <div className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-10 aspect-square`)}>
         <Icon
           name='squircle'
-          className={cn('size-16 absolute', {
+          className={cn('size-14 absolute', {
+            'text-usdt': token === 'usdt',
             'text-ethereum': token === 'ethereum',
             'text-usdc': token === 'usdc',
             'text-polygon': token === 'ethereum' && nativeSymbol === 'matic',
-            'text-bitcoin/10': token === 'bitcoin',
-            'text-white/10': token === 'usdt'
+            'text-bitcoin/10': token === 'bitcoin'
           })}
         />
         <TokenCoaster nativeSymbol={nativeSymbol} size='lg' token={token} />
@@ -67,7 +67,8 @@ export const TokenModern = ({
           </p>
           <div className='flex items-center space-x-2'>
             <span className='text-white/60 font-okxs font-medium text-xs px-0.5 uppercase'>
-              {token === 'ethereum' && nativeSymbol ? nativeSymbol : token}
+              {token === 'ethereum' && nativeSymbol ? nativeSymbol : token} · 1 = $
+              {price?.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -76,11 +77,12 @@ export const TokenModern = ({
             <p className={`md:text-base text-base font-okxs font-medium px-2`}>
               <span className='pr-0.5 opacity-80'>$</span>
               <span className=''>
-                {(balance ?? 0 * (price ?? 1)).toLocaleString('en-US', {
-                  maximumFractionDigits: 2,
-                  currency: 'USD',
-                  currencyDisplay: 'symbol'
-                })}
+                {balance &&
+                  (balance * (price ?? 1)).toLocaleString('en-US', {
+                    maximumFractionDigits: 2,
+                    currency: 'USD',
+                    currencyDisplay: 'symbol'
+                  })}
               </span>
             </p>
           )}

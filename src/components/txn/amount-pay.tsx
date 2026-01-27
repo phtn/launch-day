@@ -2,7 +2,7 @@ import { TokenBalance } from '@/hooks/use-network-tokens'
 import { motion } from 'motion/react'
 import { Dispatch, SetStateAction } from 'react'
 import { Title } from './components'
-import { Token } from './token'
+import { Token } from './token-coaster'
 
 interface AmountPayInputProps {
   selectedTokenBalance: TokenBalance | null

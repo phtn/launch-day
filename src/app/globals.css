@@ -192,6 +192,8 @@
   --color-polygon: oklch(0.5284 0.2186 291.48);
   --color-ethereum: oklch(0.6416 0.1738 268.95);
   --color-bitcoin: oklch(0.7523 0.1663 62.59);
+  --color-usdt: oklch(0.6346 0.1184 167.54);
+
   --font-geist: var(--font-geist-sans);
   --font-abril: var(--font-abril);
   --font-exo: var(--font-exo);

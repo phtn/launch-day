@@ -8,7 +8,8 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useChainId } from 'wagmi'
 import { config } from '@/ctx/wagmi/config'
 import { ERC20_BALANCE_ABI, getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
-import type { Token } from '@/components/txn/token'
+import { ERC20_BALANCE_ABI as USDT_ERC20_BALANCE_ABI, getUsdtAddress, isUsdtSupportedChain } from '@/lib/usdt'
+import type { Token } from '@/components/txn/token-coaster'
 
 export interface TokenBalance {
   token: Token
@@ -26,17 +27,17 @@ export interface NetworkTokensResult {
 
 /**
  * Fetches token balances for the current network.
- * Returns tokens with balance > 0 (ETH native balance and USDC if supported).
+ * Returns tokens with balance > 0 (ETH native balance, USDC and USDT if supported and have balance).
  */
 export function useNetworkTokens(): NetworkTokensResult {
   const { address } = useAppKitAccount()
   const chainId = useChainId()
 
   // Get USDC address if supported
-  const usdcAddress = useMemo(
-    () => (isUsdcSupportedChain(chainId) ? getUsdcAddress(chainId) : undefined),
-    [chainId]
-  )
+  const usdcAddress = useMemo(() => (isUsdcSupportedChain(chainId) ? getUsdcAddress(chainId) : undefined), [chainId])
+
+  // Get USDT address if supported
+  const usdtAddress = useMemo(() => (isUsdtSupportedChain(chainId) ? getUsdtAddress(chainId) : undefined), [chainId])
 
   // Fetch native ETH balance
   const [ethBalance, setEthBalance] = useState<bigint | null>(null)
@@ -47,20 +48,40 @@ export function useNetworkTokens(): NetworkTokensResult {
   const {
     data: usdcBalanceRaw,
     isLoading: usdcLoading,
-    error: usdcError,
+    error: usdcError
   } = useReadContract({
     abi: ERC20_BALANCE_ABI,
     address: usdcAddress,
     functionName: 'balanceOf',
     args: address ? [address as `0x${string}`] : undefined,
-    query: { enabled: Boolean(address && usdcAddress) },
+    query: { enabled: Boolean(address && usdcAddress) }
   })
 
   const { data: usdcDecimalsRaw } = useReadContract({
     abi: ERC20_BALANCE_ABI,
     address: usdcAddress,
     functionName: 'decimals',
-    query: { enabled: Boolean(usdcAddress) },
+    query: { enabled: Boolean(usdcAddress) }
+  })
+
+  // Fetch USDT balance
+  const {
+    data: usdtBalanceRaw,
+    isLoading: usdtLoading,
+    error: usdtError
+  } = useReadContract({
+    abi: USDT_ERC20_BALANCE_ABI,
+    address: usdtAddress,
+    functionName: 'balanceOf',
+    args: address ? [address as `0x${string}`] : undefined,
+    query: { enabled: Boolean(address && usdtAddress) }
+  })
+
+  const { data: usdtDecimalsRaw } = useReadContract({
+    abi: USDT_ERC20_BALANCE_ABI,
+    address: usdtAddress,
+    functionName: 'decimals',
+    query: { enabled: Boolean(usdtAddress) }
   })
 
   // Fetch ETH balance
@@ -74,7 +95,7 @@ export function useNetworkTokens(): NetworkTokensResult {
     setEthLoading(true)
     getBalance(config, {
       address: address as `0x${string}`,
-      chainId,
+      chainId
     })
       .then((bal) => {
         setEthBalance(bal.value)
@@ -91,10 +112,11 @@ export function useNetworkTokens(): NetworkTokensResult {
 
   const usdcDecimals = usdcDecimalsRaw !== undefined ? Number(usdcDecimalsRaw) : 6
   const usdcValue = usdcBalanceRaw ?? BigInt(0)
-  const usdcFormatted = useMemo(
-    () => formatUnits(usdcValue, usdcDecimals),
-    [usdcValue, usdcDecimals]
-  )
+  const usdcFormatted = useMemo(() => formatUnits(usdcValue, usdcDecimals), [usdcValue, usdcDecimals])
+
+  const usdtDecimals = usdtDecimalsRaw !== undefined ? Number(usdtDecimalsRaw) : 6
+  const usdtValue = usdtBalanceRaw ?? BigInt(0)
+  const usdtFormatted = useMemo(() => formatUnits(usdtValue, usdtDecimals), [usdtValue, usdtDecimals])
 
   const ethFormatted = useMemo(() => {
     if (!ethBalance) return '0'
@@ -114,7 +136,7 @@ export function useNetworkTokens(): NetworkTokensResult {
         formatted: ethFormatted,
         decimals: 18,
         isLoading: ethLoading,
-        error: ethError,
+        error: ethError
       })
     }
 
@@ -126,7 +148,19 @@ export function useNetworkTokens(): NetworkTokensResult {
         formatted: usdcFormatted,
         decimals: usdcDecimals,
         isLoading: usdcLoading,
-        error: usdcError as Error | null,
+        error: usdcError as Error | null
+      })
+    }
+
+    // Add USDT if balance > 0 and supported
+    if (usdtAddress && usdtValue > BigInt(0)) {
+      result.push({
+        token: 'usdt',
+        value: usdtValue,
+        formatted: usdtFormatted,
+        decimals: usdtDecimals,
+        isLoading: usdtLoading,
+        error: usdtError as Error | null
       })
     }
 
@@ -142,12 +176,18 @@ export function useNetworkTokens(): NetworkTokensResult {
     usdcDecimals,
     usdcLoading,
     usdcError,
+    usdtAddress,
+    usdtValue,
+    usdtFormatted,
+    usdtDecimals,
+    usdtLoading,
+    usdtError
   ])
 
-  const isLoading = ethLoading || usdcLoading
+  const isLoading = ethLoading || usdcLoading || usdtLoading
 
   return {
     tokens,
-    isLoading,
+    isLoading
   }
 }

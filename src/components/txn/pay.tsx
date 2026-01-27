@@ -5,6 +5,7 @@ import { useSend } from '@/hooks/x-use-send'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
 import { Icon } from '@/lib/icons'
 import { getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
+import { getUsdtAddress, isUsdtSupportedChain } from '@/lib/usdt'
 import { cn } from '@/lib/utils'
 import { mainnet, polygon, polygonAmoy, sepolia } from '@reown/appkit/networks'
 import { AnimatePresence, motion } from 'motion/react'
@@ -15,7 +16,7 @@ import { AmountPayInput } from './amount-pay'
 import { NetworkSelector } from './network-selector'
 import { PayAmount } from './pay-amount'
 import { ReceiptModal } from './receipt-modal'
-import type { Token } from './token'
+import type { Token } from './token-coaster'
 import { Tokens } from './token-list'
 import { TransactionHashLink } from './transaction-hash-link'
 import { PayTabProps } from './types'
@@ -163,7 +164,9 @@ export const PayTab = ({
   // Selected token state - sync with search params
   const selectedTokenParam = params.tokenSelected
   const selectedToken: Token | null =
-    selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' ? selectedTokenParam : null
+    selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' || selectedTokenParam === 'usdt'
+      ? selectedTokenParam
+      : null
   const setSelectedToken = useCallback(
     (token: Token | null) => {
       void setParams({ tokenSelected: token ?? null })
@@ -209,11 +212,11 @@ export const PayTab = ({
     return quote?.price ?? (isPolygonNetwork ? null : tokenPrice) // Fallback to tokenPrice prop for ETH networks
   }, [chainId, getBySymbol, tokenPrice])
 
-  // Get token price (USDC = $1, native token = nativeTokenPrice)
+  // Get token price (USDC = $1, USDT = $1, native token = nativeTokenPrice)
   const getTokenPrice = useCallback(
     (token: Token | null): number | null => {
       if (!token) return null
-      if (token === 'usdc') return 1 // USDC is always $1
+      if (token === 'usdc' || token === 'usdt') return 1 // USDC and USDT are always $1
       if (token === 'ethereum') return nativeTokenPrice // This handles ETH, MATIC, etc. based on network
       return null
     },
@@ -311,7 +314,7 @@ export const PayTab = ({
     if (tokenAmount == null) return ''
     return tokenAmount.toLocaleString('en-US', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: selectedToken === 'usdc' ? 6 : 8
+      maximumFractionDigits: selectedToken === 'usdc' || selectedToken === 'usdt' ? 6 : 8
     })
   }, [tokenAmount, selectedToken])
 
@@ -324,7 +327,7 @@ export const PayTab = ({
     const amt = usdValue / price
     return amt.toLocaleString('en-US', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: tok === 'usdc' ? 6 : 8
+      maximumFractionDigits: tok === 'usdc' || tok === 'usdt' ? 6 : 8
     })
   }, [lastPaymentToken, usdValue, getTokenPrice])
 
@@ -360,6 +363,17 @@ export const PayTab = ({
       const amount = `${usd.toFixed(6)}e6`
       return `ethereum:${usdcAddress}@${chainId}/transfer?address=${paymentDestination}&uint256=${amount}`
     }
+    if (selectedToken === 'usdt') {
+      if (!isUsdtSupportedChain(chainId)) return null
+      const usdtAddress = getUsdtAddress(chainId)
+      if (!usdtAddress || !paymentAmountUsd) return null
+      const usd = Number.parseFloat(paymentAmountUsd)
+      if (Number.isNaN(usd) || usd <= 0) return null
+      // ERC20 transfer: ethereum:token@chainId/transfer?address=0x...&uint256=1.5e6
+      // USDT uses 6 decimals
+      const amount = `${usd.toFixed(6)}e6`
+      return `ethereum:${usdtAddress}@${chainId}/transfer?address=${paymentDestination}&uint256=${amount}`
+    }
     return null
   }, [paymentDestination, selectedToken, chainId, tokenAmount, paymentAmountUsd])
 
@@ -372,8 +386,9 @@ export const PayTab = ({
     receipt: ethReceipt
   } = useSend()
 
-  // Hook for writing contracts (USDC transfers)
+  // Hook for writing contracts (USDC and USDT transfers)
   const { mutate, data: usdcHash, isPending: isUsdcPending, error: usdcError } = useWriteContract()
+  const { mutate: mutateUsdt, data: usdtHash, isPending: isUsdtPending, error: usdtError } = useWriteContract()
 
   // Wait for USDC transaction receipt
   const { isLoading: isUsdcConfirming, data: usdcReceipt } = useWaitForTransactionReceipt({
@@ -389,19 +404,42 @@ export const PayTab = ({
     }
   })
 
+  // Wait for USDT transaction receipt
+  const { isLoading: isUsdtConfirming, data: usdtReceipt } = useWaitForTransactionReceipt({
+    hash: usdtHash,
+    query: {
+      enabled: !!usdtHash,
+      retry: 5,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+      refetchInterval: (query) => {
+        if (query.state.data) return false
+        return 2000
+      }
+    }
+  })
+
   // Use lastPaymentToken to resolve tx state (token we actually paid with), fallback to selectedToken
   const tokenForTxState = lastPaymentToken ?? selectedToken
 
   // Determine which transaction state to use (use local state if available, otherwise use props)
-  const localIsPending = tokenForTxState === 'ethereum' ? isEthPending : isUsdcPending
-  const localIsConfirming = tokenForTxState === 'ethereum' ? isEthConfirming : isUsdcConfirming
-  const localHash = tokenForTxState === 'ethereum' ? ethHash : usdcHash
+  const localIsPending =
+    tokenForTxState === 'ethereum' ? isEthPending : tokenForTxState === 'usdt' ? isUsdtPending : isUsdcPending
+  const localIsConfirming =
+    tokenForTxState === 'ethereum' ? isEthConfirming : tokenForTxState === 'usdt' ? isUsdtConfirming : isUsdcConfirming
+  const localHash = tokenForTxState === 'ethereum' ? ethHash : tokenForTxState === 'usdt' ? usdtHash : usdcHash
   const localReceipt =
     tokenForTxState === 'ethereum'
       ? ethReceipt
         ? {
             blockNumber: ethReceipt.blockNumber,
             status: ethReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
+          }
+        : null
+      : tokenForTxState === 'usdt'
+      ? usdtReceipt
+        ? {
+            blockNumber: usdtReceipt.blockNumber,
+            status: usdtReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
           }
         : null
       : usdcReceipt
@@ -540,12 +578,56 @@ export const PayTab = ({
           functionName: 'transfer',
           args: [paymentDestination, usdcAmount]
         })
+      } else if (selectedToken === 'usdt') {
+        // Send USDT using writeContract
+        if (!isUsdtSupportedChain(chainId)) {
+          throw new Error('USDT is not supported on this chain')
+        }
+
+        const usdtAddress = getUsdtAddress(chainId)
+        if (!usdtAddress) {
+          throw new Error('USDT address not found for this chain')
+        }
+
+        // USDT is $1, so USD amount = USDT amount
+        // USDT uses 6 decimals
+        const usdtAmount = parseUnits(usdAmount.toFixed(6), 6)
+
+        // ERC20 transfer ABI
+        const ERC20_TRANSFER_ABI = [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' }
+            ],
+            outputs: [{ name: '', type: 'bool' }]
+          }
+        ] as const
+
+        mutateUsdt({
+          abi: ERC20_TRANSFER_ABI,
+          address: usdtAddress,
+          functionName: 'transfer',
+          args: [paymentDestination, usdtAmount]
+        })
       }
     } catch (error) {
       console.error('Payment error:', error)
       // Error will be handled by the hooks
     }
-  }, [selectedToken, paymentAmountUsd, paymentDestination, hasInsufficientBalance, chainId, sendEth, mutate])
+  }, [
+    selectedToken,
+    paymentAmountUsd,
+    paymentDestination,
+    hasInsufficientBalance,
+    chainId,
+    sendEth,
+    mutate,
+    mutateUsdt
+  ])
 
   const spinRandomAmount = useCallback(() => {
     // range only from 1 to 12
@@ -575,7 +657,7 @@ export const PayTab = ({
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className={cn('overflow-hidden', {
             'h-28': availableTokens.length <= 1,
-            'h-42': availableTokens.length > 1
+            'h-full': availableTokens.length > 1
           })}>
           {tokensLoading ? (
             <div className='flex items-center justify-center h-24'>
@@ -589,7 +671,7 @@ export const PayTab = ({
               tokenBalances={networkTokens}
               selectedToken={selectedToken}
               paymentAmountUsd={paymentAmountUsd}
-              tokenPrices={{ usdc: 1, ethereum: nativeTokenPrice }}
+              tokenPrices={{ usdc: 1, usdt: 1, ethereum: nativeTokenPrice }}
               nativeSymbol={nativeSymbol}
               onTokenSelect={handleTokenSelect}
             />

@@ -192,7 +192,7 @@ export function PayAmount({
                 $
                 <AnimatedNumber
                   value={usdValue}
-                  format={(v) => v.toPrecision(4)}
+                  format={(v) => v.toFixed(2)}
                   precision={3}
                   stiffness={100}
                   mass={0.1}

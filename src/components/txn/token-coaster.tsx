@@ -32,7 +32,6 @@ export const TokenCoaster = ({ token, nativeSymbol, size = 'md' }: TokenProps) =
             'text-white ': token === 'ethereum',
             'text-bitcoin': token === 'bitcoin',
             'text-white': token === 'ethereum' && nativeSymbol === 'matic',
-            'text-white/10': token === 'usdt',
             'text-usdc size-8': token === 'usdc'
           }
         )}

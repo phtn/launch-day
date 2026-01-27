@@ -257,7 +257,7 @@ export const CryptoWidget = () => {
         animate={{ opacity: 1, y: 0 }}
         className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
-        <div className='relative md:pt-28 pt-12 pb-0'>
+        <div className='relative md:pt-0 pt-12 pb-0'>
           {/*<NetworkHeader chain={currentChain} address={address} />*/}
 
           {/* Tab Navigation */}

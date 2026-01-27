@@ -1,13 +1,19 @@
+import { useSearchParams } from '@/app/sepolia/search-params-context'
+import { useNetworkTokens } from '@/hooks/use-network-tokens'
 import { usePaste } from '@/hooks/use-paste'
 import { Icon } from '@/lib/icons'
+import { getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
+import { getUsdtAddress, isUsdtSupportedChain } from '@/lib/usdt'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChangeEvent, Dispatch, Ref, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
-import { useSearchParams } from '@/app/sepolia/search-params-context'
+import { formatUnits, parseUnits, type Address } from 'viem'
+import { useChainId, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { AmountInputField } from './amount-input'
 import { AddressInputField, Title } from './components'
-import { tokenData, TokenDisplay } from './token-display'
+import type { Token } from './token-coaster'
+import { tokenData } from './token-display'
+import { Tokens } from './token-list'
 import { TransactionHashLink } from './transaction-hash-link'
 import { Balance } from './types'
 
@@ -150,31 +156,79 @@ interface SendTabProps {
   onReset?: VoidFunction
 }
 export const SendTab = ({
-  formattedBalance,
-  balance,
+  formattedBalance: _formattedBalance,
+  balance: _balance,
   tokenPrice,
-  disabled,
-  onSend,
+  disabled: _disabled,
+  onSend: _onSend,
   amountInputRef,
   addressInputRef,
-  setTo,
-  setAmount: setAmountProp,
+  setTo: _setTo,
+  setAmount: _setAmountProp,
   to: toProp,
   amount: amountProp,
-  isPending = false,
-  isConfirming = false,
-  receipt = null,
-  hash = null,
-  explorerUrl = null,
-  onReset
+  isPending: _isPending = false,
+  isConfirming: _isConfirming = false,
+  receipt: _receipt = null,
+  hash: _hash = null,
+  explorerUrl: _explorerUrl = null,
+  onReset: _onReset
 }: SendTabProps) => {
   const { params, setParams } = useSearchParams()
-  const [selectedToken] = useState('ETH')
-  
+  const chainId = useChainId()
+  const { tokens: networkTokens, isLoading: tokensLoading } = useNetworkTokens()
+
+  // Selected token state - sync with search params
+  const selectedTokenParam = params.tokenSelected
+  const selectedToken: Token | null =
+    selectedTokenParam === 'usdc' || selectedTokenParam === 'ethereum' || selectedTokenParam === 'usdt'
+      ? selectedTokenParam
+      : null
+  const setSelectedToken = useCallback(
+    (token: Token | null) => {
+      void setParams({ tokenSelected: token ?? null })
+    },
+    [setParams]
+  )
+
   // Use search params for recipient and amount, with fallback to props
   const recipient = params.to ?? toProp ?? ''
   const amount = params.amount ?? amountProp ?? ''
   const [isValid, setIsValid] = useState<boolean | null>(null)
+
+  // Extract token list from network tokens
+  const availableTokens = useMemo<Token[]>(() => {
+    return networkTokens.map((t) => t.token)
+  }, [networkTokens])
+
+  // Auto-select first available token if none is selected
+  useEffect(() => {
+    if (!selectedToken && availableTokens.length > 0 && !tokensLoading) {
+      setSelectedToken(availableTokens[0])
+    }
+  }, [selectedToken, availableTokens, tokensLoading, setSelectedToken])
+
+  // Get selected token balance
+  const selectedTokenBalance = useMemo(() => {
+    if (!selectedToken) return null
+    return networkTokens.find((t) => t.token === selectedToken) ?? null
+  }, [selectedToken, networkTokens])
+
+  // Use selected token balance if available, otherwise fall back to prop balance
+  const balance = useMemo(() => {
+    if (selectedTokenBalance) {
+      return {
+        value: selectedTokenBalance.value,
+        symbol: selectedTokenBalance.token === 'ethereum' ? 'ETH' : selectedTokenBalance.token.toUpperCase(),
+        decimals: selectedTokenBalance.decimals
+      }
+    } else if (_balance) {
+      return _balance
+    }
+    return null
+  }, [selectedTokenBalance, _balance])
+
+  const formattedBalance = selectedTokenBalance ? selectedTokenBalance.formatted : _formattedBalance
 
   // Sync search params with props when props change (from external sources)
   useEffect(() => {
@@ -192,55 +246,234 @@ export const SendTab = ({
   // Sync amount to parent and search params
   const handleAmountChange = useCallback(
     (value: string) => {
-      setAmountProp(value)
+      _setAmountProp(value)
       void setParams({ amount: value || null })
     },
-    [setAmountProp, setParams]
+    [_setAmountProp, setParams]
   )
 
-  const data = tokenData[selectedToken] || { color: '#6366f1' }
+  // Get token price (USDC = $1, USDT = $1, native token = tokenPrice)
+  const getTokenPrice = useCallback(
+    (token: Token | null): number | null => {
+      if (!token) return null
+      if (token === 'usdc' || token === 'usdt') return 1 // USDC and USDT are always $1
+      if (token === 'ethereum') return tokenPrice // ETH price
+      return null
+    },
+    [tokenPrice]
+  )
 
-  // Get actual balance from props
+  const data = tokenData[selectedToken === 'ethereum' ? 'ETH' : selectedToken?.toUpperCase() ?? 'ETH'] || {
+    color: '#6366f1'
+  }
+
+  // Get actual balance
   const actualBalance = useMemo(() => {
     if (!balance) return null
     return Number.parseFloat(formatUnits(balance.value, balance.decimals))
   }, [balance])
 
-  const validateAddress = (address: string) => {
+  const validateAddress = useCallback((address: string) => {
     if (!address) {
       setIsValid(null)
       return
     }
     // Simple validation - starts with 0x and has 40+ chars
     setIsValid(address.startsWith('0x') && address.length >= 40)
-  }
+  }, [])
 
   const usdValue = useMemo(() => {
-    if (!tokenPrice || !amount) return null
+    if (!selectedToken || !amount) return null
     const parsedAmount = Number.parseFloat(amount)
     if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return null
-    return parsedAmount * tokenPrice
-  }, [amount, tokenPrice])
+    const price = getTokenPrice(selectedToken)
+    if (!price) return null
+    return parsedAmount * price
+  }, [amount, selectedToken, getTokenPrice])
+
+  // Handle token selection
+  const handleTokenSelect = useCallback(
+    (token: Token) => {
+      setSelectedToken(token)
+    },
+    [setSelectedToken]
+  )
+
+  // Hook for writing contracts (USDC and USDT transfers)
+  const { mutate: mutateUsdc, data: usdcHash, isPending: isUsdcPending } = useWriteContract()
+  const { mutate: mutateUsdt, data: usdtHash, isPending: isUsdtPending } = useWriteContract()
+
+  // Wait for USDC transaction receipt
+  const { isLoading: isUsdcConfirming, data: usdcReceipt } = useWaitForTransactionReceipt({
+    hash: usdcHash,
+    query: {
+      enabled: !!usdcHash,
+      retry: 5,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+      refetchInterval: (query) => {
+        if (query.state.data) return false
+        return 2000
+      }
+    }
+  })
+
+  // Wait for USDT transaction receipt
+  const { isLoading: isUsdtConfirming, data: usdtReceipt } = useWaitForTransactionReceipt({
+    hash: usdtHash,
+    query: {
+      enabled: !!usdtHash,
+      retry: 5,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+      refetchInterval: (query) => {
+        if (query.state.data) return false
+        return 2000
+      }
+    }
+  })
+
+  // Determine transaction state based on selected token
+  const isPending = selectedToken === 'usdc' ? isUsdcPending : selectedToken === 'usdt' ? isUsdtPending : _isPending
+  const isConfirming =
+    selectedToken === 'usdc' ? isUsdcConfirming : selectedToken === 'usdt' ? isUsdtConfirming : _isConfirming
+  const hash = selectedToken === 'usdc' ? usdcHash : selectedToken === 'usdt' ? usdtHash : _hash
+  const receipt =
+    selectedToken === 'usdc'
+      ? usdcReceipt
+        ? {
+            blockNumber: usdcReceipt.blockNumber,
+            status: usdcReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
+          }
+        : null
+      : selectedToken === 'usdt'
+      ? usdtReceipt
+        ? {
+            blockNumber: usdtReceipt.blockNumber,
+            status: usdtReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
+          }
+        : null
+      : _receipt
+
+  const explorerUrl = _explorerUrl
+
+  // Check if selected token has insufficient balance
+  const hasInsufficientBalance = useMemo(() => {
+    if (!selectedTokenBalance || !amount) return false
+    const balanceAmount = Number.parseFloat(selectedTokenBalance.formatted)
+    const amountValue = Number.parseFloat(amount)
+    if (Number.isNaN(amountValue)) return false
+    return amountValue > balanceAmount
+  }, [selectedTokenBalance, amount])
+
+  const disabled = _disabled || hasInsufficientBalance || !selectedToken || isPending || isConfirming
+
+  // Handle send
+  const handleSend = useCallback(() => {
+    if (!selectedToken || !recipient || !amount || hasInsufficientBalance) {
+      return
+    }
+
+    const amountValue = Number.parseFloat(amount)
+    if (Number.isNaN(amountValue) || amountValue <= 0) {
+      return
+    }
+
+    try {
+      if (selectedToken === 'ethereum') {
+        // For ETH, use the parent's onSend handler
+        _onSend()
+      } else if (selectedToken === 'usdc') {
+        // Send USDC using writeContract
+        if (!isUsdcSupportedChain(chainId)) {
+          throw new Error('USDC is not supported on this chain')
+        }
+
+        const usdcAddress = getUsdcAddress(chainId)
+        if (!usdcAddress) {
+          throw new Error('USDC address not found for this chain')
+        }
+
+        // USDC uses 6 decimals
+        const usdcAmount = parseUnits(amountValue.toFixed(6), 6)
+
+        // ERC20 transfer ABI
+        const ERC20_TRANSFER_ABI = [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' }
+            ],
+            outputs: [{ name: '', type: 'bool' }]
+          }
+        ] as const
+
+        mutateUsdc({
+          abi: ERC20_TRANSFER_ABI,
+          address: usdcAddress,
+          functionName: 'transfer',
+          args: [recipient as Address, usdcAmount]
+        })
+      } else if (selectedToken === 'usdt') {
+        // Send USDT using writeContract
+        if (!isUsdtSupportedChain(chainId)) {
+          throw new Error('USDT is not supported on this chain')
+        }
+
+        const usdtAddress = getUsdtAddress(chainId)
+        if (!usdtAddress) {
+          throw new Error('USDT address not found for this chain')
+        }
+
+        // USDT uses 6 decimals
+        const usdtAmount = parseUnits(amountValue.toFixed(6), 6)
+
+        // ERC20 transfer ABI
+        const ERC20_TRANSFER_ABI = [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' }
+            ],
+            outputs: [{ name: '', type: 'bool' }]
+          }
+        ] as const
+
+        mutateUsdt({
+          abi: ERC20_TRANSFER_ABI,
+          address: usdtAddress,
+          functionName: 'transfer',
+          args: [recipient as Address, usdtAmount]
+        })
+      }
+    } catch (error) {
+      console.error('Send error:', error)
+    }
+  }, [selectedToken, recipient, amount, hasInsufficientBalance, chainId, _onSend, mutateUsdc, mutateUsdt])
 
   const { paste } = usePaste({})
 
   const handlePaste = useCallback(async () => {
     const pastedText = await paste()
     if (pastedText) {
-      setTo(pastedText)
+      _setTo(pastedText)
       void setParams({ to: pastedText || null })
       validateAddress(pastedText)
     }
-  }, [paste, setTo, setParams])
+  }, [paste, _setTo, setParams, validateAddress])
 
   const handleOnChangeAddress = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
-      setTo(value)
+      _setTo(value)
       void setParams({ to: value || null })
       validateAddress(value)
     },
-    [setTo, setParams]
+    [_setTo, setParams, validateAddress]
   )
 
   return (
@@ -253,16 +486,34 @@ export const SendTab = ({
       <div className='mb-5'>
         <Title id='send-token-selector'>Token</Title>
         <div className='mt-2'>
-          {balance && (
-            <TokenDisplay
-              token={balance.symbol}
-              price={tokenPrice}
-              balance={Number.parseFloat(formatUnits(balance.value, balance.decimals))}
-              size='sm'
+          {tokensLoading ? (
+            <div className='flex items-center justify-center h-24'>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+              </motion.div>
+            </div>
+          ) : availableTokens.length > 0 ? (
+            <Tokens
+              tokens={availableTokens}
+              tokenBalances={networkTokens}
+              selectedToken={selectedToken}
+              paymentAmountUsd={undefined}
+              tokenPrices={{
+                usdc: 1,
+                usdt: 1,
+                ethereum: tokenPrice ?? null
+              }}
+              nativeSymbol={selectedToken === 'ethereum' ? 'ETH' : undefined}
+              onTokenSelect={handleTokenSelect}
             />
+          ) : (
+            <div className='relative h-32 rounded-xl overflow-hidden flex items-center bg-linear-to-r from-black/60 mt-4 via-black/20 to-zinc-950/50 justify-center text-white/60 text-sm'>
+              <p className='line-clamp-2 max-w-[18ch] text-center font-okxs'>
+                No tokens with balance found on this network
+              </p>
+            </div>
           )}
         </div>
-        {/*<TokenSelector id='send-token-selector' selected={selectedToken} onSelect={setSelectedToken} />*/}
       </div>
 
       {/* Recipient Address */}
@@ -285,7 +536,7 @@ export const SendTab = ({
               recipient={recipient}
               balance={balance}
               usdValue={usdValue}
-              hash={hash}
+              hash={_hash}
               explorerUrl={explorerUrl}
             />
           ) : isPending || isConfirming ? (
@@ -305,7 +556,7 @@ export const SendTab = ({
       </div>
 
       {/* Warning for high amount */}
-      {actualBalance !== null && amount && parseFloat(amount) > actualBalance && (
+      {hasInsufficientBalance && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -331,9 +582,9 @@ export const SendTab = ({
         whileHover={{ scale: disabled || isConfirming ? 1 : 1.02 }}
         whileTap={{ scale: 0.98 }}
         className='mt-4'>
-        {receipt && receipt.status === 'success' && onReset ? (
+        {receipt && receipt.status === 'success' && _onReset ? (
           <button
-            onClick={onReset}
+            onClick={_onReset}
             className='flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-white border-0 shadow-lg transition-all'>
             <span className='flex items-center gap-2'>
               Send Another
@@ -342,7 +593,7 @@ export const SendTab = ({
           </button>
         ) : (
           <button
-            onClick={onSend}
+            onClick={handleSend}
             disabled={disabled || isConfirming}
             className={cn(
               'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-300 via-rose-300 to-rose-300 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
