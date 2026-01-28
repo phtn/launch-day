@@ -23,15 +23,22 @@ export const NetworkSelector = ({ currentNetwork, onSelectNetwork }: NetworkSele
     [currentNetwork, onSelectNetwork]
   )
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.6 }}
-      transition={{ duration: 0.2 }}
-      className='flex items-center justify-between p-4 border-b-[0.33px] border-white/10'>
-      <Icon name='network' className='text-white/70 size-5' />
-      <HyperList data={network_list} component={NetworkButtonRound} direction='right' container='flex space-x-6' />
-    </motion.div>
+    <>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.6 }}
+        transition={{ duration: 0.2 }}
+        className='flex items-center justify-between px-4 py-6 border-b-[0.33px] border-white/0 w-full'>
+        {/*<Icon name='network' className='text-white/70 size-5' />*/}
+        <HyperList
+          direction='up'
+          data={network_list}
+          component={NetworkButtonRound}
+          container=' w-full flex items-center justify-around'
+        />
+      </motion.div>
+    </>
   )
 }
 
@@ -49,20 +56,24 @@ const NetworkButtonRound = ({ name, onSelect, selected }: NetworkButtonRoundProp
       onClick={onSelect}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className={cn('relative flex items-center justify-center w-7 h-7 aspect-square rounded-full overflow-hidden', {
+      className={cn('relative flex items-center justify-center w-auto h-7 px-2 rounded-full overflow-hidden', {
         'bg-white': selected,
         'hover:bg-white/2 ': !selected,
         'cursor-pointer': true
       })}>
       <Icon
         name={name === 'sepolia' ? 'ethereum' : name === 'polygon' || name === 'amoy' ? 'polygon' : 'ethereum'}
-        className={cn('text-zinc-300/20 size-5', {
+        className={cn('text-slate-300/50 size-3', {
+          'size-3': selected,
           'text-rose-400': name === 'sepolia' && selected,
           'text-polygon': name === 'polygon' && selected,
           'text-ethereum': name === 'ethereum' && selected,
           'text-rose-300': name === 'amoy' && selected
         })}
       />
+      <span className={cn('font-brk opacity-80 text-sm', { 'text-black opacity-100': selected })}>
+        {name.substring(0, 3)}
+      </span>
     </motion.button>
   )
 }

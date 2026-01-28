@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { formatUnits, isAddress } from 'viem'
 import { useChainId, useChains } from 'wagmi'
+import { GlowDivider } from './components'
 import { PayTab } from './pay'
 import { SendTab } from './send'
 import { SwapTab } from './swap'
@@ -255,19 +256,22 @@ export const CryptoWidget = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 rounded-3xl md:border border-white/10 overflow-hidden shadow-2xl'>
+        className='relative bg-linear-to-br from-zinc-900 via-zinc-950 to-zinc-950 md:border-[0.33px] border-white/10 overflow-hidden shadow-2xl'>
         {/* Header */}
         <div className='relative md:pt-0 pt-12 pb-0'>
           {/*<NetworkHeader chain={currentChain} address={address} />*/}
 
           {/* Tab Navigation */}
-          <div className='relative z-200 flex md:py-1 border-b-[0.33px] border-white/10'>
+          <div className='relative z-200 flex md:py-1 border-b-[0.33px] border-dotted border-black/10'>
             {/* Active Tab Indicator */}
             <motion.div
-              className={cn('absolute top-0.5 bottom-0.5 bg-linear-to-r from-stone-100/30 to-slate-100/20', {
-                '': activeTab === '1'
-              })}
-              style={{ width: `calc(${100 / 3}% - 3.5px)` }}
+              className={cn(
+                'absolute top-0 bottom-0 border-b-[0.33px] border-white/0 bg-linear-to-r from-black/0 to-black/0',
+                {
+                  '': activeTab === '1'
+                }
+              )}
+              style={{ width: `calc(${100 / 3}% - 4px)` }}
               animate={{
                 left: `calc(${tabs.findIndex((t) => t.id === activeTab) * (100 / 3)}% + 2px)`
               }}
@@ -285,17 +289,18 @@ export const CryptoWidget = () => {
                   transition={{ type: 'spring', damping: 80, stiffness: 50 }}
                   className={cn(
                     'outline-none relative h-10 gap-3 z-10',
-                    'text-white/50 tracking-widest flex-1 flex items-center justify-center',
+                    'text-slate-200/50 flex-1 flex items-center justify-center',
                     { 'text-white outline-1 focus-within:outline-1': isActive, '': activeTab === 'pay' }
                   )}>
-                  <span className='font-brk text-xs font-medium uppercase'>{tab.label}</span>
+                  <span className='font-okxs font-medium text-xs capitalize'>{tab.label}</span>
                 </motion.button>
               )
             })}
           </div>
         </div>
+        <GlowDivider position={params.tabId === 'pay' ? 'left' : params.tabId === 'send' ? 'right' : 'center'} />
 
-        <div className='md:p-6 min-h-105'>
+        <div className='md:p-0 min-h-105'>
           <AnimatePresence mode='wait'>
             {activeTab === 'pay' && (
               <PayTab

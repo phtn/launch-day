@@ -27,7 +27,7 @@ export const MadStacks = ({ className, title }: BrandProps) => {
   const [a, b] = title?.split(' ') || ['', '']
   return (
     <div className='flex items-center space-x-2'>
-      <Image width={0} height={0} alt='launch-day' src={'/svg/logomark.svg'} className='size-4 md:size-5' />
+      <Image width={0} height={0} alt='launch-day' src={'/svg/logomark.svg'} className='md:flex hidden size-4' />
       <Link href={'/sepolia'} className={cn('flex items-center', className)}>
         <h1 className='text-base md:text-lg lg:text-xl font-exo uppercase'>
           <span className='font-bold tracking-tighter italic text-transparent bg-clip-text bg-linear-to-tr from-emerald-100 via-rose-300 to-rose-400/80'>

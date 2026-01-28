@@ -10,7 +10,7 @@ export const Navbar = () => {
   const pathname = usePathname()
   const route = pathname.split('/').pop()
   return (
-    <nav className='z-200 md:h-16 h-12 border-b border-base-300 w-full justify-between bg-black/80 backdrop-blur-2xl hover:bg-black hover:backdrop-blur-2xl fixed top-0 flex items-center gap-8 ps-2 md:px-8'>
+    <nav className='z-200 md:h-16 h-12 border-0 border-base-300 w-full justify-between bg-black/80 backdrop-blur-2xl hover:bg-black hover:backdrop-blur-2xl fixed top-0 flex items-center gap-8 ps-2 md:px-8'>
       {route === 'sepolia' ? <MadStacks title='Mad Stacks' /> : <Brand title='Launch Day' />}
       <WalletComp />
     </nav>
@@ -36,3 +36,5 @@ export const ModeSwitch = () => {
     </div>
   )
 }
+
+// linear-gradient(135deg,var(--coral-bright) 0%,var(--coral-dark) 100%)

@@ -111,11 +111,11 @@ export const WalletComp = () => {
       className={cn('flex items-center space-x-1 md:space-x-4 transition-transform', {
         'portrait:translate-x-0': !isFetching
       })}>
-      <button className='btn btn-ghost hover:bg-transparent rounded-full'>
+      <button className='hidden btn btn-ghost hover:bg-transparent rounded-full'>
         {isFetching ? (
           <Icon name='spinner-ring' className={cn('size-3 opacity-80 text-orange-300')} />
         ) : balance ? (
-          <label className='swap swap-flip'>
+          <label className='hidden swap swap-flip'>
             <input type='checkbox' defaultChecked />
             <div className='font-brk md:text-lg swap-on flex items-center'>{balance}</div>
             <div className='flex items-center font-space md:text-lg swap-off'>
@@ -123,7 +123,7 @@ export const WalletComp = () => {
             </div>
           </label>
         ) : (
-          <label className='swap swap-flip'>
+          <label className='hidden swap swap-flip'>
             <input type='checkbox' defaultChecked />
             <div className='font-space md:text-lg swap-on flex items-center'>
               {new Intl.NumberFormat('en-US', {

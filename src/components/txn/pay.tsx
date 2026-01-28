@@ -1,6 +1,7 @@
 import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { useCrypto } from '@/hooks/use-crypto'
 import { useNetworkTokens } from '@/hooks/use-network-tokens'
+import { usePayButtonState } from '@/hooks/use-pay-button-state'
 import { useSend } from '@/hooks/x-use-send'
 import { getTransactionExplorerUrl } from '@/lib/explorer'
 import { Icon } from '@/lib/icons'
@@ -10,148 +11,21 @@ import { cn } from '@/lib/utils'
 import { mainnet, polygon, polygonAmoy, sepolia } from '@reown/appkit/networks'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
-import { formatUnits, parseUnits, type Address } from 'viem'
+import { parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { AmountPayInput } from './amount-pay'
 import { NetworkSelector } from './network-selector'
 import { PayAmount } from './pay-amount'
+import { PaymentProcessing } from './payment-processing'
+import { PaymentSuccess } from './payment-success'
 import { ReceiptModal } from './receipt-modal'
 import type { Token } from './token-coaster'
 import { Tokens } from './token-list'
-import { TransactionHashLink } from './transaction-hash-link'
 import { PayTabProps } from './types'
 
-interface PayStateProps {
-  tokenAmount: string
-  tokenSymbol: string
-  usdValue: number | null
-}
-
-const PayState = ({ tokenAmount, tokenSymbol, usdValue }: PayStateProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className='relative rounded-xl bg-white/5 border border-white/10 space-y-0 overflow-hidden'>
-      <div className='absolute bg-[url("/svg/noise.svg")] opacity-15 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
-      <div className='relative px-4 py-6'>
-        <div className='flex flex-col items-center justify-center gap-4'>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className='w-12 h-12 rounded-full border-2 border-lime-300/30 border-t-lime-300 flex items-center justify-center'>
-            <Icon name='spinner-ring' className='w-6 h-6 text-lime-100' />
-          </motion.div>
-          <div className='text-center space-y-1'>
-            <p className='font-polyn font-bold text-xl text-white/80'>Processing Payment</p>
-            <p className='text-xs font-brk text-white/50'>Please confirm in your wallet</p>
-          </div>
-        </div>
-        <div className='mt-6 pt-4 border-t border-white/10 border-dashed space-y-3'>
-          <div className='flex items-center justify-between'>
-            <span className='text-xs font-exo font-bold italic uppercase opacity-60'>Amount</span>
-            <div className='text-right'>
-              <span className='text-sm font-okxs text-white'>
-                {tokenAmount} <span className='uppercase'>{tokenSymbol}</span>
-              </span>
-              {usdValue !== null && (
-                <p className='text-sm font-okxs leading-none flex items-center space-x-1'>
-                  <span className='font-mono text-lg'>≈</span>
-                  <span>
-                    <span className='opacity-70'>$</span>
-                    <span className=''>
-                      {usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </span>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-interface SuccessStateProps {
-  tokenAmount: string
-  tokenSymbol: string
-  usdValue: number | null
-  hash: `0x${string}` | null
-  explorerUrl: string | null
-}
-
-const SuccessState = ({ tokenAmount, tokenSymbol, usdValue, hash, explorerUrl }: SuccessStateProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className='relative rounded-3xl border border-emerald-400/30 space-y-0 overflow-hidden'>
-      <div className='absolute bg-[url("/svg/noise.svg")] opacity-15 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
-      <div className='relative bg-emerald-500/10 px-4 py-6'>
-        <div className='flex flex-col items-center justify-center gap-4'>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            className='w-14 h-14 relative rounded-full border-6 border-emerald-300/2 bg-emerald-400/10 backdrop-blur-3xl flex items-center justify-center'>
-            <Icon name='check' className='w-8 h-8 absolute blur-xl text-emerald-300 animate-pulse' />
-            <Icon name='check' className='w-6 h-6 absolute blur-xs text-white' />
-            <Icon name='check' className='w-6 h-6 relative text-emerald-200' />
-          </motion.div>
-          <div className='text-center space-y-1'>
-            <p className='text-lg font-polyn font-bold text-emerald-50'>Transaction Successful</p>
-            <p className='text-xs font-brk opacity-70'>Your transaction has been confirmed</p>
-          </div>
-        </div>
-        <div className='mt-6 pt-4 border-t border-emerald-200/20 border-dashed space-y-3'>
-          <div className='flex items-start justify-between'>
-            <span className='text-sm font-exo font-bold italic uppercase opacity-70'>Amount</span>
-            <div className='text-right'>
-              <span className='text-sm font-okxs font-medium text-white'>
-                {tokenAmount} <span className='uppercase'>{tokenSymbol}</span>
-              </span>
-              {usdValue !== null && (
-                <p className='text-sm font-okxs text-white/50'>
-                  ${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              )}
-            </div>
-          </div>
-          {hash && (
-            <div className='flex items-center justify-between pt-2'>
-              <span className='text-sm font-exo font-bold italic uppercase opacity-60'>txn hash</span>
-              <TransactionHashLink
-                hash={hash}
-                explorerUrl={explorerUrl}
-                truncate
-                className='text-xs font-brk max-w-50'
-                linkClassName='text-emerald-300 hover:text-emerald-200'
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
 export const PayTab = ({
-  formattedBalance: _formattedBalance,
-  balance,
   tokenPrice,
   disabled,
-
-  amountInputRef: _amountInputRef,
-
-  addressInputRef: _addressInputRef,
-
-  setTo: _setTo,
-
-  setAmount: _setAmountProp,
-  amount: amountProp,
   isPending = false,
   isConfirming = false,
   receipt = null,
@@ -196,12 +70,6 @@ export const PayTab = ({
   const { getBySymbol } = useCrypto()
 
   const currentChain = useMemo(() => chains.find((c) => c.id === chainId), [chains, chainId])
-
-  // Get actual balance from props
-  const actualBalance = useMemo(() => {
-    if (!balance) return null
-    return Number.parseFloat(formatUnits(balance.value, balance.decimals))
-  }, [balance])
 
   // Get native token price based on current network
   const nativeTokenPrice = useMemo(() => {
@@ -387,8 +255,8 @@ export const PayTab = ({
   } = useSend()
 
   // Hook for writing contracts (USDC and USDT transfers)
-  const { mutate, data: usdcHash, isPending: isUsdcPending, error: usdcError } = useWriteContract()
-  const { mutate: mutateUsdt, data: usdtHash, isPending: isUsdtPending, error: usdtError } = useWriteContract()
+  const { mutate, data: usdcHash, isPending: isUsdcPending } = useWriteContract()
+  const { mutate: mutateUsdt, data: usdtHash, isPending: isUsdtPending } = useWriteContract()
 
   // Wait for USDC transaction receipt
   const { isLoading: isUsdcConfirming, data: usdcReceipt } = useWaitForTransactionReceipt({
@@ -460,59 +328,7 @@ export const PayTab = ({
     [currentChain, activeHash, explorerUrl]
   )
 
-  // Log pay button conditions (only in development)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const conditions = {
-        'disabled (prop)': disabled,
-        activeIsConfirming: activeIsConfirming,
-        activeIsPending: activeIsPending,
-        hasInsufficientBalance: hasInsufficientBalance,
-        noSelectedToken: !selectedToken,
-        noPaymentAmount: !paymentAmountUsd,
-        noPaymentDestination: !paymentDestination
-      }
-
-      const isDisabled = Object.values(conditions).some(Boolean)
-
-      // Create a detailed table with all conditions
-      const conditionTable: Record<string, string> = {}
-
-      Object.entries(conditions).forEach(([key, value]) => {
-        conditionTable[key] = value ? '❌ DISABLES BUTTON' : '✅ OK'
-      })
-
-      conditionTable['━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'] = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-      conditionTable['FINAL BUTTON STATE'] = isDisabled ? '❌ DISABLED' : '✅ ENABLED'
-
-      console.table(conditionTable)
-
-      // Also log detailed values for debugging
-      console.group('🔍 Pay Button Condition Details')
-      console.log('Condition Values:', {
-        'disabled (prop)': disabled,
-        activeIsConfirming: activeIsConfirming,
-        activeIsPending: activeIsPending,
-        hasInsufficientBalance: hasInsufficientBalance,
-        selectedToken: selectedToken || 'null',
-        paymentAmountUsd: paymentAmountUsd || 'empty',
-        paymentDestination: paymentDestination || 'null'
-      })
-      console.log('Calculated States:', {
-        localIsPending: localIsPending,
-        localIsConfirming: localIsConfirming,
-        'isPending (prop)': isPending,
-        'isConfirming (prop)': isConfirming,
-        activeIsPending: activeIsPending,
-        activeIsConfirming: activeIsConfirming
-      })
-      console.log('Final Result:', {
-        isDisabled: isDisabled,
-        buttonWillBe: isDisabled ? 'DISABLED' : 'ENABLED'
-      })
-      console.groupEnd()
-    }
-  }, [
+  const isPayDisabled = usePayButtonState({
     disabled,
     activeIsConfirming,
     activeIsPending,
@@ -522,9 +338,9 @@ export const PayTab = ({
     paymentDestination,
     localIsPending,
     localIsConfirming,
-    isPending,
-    isConfirming
-  ])
+    isPendingProp: isPending,
+    isConfirmingProp: isConfirming
+  })
 
   // Handle payment
   const handlePay = useCallback(() => {
@@ -644,6 +460,27 @@ export const PayTab = ({
       exit={{ opacity: 0, y: -10 }}
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
       className='space-y-0'>
+      {/* Amount Info */}
+      {paymentAmountUsd && usdValue && !activeReceipt && (
+        <PayAmount
+          spinRandomAmount={spinRandomAmount}
+          usdValue={usdValue}
+          paymentRequestUri={paymentRequestUri}
+          recipient={paymentDestination}
+          tokenAmountFormatted={processingTokenAmountFormatted}
+          symbol={displayTokenSymbol(selectedToken)}
+        />
+      )}
+      {selectedToken && (
+        <AmountPayInput
+          selectedTokenBalance={selectedTokenBalance}
+          tokenAmount={tokenAmount}
+          selectedToken={selectedToken}
+          paymentAmountUsd={paymentAmountUsd}
+          setPaymentAmountUsd={setPaymentAmountUsd}
+          getTokenPrice={getTokenPrice}
+        />
+      )}
       {/* Token Selection */}
       <NetworkSelector currentNetwork={currentNetwork} onSelectNetwork={handleNetworkSelect} />
       <motion.div
@@ -660,11 +497,15 @@ export const PayTab = ({
             'h-full': availableTokens.length > 1
           })}>
           {tokensLoading ? (
-            <div className='flex items-center justify-center h-24'>
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
-              </motion.div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className='flex items-center justify-center h-24'>
+              {/*<motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>*/}
+              <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+              {/*</motion.div>*/}
+            </motion.div>
           ) : availableTokens.length > 0 ? (
             <Tokens
               tokens={availableTokens}
@@ -676,13 +517,9 @@ export const PayTab = ({
               onTokenSelect={handleTokenSelect}
             />
           ) : (
-            <div className='relative h-32 rounded-xl overflow-hidden flex items-center bg-linear-to-r from-black/60 mt-4 via-black/20 to-zinc-950/50 justify-center text-white/60 text-sm'>
-              <div className='absolute bg-[url("/svg/noise.svg")] opacity-10 scale-100 pointer-events-none top-0 left-0 w-full h-full' />
-              <motion.div
-                animate={{ x: [0, 100, 0] }}
-                transition={{ duration: 40, ease: 'easeInOut', repeat: Number.MAX_SAFE_INTEGER }}
-                className='space-y-3 sm:space-y-4 bg-no-repeat opacity-60 bg-[url("/svg/dots.svg")] bg-blend-lighten blur-px w-full h-full absolute -top-1 right-0 bg-top-right'
-              />
+            <div className='relative h-28 overflow-hidden flex items-center justify-center text-white/60 text-sm'>
+              {/*<div className='absolute bg-[url("/svg/noise.svg")] opacity-3 scale-100 pointer-events-none top-0 left-0 w-full h-full' />*/}
+              <motion.div className='space-y-3 sm:space-y-4 opacity-60 bg-blend-lighten blur-3xl w-full h-full absolute -top-1 right-0 bg-top-right' />
               <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
                 No tokens with balance found on this network
               </p>
@@ -691,22 +528,11 @@ export const PayTab = ({
         </motion.div>
       </motion.div>
 
-      {selectedToken && (
-        <AmountPayInput
-          selectedTokenBalance={selectedTokenBalance}
-          tokenAmount={tokenAmount}
-          selectedToken={selectedToken}
-          paymentAmountUsd={paymentAmountUsd}
-          setPaymentAmountUsd={setPaymentAmountUsd}
-          getTokenPrice={getTokenPrice}
-        />
-      )}
-
-      {/* Sending / Success State */}
-      <motion.div layout className='mt-4'>
-        <AnimatePresence mode='wait'>
+      {/* Processing / Success State */}
+      <AnimatePresence mode='wait'>
+        <motion.div layout className='mt-4'>
           {activeReceipt && activeReceipt.status === 'success' ? (
-            <SuccessState
+            <PaymentSuccess
               key='success'
               tokenAmount={successTokenAmountFormatted}
               tokenSymbol={displayTokenSymbol(lastPaymentToken)}
@@ -715,38 +541,19 @@ export const PayTab = ({
               explorerUrl={receiptExplorerUrl}
             />
           ) : activeIsPending || activeIsConfirming ? (
-            <PayState
+            <PaymentProcessing
               key='sending'
               tokenAmount={processingTokenAmountFormatted}
               tokenSymbol={displayTokenSymbol(selectedToken)}
               usdValue={usdValue}
             />
           ) : null}
-        </AnimatePresence>
-      </motion.div>
+        </motion.div>
+      </AnimatePresence>
 
-      {/*<Activity mode={hasInsufficientBalance ? 'visible' : 'hidden'}>
-        <LowBalance />
-      </Activity>*/}
-
-      {/* Amount Info */}
       <motion.div layout>
-        {paymentAmountUsd && usdValue && !activeReceipt && (
-          <PayAmount
-            spinRandomAmount={spinRandomAmount}
-            usdValue={usdValue}
-            paymentRequestUri={paymentRequestUri}
-            recipient={paymentDestination}
-            tokenAmountFormatted={processingTokenAmountFormatted}
-            symbol={displayTokenSymbol(selectedToken)}
-          />
-        )}
-
         {/* Send Button / Send Another Button */}
-        <motion.div
-          whileHover={{ scale: disabled || activeIsConfirming ? 1 : 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className='mt-4 mx-4'>
+        <motion.div whileHover={{ scale: isPayDisabled ? 1 : 1.02 }} whileTap={{ scale: 0.98 }} className='mt-4 mx-4'>
           {activeReceipt && activeReceipt.status === 'success' && onReset ? (
             <button
               onClick={() => setShowReceiptModal(true)}
@@ -759,49 +566,7 @@ export const PayTab = ({
           ) : (
             <button
               onClick={handlePay}
-              disabled={(() => {
-                const conditions = {
-                  disabled: disabled,
-                  activeIsConfirming: activeIsConfirming,
-                  activeIsPending: activeIsPending,
-                  hasInsufficientBalance: hasInsufficientBalance,
-                  noSelectedToken: !selectedToken,
-                  noPaymentAmount: !paymentAmountUsd,
-                  noPaymentDestination: !paymentDestination
-                }
-
-                const isDisabled = Object.values(conditions).some(Boolean)
-
-                // Log conditions in a table format
-                if (process.env.NODE_ENV === 'development') {
-                  console.table({
-                    Condition: 'Status',
-                    'disabled (prop)': disabled ? '❌ DISABLED' : '✅ ENABLED',
-                    activeIsConfirming: activeIsConfirming ? '❌ DISABLED' : '✅ ENABLED',
-                    activeIsPending: activeIsPending ? '❌ DISABLED' : '✅ ENABLED',
-                    hasInsufficientBalance: hasInsufficientBalance ? '❌ DISABLED' : '✅ ENABLED',
-                    noSelectedToken: !selectedToken ? '❌ DISABLED' : '✅ ENABLED',
-                    noPaymentAmount: !paymentAmountUsd ? '❌ DISABLED' : '✅ ENABLED',
-                    noPaymentDestination: !paymentDestination ? '❌ DISABLED' : '✅ ENABLED',
-                    '---': '---',
-                    'FINAL STATE': isDisabled ? '❌ BUTTON DISABLED' : '✅ BUTTON ENABLED'
-                  })
-
-                  // Also log the actual values for debugging
-                  console.log('Pay Button Conditions - Values:', {
-                    disabled,
-                    activeIsConfirming,
-                    activeIsPending,
-                    hasInsufficientBalance,
-                    selectedToken,
-                    paymentAmountUsd,
-                    paymentDestination,
-                    isDisabled
-                  })
-                }
-
-                return isDisabled
-              })()}
+              disabled={isPayDisabled}
               className={cn(
                 'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold rounded-xl bg-linear-to-r from-slate-400 via-slate-400 to-rose-200 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed',
                 {

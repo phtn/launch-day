@@ -1,4 +1,5 @@
 import { Icon } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import { motion } from 'motion/react'
 import { ChangeEvent, ReactNode, Ref, useId } from 'react'
 import { AnimatedNumber } from '../animated-number'
@@ -100,9 +101,22 @@ export const AddressInputField = ({ label, isValid, value, inputRef, onChange, p
     </div>
   )
 }
-export const GlowDivider = () => (
-  <div className='relative h-px translate-y-2 mx-6'>
+interface GlowDividerProps {
+  className?: string
+  position?: 'left' | 'center' | 'right'
+}
+
+export const GlowDivider = ({ position }: GlowDividerProps) => (
+  <motion.div
+    initial={{ x: -100 }}
+    animate={{ x: position === 'left' ? -100 : position === 'right' ? 100 : 0 }}
+    transition={{ ease: 'easeInOut' }}
+    className={cn('relative h-px translate-y-0 mx-6', {
+      'left-0': position === 'left',
+      'right-0': position === 'right',
+      'mx-auto': position === 'center'
+    })}>
     <div className='absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent' />
     <div className='absolute inset-0 bg-linear-to-r from-transparent via-indigo-400/40 to-transparent blur-[3px]' />
-  </div>
+  </motion.div>
 )
