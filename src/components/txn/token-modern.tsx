@@ -62,11 +62,11 @@ export const TokenModern = ({
               // Fallback to UsdcBalance component if balance not provided
               <UsdcBalance compact />
             ) : (
-              <span className='font-okxs font-normal text-indigo-100 text-xl'>{formattedBalance}</span>
+              <span className='font-okxs font-normal text-indigo-100 text-lg'>{formattedBalance}</span>
             )}
           </p>
           <div className='flex items-center space-x-2'>
-            <span className='text-white/60 font-okxs font-medium text-xs px-0.5 uppercase'>
+            <span className='text-slate-300/50 font-okxs font-medium text-xs px-0.5 uppercase'>
               {token === 'ethereum' && nativeSymbol ? nativeSymbol : token} · 1 = $
               {price?.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
@@ -75,7 +75,7 @@ export const TokenModern = ({
         <div className='text-right'>
           {showBalance && (
             <p className={`md:text-base text-base font-okxs font-medium px-2`}>
-              <span className='pr-0.5 opacity-80'>$</span>
+              <span className='pr-0.5'>$</span>
               <span className=''>
                 {balance &&
                   (balance * (price ?? 1)).toLocaleString('en-US', {
