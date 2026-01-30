@@ -1,23 +1,11 @@
 'use client'
 
-import {
-  base,
-  baseSepolia,
-  mainnet,
-  polygon,
-  polygonAmoy,
-  polygonZkEvmTestnet,
-  sepolia,
-  solana,
-  solanaDevnet,
-  solanaTestnet,
-  zeroGTestnet
-} from '@reown/appkit/networks'
+import { mainnet } from '@reown/appkit/networks'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
-import { projectId, wagmiAdapter } from './config'
+import { networks, projectId, wagmiAdapter } from './config'
 
 // Set up queryClient
 const queryClient = new QueryClient()
@@ -38,19 +26,7 @@ const metadata = {
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [
-    sepolia,
-    baseSepolia,
-    mainnet,
-    base,
-    polygon,
-    polygonAmoy,
-    polygonZkEvmTestnet,
-    zeroGTestnet,
-    solanaTestnet,
-    solanaDevnet,
-    solana
-  ],
+  networks,
   defaultNetwork: mainnet,
   metadata: metadata,
   features: {

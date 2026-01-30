@@ -1,5 +1,6 @@
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
+  AppKitNetwork,
   arbitrum,
   arbitrumSepolia,
   base,
@@ -26,7 +27,7 @@ if (!projectId) {
   throw new Error('Project ID is not defined')
 }
 
-export const networks = [
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   bitcoin,
   sepolia,
   baseSepolia,

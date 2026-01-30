@@ -9,7 +9,8 @@ export const Sidebar = () => {
     { id: '3', label: 'Icons', description: 'Icon Sets', href: '/icons', icon: 'line' },
     { id: '4', label: 'Imager', description: 'Convert Images', href: '/image-converter', icon: 'img-rol-line' },
     { id: '5', label: 'ToneJS', description: 'Synths', href: '/tone', icon: 'piano' },
-    { id: '6', label: 'Sepolia', description: 'Send, Receive, Swap', href: '/sepolia', icon: 'ethereum' }
+    { id: '6', label: 'Sepolia', description: 'Send, Receive, Swap', href: '/sepolia', icon: 'ethereum' },
+    { id: '7', label: 'Typedef', description: 'Convert JSON to TS', href: '/typedef', icon: 'typescript' }
   ]
   return (
     <div className='col-span-3 h-full w-full flex justify-center p-2 md:p-2'>
