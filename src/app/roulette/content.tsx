@@ -1,65 +1,76 @@
 'use client'
 
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type MouseEvent
+} from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 import { Icon } from '@/lib/icons'
-import { HyperList } from '@/lib/ui/hyperlist'
+import {
+  AUTO_PLAY_DELAY_MS,
+  DEFAULT_CHIP_VALUE,
+  SPIN_ANIMATION_DURATION_MS,
+  SPIN_INTERVAL_MS,
+  addBet,
+  canAffordBets,
+  cloneBets,
+  drawRouletteNumber,
+  getCoveragePercentage,
+  getNumberTone,
+  hasBets,
+  multiplyBets,
+  removeBetAmount,
+  type RouletteApiAction,
+  type RouletteApiResponse,
+  type RouletteBets,
+  type RouletteDisplayResult,
+  type RouletteGameState,
+  type RouletteSpinResult
+} from '@/lib/roulette/game'
 import { cn } from '@/lib/utils'
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
-import { ChipBet, ChipList } from './chip'
-import { CreditBalance, Header, HistoryList, ResultsSection, StreetBetOptions, ZeroNumberCell } from './components'
+import { RouletteBoard } from './board'
+import { ChipList } from './chip'
+import { CreditBalance, Header, HistoryList, ResultsSection } from './components'
 import { useSFX } from './sfx'
-import { DeviceControlProps, INumberCell, ResultHistory } from './types'
+import { DeviceControlProps } from './types'
 
-export default function RouletteGame() {
+type RouletteApiSuccess = Extract<RouletteApiResponse, { success: true }>
+
+interface RouletteGameProps {
+  initialState: RouletteGameState
+}
+
+export default function RouletteGame({ initialState }: RouletteGameProps) {
   const isMobile = useMobile()
-  const [selectedNumber, setSelectedNumber] = useState<number | null>(null)
+  const [selectedNumber, setSelectedNumber] = useState<number | null>(initialState.history[0] ?? null)
   const [spinning, setSpinning] = useState(false)
-  const [selectedBets, setSelectedBets] = useState<Record<number, number>>({})
-  const [result, setResult] = useState<string | null>(null)
-  const [history, setHistory] = useState<number[]>([])
-  const [credits, setCredits] = useState(4110)
-  const [lastBets, setLastBets] = useState<Record<number, number>>({})
-  const [totalBet, setTotalBet] = useState(0)
-  const [winAmount, setWinAmount] = useState<number | null>(null)
-  const [loseAmount, setLoseAmount] = useState<number | null>(null)
-  const [chipValue, setChipValue] = useState(5)
+  const [selectedBets, setSelectedBets] = useState<RouletteBets>({})
+  const [outcome, setOutcome] = useState<RouletteDisplayResult | null>(
+    initialState.resultsHistory[0] ? toDisplayResult(initialState.resultsHistory[0]) : null
+  )
+  const [serverState, setServerState] = useState<RouletteGameState>(initialState)
+  const [chipValue, setChipValue] = useState(DEFAULT_CHIP_VALUE)
   const [muted, setMuted] = useState(false)
-  const [hasPlacedBet, setHasPlacedBet] = useState(false)
-  const [resultsHistory, setResultsHistory] = useState<ResultHistory[]>([])
-  const [showHistory, setShowHistory] = useState(!isMobile)
-
-  // const [autoPlayCount, setAutoPlayCount] = useState(5);
-  const [autoBetPlayRemaining, setAutoBetPlayRemaining] = useState(0)
+  const [historyVisible, setHistoryVisible] = useState(true)
   const [autoPlayTimeRemaining, setAutoPlayTimeRemaining] = useState(0)
-  const [isAutoBetPlaying, setIsAutoBetPlaying] = useState(false)
   const [isAutoPlaying, setIsAutoPlaying] = useState(false)
 
-  // Refs for intervals and timeouts
-  const spinIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const autoBetPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const gameContainerRef = useRef<HTMLDivElement>(null)
-
-  // Roulette numbers in correct order from the image
-  const ff = [3, 6, 9, 12]
-  const fs = [15, 18, 21, 24]
-  const ft = [27, 30, 33, 36]
-  const sf = [2, 5, 8, 11]
-  const ss = [14, 17, 20, 23]
-  const st = [26, 29, 32, 35]
-  const tf = [1, 4, 7, 10]
-  const ts = [13, 16, 19, 22]
-  const tt = [25, 28, 31, 34]
-  const rouletteGrid = [
-    [...ff, ...fs, ...ft],
-    [...sf, ...ss, ...st],
-    [...tf, ...ts, ...tt]
-  ]
-
-  // All numbers in a flat array
-  // const allNumbers = [0, ...rouletteGrid.flat()];
-  // Red numbers in European roulette become hot fuchsia
-  const redNumbers = useMemo(() => [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36], [])
+  const spinIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoPlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoPlayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoPlayDeadlineRef = useRef<number | null>(null)
+  const handleAutoPlaySpinRef = useRef<VoidFunction | null>(null)
+  const selectedBetsRef = useRef(selectedBets)
+  const chipValueRef = useRef(chipValue)
+  const spinningRef = useRef(spinning)
+  const mutedRef = useRef(muted)
+  const isAutoPlayingRef = useRef(isAutoPlaying)
+  const serverStateRef = useRef(serverState)
 
   const {
     winSFX,
@@ -77,614 +88,525 @@ export default function RouletteGame() {
     stopRouletteSpinSFX
   } = useSFX()
 
-  // Define colors for numbers in cyberpunk theme with new bright colors
-  const getNumberColor = useCallback(
-    (num: number) => {
-      if (num === 0) return 'bg-zinc-600 hover:bg-avocado/90'
-
-      return redNumbers.includes(num) ? 'bg-brood hover:bg-brood/90' : 'bg-panel-dark hover:bg-panel-dark/90'
-    },
-    [redNumbers]
-  )
-
-  // Calculate total bet amount
   useEffect(() => {
-    const total = Object.values(selectedBets).reduce((sum, bet) => sum + bet, 0)
-    setTotalBet(total)
-  }, [selectedBets])
+    selectedBetsRef.current = selectedBets
+    chipValueRef.current = chipValue
+    spinningRef.current = spinning
+    mutedRef.current = muted
+    isAutoPlayingRef.current = isAutoPlaying
+    serverStateRef.current = serverState
+  }, [selectedBets, chipValue, spinning, muted, isAutoPlaying, serverState])
 
-  // Clean up all intervals and timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (spinIntervalRef.current) {
-        clearInterval(spinIntervalRef.current)
-        spinIntervalRef.current = null
-      }
-      if (autoBetPlayTimeoutRef.current) {
-        clearTimeout(autoBetPlayTimeoutRef.current)
-        autoBetPlayTimeoutRef.current = null
-      }
-      if (autoPlayTimeoutRef.current) {
-        clearTimeout(autoPlayTimeoutRef.current)
-        autoPlayTimeoutRef.current = null
-      }
+  const balance = serverState.balance
+  const history = serverState.history
+  const lastBets = serverState.lastBets
+  const resultsHistory = serverState.resultsHistory
+  const totalBet = Object.values(selectedBets).reduce((sum, bet) => sum + bet, 0)
+  const hasPlacedBet = hasBets(selectedBets)
+  const hasLastBet = hasBets(lastBets)
+  const coverage = hasPlacedBet ? getCoveragePercentage(selectedBets) : 0
+  const showHistory = !isMobile && historyVisible
+
+  const clearSpinInterval = useCallback(() => {
+    if (spinIntervalRef.current) {
+      clearInterval(spinIntervalRef.current)
+      spinIntervalRef.current = null
     }
   }, [])
 
-  // Handle spinning animation and result calculation
-  useEffect(() => {
-    if (spinning) {
-      let spins = 0
-      const maxSpins = 20
-
-      // Clear any existing interval first
-      if (spinIntervalRef.current) {
-        clearInterval(spinIntervalRef.current)
-      }
-
-      spinIntervalRef.current = setInterval(() => {
-        const randomNum = Math.floor(Math.random() * 37)
-        setSelectedNumber(randomNum)
-        spins++
-
-        if (spins >= maxSpins) {
-          if (spinIntervalRef.current) {
-            clearInterval(spinIntervalRef.current)
-            spinIntervalRef.current = null
-          }
-
-          // Final selection
-          const finalNumber = Math.floor(Math.random() * 37)
-          setSelectedNumber(finalNumber)
-          setHistory((prev) => [finalNumber, ...prev])
-
-          // Check if any selected numbers match the result
-          const totalBetAmount = Object.values(selectedBets).reduce((sum, bet) => sum + bet, 0)
-
-          if (Object.keys(selectedBets).length > 0) {
-            if (selectedBets[finalNumber]) {
-              const winnings = selectedBets[finalNumber] * 35
-              setCredits((prev) => prev + winnings + selectedBets[finalNumber])
-              setResult(winnings > 5000 ? `Holy shit!` : winnings > 1000 ? `Babaaammm!` : `YOU WIN`)
-              setWinAmount(winnings)
-              winSFX()
-
-              // Add to results history
-              setResultsHistory((prev) => [
-                {
-                  number: finalNumber,
-                  win: true,
-                  amount: winnings,
-                  timestamp: new Date()
-                },
-                ...prev
-              ])
-            } else {
-              setResult(
-                `${redNumbers.includes(finalNumber) ? 'RED' : finalNumber === 0 ? 'ZERO' : 'BLACK'} ${finalNumber}`
-              )
-              setLoseAmount(totalBetAmount)
-              loseSFX()
-
-              // Add to results history
-              setResultsHistory((prev) => [
-                {
-                  number: finalNumber,
-                  win: false,
-                  amount: -totalBetAmount,
-                  timestamp: new Date()
-                },
-                ...prev
-              ])
-            }
-          }
-
-          // Clear bets after spin
-          setSelectedBets({})
-          setSpinning(false)
-          stopRouletteSpinSFX()
-        }
-      }, 100)
-    }
-
-    return () => {
-      if (spinIntervalRef.current) {
-        clearInterval(spinIntervalRef.current)
-        spinIntervalRef.current = null
-      }
-    }
-  }, [spinning, selectedBets, loseSFX, winSFX, redNumbers, stopRouletteSpinSFX])
-
-  // Internal spin function without auto play logic
-  const spinRouletteInternal = useCallback(() => {
-    // if (Object.keys(selectedBets).length === 0) {
-    //   errorSFX();
-    //   return;
-    // }
-
-    setSpinning(true)
-    setResult(null)
-    setWinAmount(null)
-    setLoseAmount(null)
-    if (Object.keys(selectedBets).length !== 0) {
-      setLastBets({ ...selectedBets })
-    }
-    setHasPlacedBet(false)
-    startSFX()
-    rouletteSpinSFX()
-  }, [startSFX, selectedBets, rouletteSpinSFX])
-
-  // Handle auto bet play
-  useEffect(() => {
-    // Clean up any existing timeout
-    if (autoBetPlayTimeoutRef.current) {
-      clearTimeout(autoBetPlayTimeoutRef.current)
-      autoPlayTimeoutRef.current = null
-    }
-
-    if (isAutoBetPlaying && autoBetPlayRemaining > 0 && !spinning) {
-      autoBetPlayTimeoutRef.current = setTimeout(() => {
-        if (Object.keys(selectedBets).length === 0 && Object.keys(lastBets).length > 0) {
-          // If no current bets but we have last bets, repeat them
-          const repeatAmount = Object.values(lastBets).reduce((sum, bet) => sum + bet, 0)
-          if (credits >= repeatAmount) {
-            setSelectedBets({ ...lastBets })
-            setCredits((prev) => prev - repeatAmount)
-
-            // Then spin after a short delay
-            setTimeout(() => {
-              spinRouletteInternal()
-              setAutoBetPlayRemaining((prev) => prev - 1)
-            }, 500)
-          } else {
-            // Not enough credits, stop auto play
-            setIsAutoBetPlaying(false)
-            setAutoBetPlayRemaining(0)
-          }
-        } else if (Object.keys(selectedBets).length > 0) {
-          // We have current bets, just spin
-          spinRouletteInternal()
-          setAutoBetPlayRemaining((prev) => prev - 1)
-        } else {
-          // No bets at all, stop auto play
-          setIsAutoBetPlaying(false)
-          setAutoBetPlayRemaining(0)
-        }
-      }, 2000) // 2 second delay between auto spins
-    } else if (autoBetPlayRemaining <= 0 && isAutoBetPlaying) {
-      setIsAutoBetPlaying(false)
-    }
-
-    return () => {
-      if (autoPlayTimeoutRef.current) {
-        clearTimeout(autoPlayTimeoutRef.current)
-        autoPlayTimeoutRef.current = null
-      }
-    }
-  }, [isAutoBetPlaying, autoBetPlayRemaining, spinning, selectedBets, lastBets, credits, spinRouletteInternal])
-
-  useEffect(() => {
-    // Clean up any existing timeout
+  const clearAutoPlayTimeout = useCallback(() => {
     if (autoPlayTimeoutRef.current) {
       clearTimeout(autoPlayTimeoutRef.current)
       autoPlayTimeoutRef.current = null
     }
+  }, [])
 
-    if (isAutoPlaying) {
-      autoPlayTimeoutRef.current = setTimeout(() => {
-        setTimeout(() => {
-          spinRouletteInternal()
-        }, 500)
-      }, 30000) // 2 second delay between auto spins
-      setAutoPlayTimeRemaining(30)
-    } else if (!isAutoPlaying) {
-      setIsAutoPlaying(false)
+  const clearAutoPlayInterval = useCallback(() => {
+    if (autoPlayIntervalRef.current) {
+      clearInterval(autoPlayIntervalRef.current)
+      autoPlayIntervalRef.current = null
     }
+  }, [])
 
+  const playSFX = useCallback((sound: VoidFunction) => {
+    if (!mutedRef.current) {
+      sound()
+    }
+  }, [])
+
+  const applyServerState = useCallback((nextState: RouletteGameState) => {
+    serverStateRef.current = nextState
+    startTransition(() => {
+      setServerState(nextState)
+    })
+  }, [])
+
+  const stopAutoPlay = useCallback(() => {
+    isAutoPlayingRef.current = false
+    autoPlayDeadlineRef.current = null
+    clearAutoPlayTimeout()
+    clearAutoPlayInterval()
+    setIsAutoPlaying(false)
+    setAutoPlayTimeRemaining(0)
+  }, [clearAutoPlayInterval, clearAutoPlayTimeout])
+
+  const getNumberColor = useCallback((number: number) => {
+    switch (getNumberTone(number)) {
+      case 'zero':
+        return 'bg-zinc-600 hover:bg-avocado/90'
+      case 'red':
+        return 'bg-brood hover:bg-brood/90'
+      default:
+        return 'bg-panel-dark hover:bg-panel-dark/90'
+    }
+  }, [])
+
+  useEffect(() => {
     return () => {
-      if (autoPlayTimeoutRef.current) {
-        clearTimeout(autoPlayTimeoutRef.current)
-        autoPlayTimeoutRef.current = null
-      }
+      clearSpinInterval()
+      clearAutoPlayTimeout()
+      clearAutoPlayInterval()
+      stopRouletteSpinSFX()
     }
-  }, [isAutoPlaying, spinRouletteInternal])
+  }, [clearAutoPlayInterval, clearAutoPlayTimeout, clearSpinInterval, stopRouletteSpinSFX])
 
-  useEffect(() => {
-    if (isAutoPlaying && !spinning) {
-      const intervalId = setInterval(() => {
-        setAutoPlayTimeRemaining((prevTime) => prevTime - 1)
-      }, 1000)
-
-      return () => {
-        clearInterval(intervalId)
-      }
-    }
-  }, [isAutoPlaying, spinning])
-
-  // Toggle controls visibility on mobile when orientation changes
-  useEffect(() => {
-    if (isMobile) {
-      setShowHistory(false)
-    } else {
-      setShowHistory(true)
-    }
-  }, [isMobile])
-
-  const clearBets = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault()
-      const currentTimeout = autoPlayTimeoutRef.current
-      const currentTime = autoPlayTimeRemaining
-
-      if (currentTimeout) {
-        clearTimeout(currentTimeout)
-      }
-
-      const refundAmount = Object.values(selectedBets).reduce((sum, bet) => sum + bet, 0)
-      setCredits((prev) => prev + refundAmount)
-      setSelectedBets({})
-      setHasPlacedBet(false)
-      clearBetsSFX()
-
-      if (isAutoPlaying) {
-        autoPlayTimeoutRef.current = setTimeout(() => {
-          spinRouletteInternal()
-        }, currentTime * 1000)
-      }
-    },
-    [selectedBets, clearBetsSFX, autoPlayTimeRemaining, isAutoPlaying, spinRouletteInternal]
-  )
-
-  const repeatBet = useCallback(() => {
-    if (Object.keys(lastBets).length === 0) return
-
-    const repeatAmount = Object.values(lastBets).reduce((sum, bet) => sum + bet, 0)
-    if (credits >= repeatAmount) {
-      setSelectedBets({ ...lastBets })
-      setCredits((prev) => prev - repeatAmount)
-      setHasPlacedBet(true)
-      repeatBetSFX()
-    } else {
-      notAllowedSFX()
-    }
-  }, [lastBets, credits, repeatBetSFX, notAllowedSFX])
-
-  const doubleBet = useCallback(() => {
-    if (Object.keys(selectedBets).length === 0) return
-
-    const doubleAmount = Object.values(selectedBets).reduce((sum, bet) => sum + bet, 0)
-    if (credits >= doubleAmount) {
-      const doubledBets = { ...selectedBets }
-      Object.keys(doubledBets).forEach((key) => {
-        doubledBets[Number(key)] *= 2
-      })
-
-      setSelectedBets(doubledBets)
-      setCredits((prev) => prev - doubleAmount)
-      betBigSFX()
-    } else {
-      notAllowedSFX()
-    }
-  }, [selectedBets, credits, betBigSFX, notAllowedSFX])
-
-  // Main spin function with auto play handling
-  const spinRoulette = useCallback(() => {
-    if (isAutoBetPlaying) {
-      // Stop auto play if it's running
-      setIsAutoBetPlaying(false)
-      setAutoBetPlayRemaining(0)
-      if (autoBetPlayTimeoutRef.current) {
-        clearTimeout(autoBetPlayTimeoutRef.current)
-        autoBetPlayTimeoutRef.current = null
-      }
+  const updateAutoPlayRemaining = useCallback(() => {
+    if (autoPlayDeadlineRef.current === null) {
+      setAutoPlayTimeRemaining(0)
       return
     }
 
-    spinRouletteInternal()
-  }, [isAutoBetPlaying, spinRouletteInternal])
-
-  // Start auto play
-  // const startAutoPlay = () => {
-  //   if (autoPlayCount <= 0 || isAutoPlaying) return
-
-  //   setAutoPlayRemaining(autoPlayCount)
-  //   setIsAutoPlaying(true)
-  // }
-
-  const toggleMute = () => {
-    setMuted(!muted)
-  }
-
-  const handleChipValueChange = useCallback(
-    (value: number) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault()
-      setChipValue(value)
-      chipSelectSFX()
-    },
-    [chipSelectSFX]
-  )
-
-  const handleChangeHistory = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault()
-      setShowHistory(!showHistory)
-    },
-    [showHistory]
-  )
-
-  const handleReplenish = useCallback(() => {
-    setCredits((prev) => prev + 420)
+    const remainingMs = Math.max(autoPlayDeadlineRef.current - Date.now(), 0)
+    setAutoPlayTimeRemaining(Math.ceil(remainingMs / 1000))
   }, [])
 
-  const controls = useMemo(
-    () => ({
-      repeatBet,
-      doubleBet,
-      clearBets,
-      spin: spinRoulette,
-      replenishFn: handleReplenish
-    }),
-    [repeatBet, doubleBet, clearBets, spinRoulette, handleReplenish]
+  const scheduleAutoPlay = useCallback(
+    (delayMs = AUTO_PLAY_DELAY_MS) => {
+      if (!isAutoPlayingRef.current) {
+        return
+      }
+
+      autoPlayDeadlineRef.current = Date.now() + delayMs
+      clearAutoPlayTimeout()
+      clearAutoPlayInterval()
+      updateAutoPlayRemaining()
+
+      autoPlayTimeoutRef.current = setTimeout(() => {
+        autoPlayDeadlineRef.current = null
+        clearAutoPlayTimeout()
+        clearAutoPlayInterval()
+        handleAutoPlaySpinRef.current?.()
+      }, delayMs)
+
+      autoPlayIntervalRef.current = setInterval(() => {
+        updateAutoPlayRemaining()
+      }, 1000)
+    },
+    [clearAutoPlayInterval, clearAutoPlayTimeout, updateAutoPlayRemaining]
   )
 
-  const gameState = useMemo(
-    () => ({
-      spinning,
-      lastBets,
-      isAutoBetPlaying,
-      selectedBets,
-      hasPlacedBet,
-      credits
-    }),
-    [credits, hasPlacedBet, spinning, isAutoBetPlaying, lastBets, selectedBets]
-  )
+  const finishSpin = useCallback(() => {
+    clearSpinInterval()
+    spinningRef.current = false
+    setSpinning(false)
+    stopRouletteSpinSFX()
+  }, [clearSpinInterval, stopRouletteSpinSFX])
 
-  const controlProps = useMemo(
-    () => ({
-      chipValue,
-      onChangeChipValue: handleChipValueChange,
-      onChangeHistory: handleChangeHistory,
-      controls,
-      state: gameState,
-      replenishFn: handleReplenish
-    }),
-    [chipValue, handleChipValueChange, handleChangeHistory, handleReplenish, controls, gameState]
-  )
+  const restoreLastBets = useCallback(
+    (quiet = false) => {
+      const repeatedBets = cloneBets(serverStateRef.current.lastBets)
 
-  const placeBet = useCallback(
-    (v: number) => (e: MouseEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      if (credits >= chipValue) {
-        // Store current timeout
-        // const currentTimeout = autoPlayTimeoutRef.current;
-        const currentTime = autoPlayTimeRemaining
+      if (!hasBets(repeatedBets)) {
+        return null
+      }
 
-        // if (currentTimeout) {
-        //   clearTimeout(currentTimeout);
-        // }
-
-        setSelectedBets((prev) => ({
-          ...prev,
-          [v]: prev[v] ? prev[v] + chipValue : chipValue
-        }))
-        setCredits((prev) => prev - chipValue)
-        setHasPlacedBet(true)
-        placeBetSFX()
-
-        // Restore the auto-play timer with remaining time
-        if (isAutoPlaying) {
-          console.log(currentTime)
-          autoPlayTimeoutRef.current = setTimeout(() => {
-            spinRouletteInternal()
-          }, currentTime * 1000)
+      if (!canAffordBets(serverStateRef.current.balance, repeatedBets)) {
+        if (!quiet) {
+          playSFX(notAllowedSFX)
         }
-      } else {
-        errorSFX()
+        return null
+      }
+
+      selectedBetsRef.current = repeatedBets
+      setSelectedBets(repeatedBets)
+      return repeatedBets
+    },
+    [notAllowedSFX, playSFX]
+  )
+
+  const getSpinSnapshot = useCallback(
+    (playFailureSFX = true) => {
+      if (hasBets(selectedBetsRef.current)) {
+        return cloneBets(selectedBetsRef.current)
+      }
+
+      const repeatedBets = restoreLastBets(!playFailureSFX)
+
+      if (repeatedBets) {
+        return repeatedBets
+      }
+
+      if (playFailureSFX) {
+        playSFX(errorSFX)
+      }
+
+      return null
+    },
+    [errorSFX, playSFX, restoreLastBets]
+  )
+
+  const handleSpinSuccess = useCallback(
+    (payload: RouletteApiSuccess) => {
+      const nextState = payload.state
+      const round = payload.round
+
+      if (!round) {
+        throw new Error('Spin completed without a round payload.')
+      }
+
+      finishSpin()
+      selectedBetsRef.current = {}
+      setSelectedNumber(round.finalNumber)
+
+      startTransition(() => {
+        setSelectedBets({})
+        setOutcome(toDisplayResult(round))
+        setServerState(nextState)
+      })
+
+      serverStateRef.current = nextState
+      playSFX(round.kind === 'win' ? winSFX : loseSFX)
+
+      if (isAutoPlayingRef.current) {
+        scheduleAutoPlay()
       }
     },
-    [autoPlayTimeRemaining, spinRouletteInternal, chipValue, credits, errorSFX, placeBetSFX, isAutoPlaying]
+    [finishSpin, loseSFX, playSFX, scheduleAutoPlay, winSFX]
+  )
+
+  const spinRoulette = useCallback(
+    async (fromAutoPlay = false) => {
+      if (spinningRef.current) {
+        return
+      }
+
+      const spinBets = getSpinSnapshot(!fromAutoPlay)
+
+      if (!spinBets) {
+        if (fromAutoPlay) {
+          stopAutoPlay()
+        }
+        return
+      }
+
+      clearAutoPlayTimeout()
+      clearAutoPlayInterval()
+      autoPlayDeadlineRef.current = null
+
+      spinningRef.current = true
+      setSpinning(true)
+      setOutcome(null)
+      setAutoPlayTimeRemaining(0)
+      playSFX(startSFX)
+      playSFX(rouletteSpinSFX)
+
+      clearSpinInterval()
+      spinIntervalRef.current = setInterval(() => {
+        setSelectedNumber(drawRouletteNumber())
+      }, SPIN_INTERVAL_MS)
+
+      try {
+        const [payload] = await Promise.all([
+          requestRouletteAction({
+            action: 'spin',
+            bets: spinBets
+          }),
+          delay(SPIN_ANIMATION_DURATION_MS)
+        ])
+
+        handleSpinSuccess(payload)
+      } catch (error) {
+        finishSpin()
+        playSFX(errorSFX)
+
+        if (fromAutoPlay) {
+          stopAutoPlay()
+        }
+
+        console.error(error)
+      }
+    },
+    [
+      clearAutoPlayInterval,
+      clearAutoPlayTimeout,
+      clearSpinInterval,
+      errorSFX,
+      finishSpin,
+      getSpinSnapshot,
+      handleSpinSuccess,
+      playSFX,
+      rouletteSpinSFX,
+      startSFX,
+      stopAutoPlay
+    ]
+  )
+
+  useEffect(() => {
+    handleAutoPlaySpinRef.current = () => {
+      void spinRoulette(true)
+    }
+
+    return () => {
+      handleAutoPlaySpinRef.current = null
+    }
+  }, [spinRoulette])
+
+  const clearBets = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+
+    if (spinningRef.current || !hasBets(selectedBetsRef.current)) {
+      return
+    }
+
+    selectedBetsRef.current = {}
+    setSelectedBets({})
+    playSFX(clearBetsSFX)
+  }, [clearBetsSFX, playSFX])
+
+  const repeatBet = useCallback(() => {
+    const repeatedBets = restoreLastBets()
+
+    if (repeatedBets) {
+      playSFX(repeatBetSFX)
+    }
+  }, [playSFX, repeatBetSFX, restoreLastBets])
+
+  const doubleBet = useCallback(() => {
+    if (!hasBets(selectedBetsRef.current)) {
+      return
+    }
+
+    const doubledBets = multiplyBets(selectedBetsRef.current, 2)
+
+    if (!canAffordBets(serverStateRef.current.balance, doubledBets)) {
+      playSFX(notAllowedSFX)
+      return
+    }
+
+    selectedBetsRef.current = doubledBets
+    setSelectedBets(doubledBets)
+    playSFX(betBigSFX)
+  }, [betBigSFX, notAllowedSFX, playSFX])
+
+  const toggleMute = useCallback(() => {
+    setMuted((currentMuted) => {
+      const nextMuted = !currentMuted
+      mutedRef.current = nextMuted
+
+      if (nextMuted) {
+        stopRouletteSpinSFX()
+      }
+
+      return nextMuted
+    })
+  }, [stopRouletteSpinSFX])
+
+  const handleChipValueChange = useCallback(
+    (value: number) => (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      chipValueRef.current = value
+      setChipValue(value)
+      playSFX(chipSelectSFX)
+    },
+    [chipSelectSFX, playSFX]
+  )
+
+  const handleChangeHistory = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    setHistoryVisible((currentValue) => !currentValue)
+  }, [])
+
+  const handleReplenish = useCallback(async () => {
+    if (spinningRef.current) {
+      return
+    }
+
+    try {
+      const payload = await requestRouletteAction({
+        action: 'replenish'
+      })
+
+      applyServerState(payload.state)
+    } catch (error) {
+      playSFX(errorSFX)
+      console.error(error)
+    }
+  }, [applyServerState, errorSFX, playSFX])
+
+  const placeBet = useCallback(
+    (value: number) => {
+      if (spinningRef.current) {
+        return
+      }
+
+      const nextChipValue = chipValueRef.current
+
+      setSelectedBets((currentBets) => {
+        const nextBets = addBet(currentBets, value, nextChipValue)
+
+        if (!canAffordBets(serverStateRef.current.balance, nextBets)) {
+          playSFX(errorSFX)
+          return currentBets
+        }
+
+        selectedBetsRef.current = nextBets
+        playSFX(placeBetSFX)
+        return nextBets
+      })
+    },
+    [errorSFX, placeBetSFX, playSFX]
   )
 
   const removeBet = useCallback(
-    (v: number) => (e: MouseEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      const currentBet = selectedBets[v] || 0
-      if (currentBet >= chipValue) {
-        const newBet = currentBet - chipValue
-        const newBets = { ...selectedBets }
-
-        if (newBet === 0) {
-          delete newBets[v]
-        } else {
-          newBets[v] = newBet
-        }
-
-        setSelectedBets(newBets)
-        setCredits((prev) => prev + chipValue)
-        removeBetSFX()
+    (value: number) => {
+      if (spinningRef.current) {
+        return
       }
+
+      const nextBets = removeBetAmount(selectedBetsRef.current, value, chipValueRef.current)
+
+      if (nextBets === selectedBetsRef.current) {
+        return
+      }
+
+      selectedBetsRef.current = nextBets
+      setSelectedBets(nextBets)
+      playSFX(removeBetSFX)
     },
-    [chipValue, removeBetSFX, selectedBets]
+    [playSFX, removeBetSFX]
   )
 
   const handleAutoPlay = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault()
-      setIsAutoPlaying(e.target.checked)
+    (event: ChangeEvent<HTMLInputElement>) => {
+      event.preventDefault()
+
+      if (!event.target.checked) {
+        stopAutoPlay()
+        return
+      }
+
+      isAutoPlayingRef.current = true
+      setIsAutoPlaying(true)
+
+      if (!spinningRef.current) {
+        scheduleAutoPlay()
+      }
     },
-    [setIsAutoPlaying]
+    [scheduleAutoPlay, stopAutoPlay]
   )
 
-  const NumberCell = useCallback(
-    ({ v, id }: INumberCell) => {
-      return (
-        <div
-          key={`num-${id}`}
-          className={cn('relative rounded-xs flex select-none size-full overflow-hidden', {
-            'rounded-2xl border-warning': selectedNumber === v && !spinning
-          })}>
-          <div
-            className={cn(
-              `w-full aspect-square flex items-center justify-center text-base font-bold text-neutral-100 cursor-pointer ${getNumberColor(
-                v
-              )}`
-              // {
-              //   "rounded-tl-xl": [3, 9, 15, 21, 27, 33].includes(v),
-              //   "rounded-bl-xl": [1, 7, 13, 19, 25, 31].includes(v),
-              //   "rounded-tr-xl": [6, 12, 18, 24, 30, 36].includes(v),
-              //   "rounded-br-xl": [4, 10, 16, 22, 28, 34].includes(v),
-              // },
-            )}
-            onClick={placeBet(v)}
-            onContextMenu={removeBet(v)}>
-            <span
-              className={cn('text-xl md:text-4xl font-abril', {
-                'text-minty': selectedNumber === v
-              })}>
-              {v}
-            </span>
-          </div>
-          {selectedBets[v] && (
-            <div className='absolute pointer-events-none top-4 left-4 md:top-1 md:left-1 bg-white p-[0.5px] drop-shadow-lg border border-panel/60 rounded-full flex items-center size-5 md:size-10 justify-center'>
-              <ChipBet value={selectedBets[v]} />
-            </div>
-          )}
-        </div>
-      )
+  const controls: DeviceControlProps['controls'] = {
+    repeatBet,
+    doubleBet,
+    clearBets,
+    spin: () => {
+      void spinRoulette()
     },
-    [getNumberColor, placeBet, removeBet, selectedBets, selectedNumber, spinning]
-  )
+    replenishFn: () => {
+      void handleReplenish()
+    }
+  }
+
+  const controlState: DeviceControlProps['state'] = {
+    spinning,
+    lastBets,
+    selectedBets,
+    hasPlacedBet,
+    credits: balance,
+    isAutoPlaying,
+    autoPlayTimeRemaining
+  }
 
   return (
-    <div ref={gameContainerRef} className='h-screen px-4 md:px-0 overflow-hidden text-white bg-black flex flex-col'>
-      {/* Header */}
-      <Header
-        muted={muted}
-        isMobile={isMobile}
-        isAutoPlaying={isAutoPlaying}
-        toggleMute={toggleMute}
-        replenishFn={handleReplenish}
-        credits={credits}
-      />
+    <div className='h-screen px-4 md:px-0 overflow-hidden text-white bg-black flex flex-col'>
+      <Header muted={muted} isMobile={isMobile} toggleMute={toggleMute} replenishFn={controls.replenishFn} credits={balance} />
 
-      {/* Main content - flex-grow to take available space */}
       <div className='grow flex flex-col overflow-hidden'>
         <div className='flex flex-col h-full'>
-          {/* Game area - scrollable if needed */}
           <div className='grow overflow-hidden md:px-4 md:py-4'>
             <div className='flex flex-col md:flex-row gap-4'>
               <div className='grow'>
-                {/* Results */}
                 <ResultsSection
+                  coverage={coverage}
                   getNumberColor={getNumberColor}
-                  loseAmount={loseAmount}
-                  result={result}
+                  outcome={outcome}
                   selectedNumber={selectedNumber}
-                  selectedBets={selectedBets}
                   spinning={spinning}
                   totalBet={totalBet}
-                  winAmount={winAmount}
                 />
 
-                {/* Roulette table */}
-                <div className='h-fit rounded-lg md:mb-4 bg-zinc-600 shadow-dark-panel p-3'>
-                  <div className='md:flex'>
-                    {/* ZERO card-table */}
-                    <ZeroNumberCell
-                      rightClickFn={removeBet}
-                      leftClickFn={placeBet}
-                      getNumberColor={getNumberColor}
-                      selectedBets={selectedBets}
-                    />
+                <RouletteBoard
+                  getNumberColor={getNumberColor}
+                  onPlaceBet={placeBet}
+                  onRemoveBet={removeBet}
+                  selectedBets={selectedBets}
+                  selectedNumber={selectedNumber}
+                  spinning={spinning}
+                />
 
-                    {/* Main grid - larger cells */}
-                    <div className='grid grid-rows-3 border border-b-0 backdrop-blur-lg gap-px bg-white/60 h-full grow overflow-hidden'>
-                      {rouletteGrid.map((row, rowIndex) => {
-                        const data = row.map((v, id) => ({ v, id }))
-                        return (
-                          <HyperList
-                            key={`row-${rowIndex}`}
-                            container={cn('grid grid-cols-6 gap-px md:grid-cols-12 size-full md:overflow-hidden')}
-                            data={data}
-                            itemStyle={cn('overflow-hidden')}
-                            component={NumberCell}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Bottom betting options - styled for cyberpunk */}
-                  <div className='flex'>
-                    <div className='w-[86px]'></div>
-                    <StreetBetOptions />
-                  </div>
-                </div>
-                {/* Desktop controls */}
                 {!isMobile && (
-                  <>
-                    {/* Chip value selector */}
-                    <div className=' md:fixed md:bottom-40 md:left-1/5 w-fit'>
-                      <h3 className='text-lg font-medium text-cyan-300 border-cyan-800/50 pb-1'></h3>
-                      <div className='flex h-28 items-center w-full justify-around space-x-8'>
-                        <ChipList chipValue={chipValue} onChangeFn={handleChipValueChange} />
+                  <div className='md:fixed md:bottom-40 md:left-1/5 w-fit'>
+                    <h3 className='text-lg font-medium text-cyan-300 border-cyan-800/50 pb-1'></h3>
+                    <div className='flex h-28 items-center w-full justify-around space-x-8'>
+                      <ChipList chipValue={chipValue} onChangeFn={handleChipValueChange} />
 
-                        <div className='grid grid-cols-3 gap-2'>
-                          <button
-                            onClick={spinRoulette}
-                            disabled={
-                              spinning || (Object.keys(selectedBets).length === 0 && Object.keys(lastBets).length === 0)
+                      <div className='grid grid-cols-3 gap-2'>
+                        <button
+                          onClick={() => {
+                            void spinRoulette()
+                          }}
+                          disabled={spinning || (!hasPlacedBet && !hasLastBet)}
+                          className='py-6 btn rounded-full bg-minty overflow-hidden text-slate-700 w-32 text-lg flex items-center gap-2'>
+                          {spinning ? (
+                            <Icon name='spinners-scale-rotate' className='shrink-0 size-7 text-lime-300' />
+                          ) : (
+                            <>{isAutoPlaying ? `Auto ${autoPlayTimeRemaining}s` : 'Spin'}</>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={doubleBet}
+                          disabled={spinning || !hasPlacedBet}
+                          className={cn('py-6 w-16 btn btn-outline text-lg border-slate-300/50 text-slate-300 rounded-full', {
+                            hidden: !hasPlacedBet
+                          })}>
+                          2x
+                        </button>
+
+                        <button
+                          onClick={repeatBet}
+                          disabled={spinning}
+                          className={cn(
+                            'py-6 btn rounded-full tracking-tighter w-16 btn-outline border-stone-500/60 text-stone-300 font-medium flex items-center gap-2',
+                            {
+                              hidden: !hasLastBet || hasPlacedBet
                             }
-                            className='py-6 btn rounded-full bg-minty overflow-hidden text-slate-700 w-32 text-lg flex items-center gap-2'>
-                            {isAutoBetPlaying ? (
-                              <>Stop</>
-                            ) : spinning ? (
-                              <Icon name='spinners-scale-rotate' className='shrink-0 size-7 text-lime-300' />
-                            ) : (
-                              <>{isAutoPlaying ? `Auto ${autoPlayTimeRemaining}s` : 'Spin'}</>
-                            )}
-                          </button>
+                          )}>
+                          <Icon name='repeat' />
+                        </button>
 
-                          <button
-                            onClick={doubleBet}
-                            disabled={spinning || !hasPlacedBet}
-                            className={cn(
-                              'py-6 w-16 btn btn-outline text-lg border-slate-300/50 text-slate-300 rounded-full',
-                              {
-                                hidden: !hasPlacedBet
-                              }
-                            )}>
-                            2x
-                          </button>
-
-                          <button
-                            onClick={repeatBet}
-                            disabled={spinning}
-                            className={cn(
-                              'py-6 btn rounded-full tracking-tighter w-16 btn-outline border-stone-500/60 text-stone-300 font-medium flex items-center gap-2',
-                              {
-                                hidden: Object.keys(lastBets).length === 0 || hasPlacedBet
-                              }
-                            )}>
-                            <Icon name='repeat' />
-                          </button>
-
-                          <button
-                            onClick={clearBets}
-                            disabled={spinning || Object.keys(selectedBets).length === 0}
-                            className={cn(
-                              'py-6 w-16 btn btn-outline overflow-hidden text-stone-300 rounded-full font-medium border-error/60'
-                            )}>
-                            <Icon name='eraser' className='size-7 shrink-0' />
-                          </button>
-                        </div>
+                        <button
+                          onClick={clearBets}
+                          disabled={spinning || !hasPlacedBet}
+                          className='py-6 w-16 btn btn-outline overflow-hidden text-stone-300 rounded-full font-medium border-error/60'>
+                          <Icon name='eraser' className='size-7 shrink-0' />
+                        </button>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
-              {/* History panel */}
               {showHistory && (
                 <HistoryList
                   data={{
@@ -700,8 +622,7 @@ export default function RouletteGame() {
         </div>
       </div>
 
-      {/* Fixed bottom bar for mobile */}
-      {isMobile && <MobileControls {...controlProps} />}
+      {isMobile && <MobileControls chipValue={chipValue} onChangeChipValue={handleChipValueChange} controls={controls} state={controlState} />}
 
       <div className='md:flex md:p-4 py-4 hidden space-x-2 items-center'>
         <input
@@ -719,33 +640,25 @@ export default function RouletteGame() {
   )
 }
 
-const MobileControls = (props: DeviceControlProps) => {
-  const { chipValue, onChangeChipValue, controls, state } = props
+const MobileControls = ({ chipValue, onChangeChipValue, controls, state }: DeviceControlProps) => {
   const { spin, repeatBet, doubleBet, clearBets, replenishFn } = controls
-  const { spinning, lastBets, selectedBets, isAutoBetPlaying, hasPlacedBet, credits } = state
+  const { spinning, lastBets, selectedBets, hasPlacedBet, credits } = state
+
   return (
     <div className='fixed bottom-5 left-0 right-0 z-50'>
       <div className='flex items-center space-y-4 flex-col justify-between'>
-        {/* Chip selector */}
         <div className='shrink-0 flex items-center ps-4'>
           <ChipList chipValue={chipValue} onChangeFn={onChangeChipValue} />
         </div>
 
-        {/* Main actions */}
         <div className='flex w-full px-4 items-center justify-between'>
           <CreditBalance credits={credits} replenishFn={replenishFn} />
           <div className='grid grid-cols-3 gap-2'>
             <button
               onClick={spin}
-              disabled={spinning || (Object.keys(selectedBets).length === 0 && Object.keys(lastBets).length === 0)}
+              disabled={spinning || (!hasPlacedBet && !hasBets(lastBets))}
               className='py-6 btn rounded-full bg-minty overflow-hidden text-slate-700 w-16 text-lg flex items-center gap-2'>
-              {isAutoBetPlaying ? (
-                <>Stop</>
-              ) : spinning ? (
-                <Icon name='spinners-scale-rotate' className='shrink-0 size-7 text-lime-300' />
-              ) : (
-                <Icon name='play' />
-              )}
+              {spinning ? <Icon name='spinners-scale-rotate' className='shrink-0 size-7 text-lime-300' /> : <Icon name='play' />}
             </button>
 
             <button
@@ -763,7 +676,7 @@ const MobileControls = (props: DeviceControlProps) => {
               className={cn(
                 'py-6 btn rounded-full tracking-tighter w-16 btn-outline border-stone-500/60 text-stone-300 font-medium flex items-center gap-2',
                 {
-                  hidden: Object.keys(lastBets).length === 0 || hasPlacedBet
+                  hidden: !hasBets(lastBets) || hasPlacedBet
                 }
               )}>
               <Icon name='repeat' />
@@ -771,8 +684,8 @@ const MobileControls = (props: DeviceControlProps) => {
 
             <button
               onClick={clearBets}
-              disabled={spinning || Object.keys(selectedBets).length === 0}
-              className={cn('py-6 w-16 btn btn-outline border-stone-500/60 overflow-hidden rounded-full font-medium')}>
+              disabled={spinning || !hasBets(selectedBets)}
+              className='py-6 w-16 btn btn-outline border-stone-500/60 overflow-hidden rounded-full font-medium'>
               <Icon name='eraser' className='size-7 shrink-0' />
             </button>
           </div>
@@ -782,37 +695,34 @@ const MobileControls = (props: DeviceControlProps) => {
   )
 }
 
-// chipSelectSFX
+async function requestRouletteAction(action: RouletteApiAction): Promise<RouletteApiSuccess> {
+  const response = await fetch('/api/roulette', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(action)
+  })
 
-// Add chip to all selected numbers
-// const addChipToAllSelected = () => {
-//   const selectedNumbers = Object.keys(selectedBets).map(Number)
-//   if (selectedNumbers.length === 0) return
+  const payload = (await response.json()) as RouletteApiResponse
 
-//   const totalCost = selectedNumbers.length * chipValue
-//   if (credits >= totalCost) {
-//     const newBets = { ...selectedBets }
-//     selectedNumbers.forEach((num) => {
-//       newBets[num] = (newBets[num] || 0) + chipValue
-//     })
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.success ? 'Unable to complete roulette request.' : payload.error)
+  }
 
-//     setSelectedBets(newBets)
-//     setCredits((prev) => prev - totalCost)
-//     playSound(chipSoundRef)
-//   }
-// }
+  return payload
+}
 
-// Add chip to all numbers
-// const addChipToAllNumbers = () => {
-//   const totalCost = allNumbers.length * chipValue
-//   if (credits >= totalCost) {
-//     const newBets = { ...selectedBets }
-//     allNumbers.forEach((num) => {
-//       newBets[num] = (newBets[num] || 0) + chipValue
-//     })
+function toDisplayResult(result: RouletteSpinResult): RouletteDisplayResult {
+  return {
+    kind: result.kind,
+    message: result.message,
+    amount: result.amount
+  }
+}
 
-//     setSelectedBets(newBets)
-//     setCredits((prev) => prev - totalCost)
-//     playSound(chipSoundRef)
-//   }
-// }
+function delay(durationMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, durationMs)
+  })
+}

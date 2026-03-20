@@ -1,44 +1,37 @@
-import { MouseEvent } from "react";
+import { MouseEventHandler } from 'react'
+import { RouletteBets, RouletteSpinResult } from '@/lib/roulette/game'
 
 interface Controls {
-  repeatBet: VoidFunction;
-  doubleBet: VoidFunction;
-  clearBets: (e: MouseEvent<HTMLButtonElement>) => void;
-  spin: VoidFunction;
-  replenishFn: (e: MouseEvent<HTMLButtonElement>) => void;
+  repeatBet: VoidFunction
+  doubleBet: VoidFunction
+  clearBets: MouseEventHandler<HTMLButtonElement>
+  spin: VoidFunction
+  replenishFn: VoidFunction
 }
+
 interface ControlState {
-  lastBets: Record<number, number>;
-  selectedBets: Record<number, number>;
-  isAutoBetPlaying: boolean;
-  spinning: boolean;
-  hasPlacedBet: boolean;
-  credits: number;
+  lastBets: RouletteBets
+  selectedBets: RouletteBets
+  spinning: boolean
+  hasPlacedBet: boolean
+  credits: number
+  isAutoPlaying: boolean
+  autoPlayTimeRemaining: number
 }
+
 export interface DeviceControlProps {
-  chipValue: number;
+  chipValue: number
   onChangeChipValue: (
-    value: number,
-  ) => (e: MouseEvent<HTMLButtonElement>) => void;
-  onChangeHistory: (e: MouseEvent<HTMLButtonElement>) => void;
-  controls: Controls;
-  state: ControlState;
+    value: number
+  ) => MouseEventHandler<HTMLButtonElement>
+  controls: Controls
+  state: ControlState
 }
 
-export interface INumberCell {
-  id: number;
-  v: number;
-}
-
-export interface ResultHistory {
-  number: number;
-  win: boolean;
-  amount: number;
-  timestamp: Date;
-}
+export type ResultHistory = RouletteSpinResult
 
 export interface DataListProps {
-  history: number[];
-  resultsHistory: ResultHistory[];
-  getNumberColor: (v: number) => string;
+  history: number[]
+  resultsHistory: ResultHistory[]
+  getNumberColor: (v: number) => string
 }

@@ -1,3 +1,9 @@
-import RouletteGame from "./content";
-const Page = async () => <RouletteGame />;
-export default Page;
+import RouletteGame from './content'
+import { getRouletteServerState } from '@/lib/roulette/server'
+
+const Page = async () => {
+  const initialState = await getRouletteServerState()
+  return <RouletteGame initialState={initialState} />
+}
+
+export default Page

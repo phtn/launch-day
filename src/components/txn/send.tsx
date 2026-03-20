@@ -1,14 +1,15 @@
 import { useSearchParams } from '@/app/sepolia/search-params-context'
 import { useNetworkTokens } from '@/hooks/use-network-tokens'
 import { usePaste } from '@/hooks/use-paste'
+import { getTransactionExplorerUrl } from '@/lib/explorer'
 import { Icon } from '@/lib/icons'
 import { getUsdcAddress, isUsdcSupportedChain } from '@/lib/usdc'
 import { getUsdtAddress, isUsdtSupportedChain } from '@/lib/usdt'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChangeEvent, Dispatch, Ref, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react'
-import { formatUnits, parseUnits, type Address } from 'viem'
-import { useChainId, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { isAddress, parseUnits, type Address } from 'viem'
+import { useChainId, useChains, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { AmountInputField } from './amount-input'
 import { AddressInputField, Title } from './components'
 import type { Token } from './token-coaster'
@@ -136,6 +137,19 @@ const SuccessState = ({ amount, recipient, balance, usdValue, hash, explorerUrl 
 
 type ReceiptStatus = { blockNumber: bigint; status: 'success' | 'reverted' } | null
 
+const ERC20_TRANSFER_ABI = [
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  }
+] as const
+
 interface SendTabProps {
   onSend: VoidFunction
   formattedBalance: string | null
@@ -176,7 +190,10 @@ export const SendTab = ({
 }: SendTabProps) => {
   const { params, setParams } = useSearchParams()
   const chainId = useChainId()
+  const chains = useChains()
   const { tokens: networkTokens, isLoading: tokensLoading } = useNetworkTokens()
+  const [lastSubmittedToken, setLastSubmittedToken] = useState<Token | null>(null)
+  const currentChain = useMemo(() => chains.find((chain) => chain.id === chainId), [chains, chainId])
 
   // Selected token state - sync with search params
   const selectedTokenParam = params.tokenSelected
@@ -194,16 +211,34 @@ export const SendTab = ({
   // Use search params for recipient and amount, with fallback to props
   const recipient = params.to ?? toProp ?? ''
   const amount = params.amount ?? amountProp ?? ''
-  const [isValid, setIsValid] = useState<boolean | null>(null)
+  const isValid = useMemo<boolean | null>(() => {
+    if (!recipient) return null
+    return isAddress(recipient)
+  }, [recipient])
+
+  const nativeTokenSymbol = useMemo(() => currentChain?.nativeCurrency.symbol ?? _balance?.symbol ?? 'ETH', [currentChain, _balance])
+  const nativeTokenIcon = useMemo(() => {
+    const symbol = currentChain?.nativeCurrency.symbol?.toLowerCase()
+    return symbol === 'matic' || symbol === 'pol' ? 'matic' : 'ethereum'
+  }, [currentChain])
 
   // Extract token list from network tokens
   const availableTokens = useMemo<Token[]>(() => {
     return networkTokens.map((t) => t.token)
   }, [networkTokens])
 
-  // Auto-select first available token if none is selected
+  // Keep the selected token in sync with what is actually available on the current network.
   useEffect(() => {
-    if (!selectedToken && availableTokens.length > 0 && !tokensLoading) {
+    if (tokensLoading) return
+
+    if (availableTokens.length === 0) {
+      if (selectedToken) {
+        setSelectedToken(null)
+      }
+      return
+    }
+
+    if (!selectedToken || !availableTokens.includes(selectedToken)) {
       setSelectedToken(availableTokens[0])
     }
   }, [selectedToken, availableTokens, tokensLoading, setSelectedToken])
@@ -213,22 +248,6 @@ export const SendTab = ({
     if (!selectedToken) return null
     return networkTokens.find((t) => t.token === selectedToken) ?? null
   }, [selectedToken, networkTokens])
-
-  // Use selected token balance if available, otherwise fall back to prop balance
-  const balance = useMemo(() => {
-    if (selectedTokenBalance) {
-      return {
-        value: selectedTokenBalance.value,
-        symbol: selectedTokenBalance.token === 'ethereum' ? 'ETH' : selectedTokenBalance.token.toUpperCase(),
-        decimals: selectedTokenBalance.decimals
-      }
-    } else if (_balance) {
-      return _balance
-    }
-    return null
-  }, [selectedTokenBalance, _balance])
-
-  const formattedBalance = selectedTokenBalance ? selectedTokenBalance.formatted : _formattedBalance
 
   // Sync search params with props when props change (from external sources)
   useEffect(() => {
@@ -257,46 +276,10 @@ export const SendTab = ({
     (token: Token | null): number | null => {
       if (!token) return null
       if (token === 'usdc' || token === 'usdt') return 1 // USDC and USDT are always $1
-      if (token === 'ethereum') return tokenPrice // ETH price
+      if (token === 'ethereum') return tokenPrice // Native token price on the current network
       return null
     },
     [tokenPrice]
-  )
-
-  const data = tokenData[selectedToken === 'ethereum' ? 'ETH' : selectedToken?.toUpperCase() ?? 'ETH'] || {
-    color: '#6366f1'
-  }
-
-  // Get actual balance
-  const actualBalance = useMemo(() => {
-    if (!balance) return null
-    return Number.parseFloat(formatUnits(balance.value, balance.decimals))
-  }, [balance])
-
-  const validateAddress = useCallback((address: string) => {
-    if (!address) {
-      setIsValid(null)
-      return
-    }
-    // Simple validation - starts with 0x and has 40+ chars
-    setIsValid(address.startsWith('0x') && address.length >= 40)
-  }, [])
-
-  const usdValue = useMemo(() => {
-    if (!selectedToken || !amount) return null
-    const parsedAmount = Number.parseFloat(amount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return null
-    const price = getTokenPrice(selectedToken)
-    if (!price) return null
-    return parsedAmount * price
-  }, [amount, selectedToken, getTokenPrice])
-
-  // Handle token selection
-  const handleTokenSelect = useCallback(
-    (token: Token) => {
-      setSelectedToken(token)
-    },
-    [setSelectedToken]
   )
 
   // Hook for writing contracts (USDC and USDT transfers)
@@ -331,20 +314,88 @@ export const SendTab = ({
     }
   })
 
-  // Determine transaction state based on selected token
-  const isPending = selectedToken === 'usdc' ? isUsdcPending : selectedToken === 'usdt' ? isUsdtPending : _isPending
+  const hasEthTransaction = _isPending || _isConfirming || Boolean(_hash) || Boolean(_receipt)
+  const hasUsdcTransaction = isUsdcPending || isUsdcConfirming || Boolean(usdcHash) || Boolean(usdcReceipt)
+  const hasUsdtTransaction = isUsdtPending || isUsdtConfirming || Boolean(usdtHash) || Boolean(usdtReceipt)
+
+  const transactionToken = useMemo<Token | null>(() => {
+    if (!lastSubmittedToken) return null
+    if (lastSubmittedToken === 'ethereum' && hasEthTransaction) return 'ethereum'
+    if (lastSubmittedToken === 'usdc' && hasUsdcTransaction) return 'usdc'
+    if (lastSubmittedToken === 'usdt' && hasUsdtTransaction) return 'usdt'
+    return null
+  }, [lastSubmittedToken, hasEthTransaction, hasUsdcTransaction, hasUsdtTransaction])
+
+  const activeToken = transactionToken ?? selectedToken
+
+  const activeTokenBalance = useMemo(() => {
+    if (!activeToken) return null
+    return networkTokens.find((t) => t.token === activeToken) ?? null
+  }, [activeToken, networkTokens])
+
+  // Use the in-flight transaction token when present so status/success state stays stable.
+  const balance = useMemo(() => {
+    if (activeTokenBalance) {
+      return {
+        value: activeTokenBalance.value,
+        symbol: activeTokenBalance.token === 'ethereum' ? nativeTokenSymbol : activeTokenBalance.token.toUpperCase(),
+        decimals: activeTokenBalance.decimals
+      }
+    }
+
+    if (_balance && (!activeToken || activeToken === 'ethereum')) {
+      return {
+        ..._balance,
+        symbol: nativeTokenSymbol
+      }
+    }
+
+    return null
+  }, [activeToken, activeTokenBalance, nativeTokenSymbol, _balance])
+
+  const formattedBalance = activeTokenBalance
+    ? activeTokenBalance.formatted
+    : !activeToken || activeToken === 'ethereum'
+    ? _formattedBalance
+    : null
+
+  const data = tokenData[activeToken === 'ethereum' ? 'ETH' : activeToken?.toUpperCase() ?? 'ETH'] || {
+    color: '#6366f1'
+  }
+
+  const usdValue = useMemo(() => {
+    if (!activeToken || !amount) return null
+    const parsedAmount = Number.parseFloat(amount)
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return null
+    const price = getTokenPrice(activeToken)
+    if (!price) return null
+    return parsedAmount * price
+  }, [activeToken, amount, getTokenPrice])
+
+  // Handle token selection
+  const handleTokenSelect = useCallback(
+    (token: Token) => {
+      if (transactionToken) return
+      setSelectedToken(token)
+    },
+    [setSelectedToken, transactionToken]
+  )
+
+  // Determine transaction state from the token that owns the current in-flight transaction.
+  const stateToken = transactionToken ?? selectedToken
+  const isPending = stateToken === 'usdc' ? isUsdcPending : stateToken === 'usdt' ? isUsdtPending : _isPending
   const isConfirming =
-    selectedToken === 'usdc' ? isUsdcConfirming : selectedToken === 'usdt' ? isUsdtConfirming : _isConfirming
-  const hash = selectedToken === 'usdc' ? usdcHash : selectedToken === 'usdt' ? usdtHash : _hash
+    stateToken === 'usdc' ? isUsdcConfirming : stateToken === 'usdt' ? isUsdtConfirming : _isConfirming
+  const hash = (stateToken === 'usdc' ? usdcHash : stateToken === 'usdt' ? usdtHash : _hash) ?? null
   const receipt =
-    selectedToken === 'usdc'
+    stateToken === 'usdc'
       ? usdcReceipt
         ? {
             blockNumber: usdcReceipt.blockNumber,
             status: usdcReceipt.status === 'success' ? ('success' as const) : ('reverted' as const)
           }
         : null
-      : selectedToken === 'usdt'
+      : stateToken === 'usdt'
       ? usdtReceipt
         ? {
             blockNumber: usdtReceipt.blockNumber,
@@ -353,7 +404,7 @@ export const SendTab = ({
         : null
       : _receipt
 
-  const explorerUrl = _explorerUrl
+  const explorerUrl = useMemo(() => getTransactionExplorerUrl(currentChain, hash) ?? _explorerUrl, [currentChain, hash, _explorerUrl])
 
   // Check if selected token has insufficient balance
   const hasInsufficientBalance = useMemo(() => {
@@ -380,6 +431,7 @@ export const SendTab = ({
     try {
       if (selectedToken === 'ethereum') {
         // For ETH, use the parent's onSend handler
+        setLastSubmittedToken('ethereum')
         _onSend()
       } else if (selectedToken === 'usdc') {
         // Send USDC using writeContract
@@ -394,21 +446,7 @@ export const SendTab = ({
 
         // USDC uses 6 decimals
         const usdcAmount = parseUnits(amountValue.toFixed(6), 6)
-
-        // ERC20 transfer ABI
-        const ERC20_TRANSFER_ABI = [
-          {
-            name: 'transfer',
-            type: 'function',
-            stateMutability: 'nonpayable',
-            inputs: [
-              { name: 'to', type: 'address' },
-              { name: 'amount', type: 'uint256' }
-            ],
-            outputs: [{ name: '', type: 'bool' }]
-          }
-        ] as const
-
+        setLastSubmittedToken('usdc')
         mutateUsdc({
           abi: ERC20_TRANSFER_ABI,
           address: usdcAddress,
@@ -428,21 +466,7 @@ export const SendTab = ({
 
         // USDT uses 6 decimals
         const usdtAmount = parseUnits(amountValue.toFixed(6), 6)
-
-        // ERC20 transfer ABI
-        const ERC20_TRANSFER_ABI = [
-          {
-            name: 'transfer',
-            type: 'function',
-            stateMutability: 'nonpayable',
-            inputs: [
-              { name: 'to', type: 'address' },
-              { name: 'amount', type: 'uint256' }
-            ],
-            outputs: [{ name: '', type: 'bool' }]
-          }
-        ] as const
-
+        setLastSubmittedToken('usdt')
         mutateUsdt({
           abi: ERC20_TRANSFER_ABI,
           address: usdtAddress,
@@ -458,22 +482,24 @@ export const SendTab = ({
   const { paste } = usePaste({})
 
   const handlePaste = useCallback(async () => {
+    if (transactionToken) return
+
     const pastedText = await paste()
     if (pastedText) {
       _setTo(pastedText)
       void setParams({ to: pastedText || null })
-      validateAddress(pastedText)
     }
-  }, [paste, _setTo, setParams, validateAddress])
+  }, [paste, _setTo, setParams, transactionToken])
 
   const handleOnChangeAddress = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
+      if (transactionToken) return
+
       const value = e.target.value
       _setTo(value)
       void setParams({ to: value || null })
-      validateAddress(value)
     },
-    [_setTo, setParams, validateAddress]
+    [_setTo, setParams, transactionToken]
   )
 
   return (
@@ -503,7 +529,7 @@ export const SendTab = ({
                 usdt: 1,
                 ethereum: tokenPrice ?? null
               }}
-              nativeSymbol={selectedToken === 'ethereum' ? 'ETH' : undefined}
+              nativeSymbol={nativeTokenIcon}
               onTokenSelect={handleTokenSelect}
             />
           ) : (
@@ -536,7 +562,7 @@ export const SendTab = ({
               recipient={recipient}
               balance={balance}
               usdValue={usdValue}
-              hash={_hash}
+              hash={hash}
               explorerUrl={explorerUrl}
             />
           ) : isPending || isConfirming ? (
@@ -571,7 +597,7 @@ export const SendTab = ({
         <div className='flex items-center justify-between text-xs md:text-sm'>
           <span className='opacity-70 font-exo font-bold uppercase italic'>Estimated Network Fee</span>
           <span className='text-white font-okxs'>
-            ~0.0012 <span className='font-okxs font-light opacity-70'>ETH</span> ({' '}
+            ~0.0012 <span className='font-okxs font-light opacity-70'>{nativeTokenSymbol}</span> ({' '}
             <span className='opacity-60 pr-0.5'>$</span>3.89 )
           </span>
         </div>
