@@ -3,8 +3,9 @@ import { Providers } from '@/ctx/providers'
 import { DynamicWagmiContext } from '@/ctx/wagmi/dynamic'
 import { Metadata } from 'next'
 import {
-  Abril_Fatface,
+  Archivo,
   Bakbak_One,
+  Big_Shoulders_Inline,
   Titillium_Web as Bitcoin,
   Exo_2,
   Figtree,
@@ -27,8 +28,8 @@ const exo = Exo_2({
   subsets: ['latin']
 })
 
-const abril = Abril_Fatface({
-  variable: '--font-abril',
+const bsi = Big_Shoulders_Inline({
+  variable: '--font-bsi',
   weight: ['400'],
   subsets: ['latin']
 })
@@ -56,6 +57,12 @@ const space = Space_Grotesk({
   subsets: ['latin']
 })
 
+const arc = Archivo({
+  variable: '--font-arc',
+  weight: ['400'],
+  subsets: ['latin']
+})
+
 export const metadata: Metadata = {
   title: 'Launch Day',
   description: 'Dev Launcher',
@@ -72,7 +79,7 @@ export default async function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <body
-        className={`${bitcoin.variable} ${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${abril.variable} ${exo.variable} font-sans antialiased`}>
+        className={`${arc.variable} ${bitcoin.variable} ${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${bsi.variable} ${exo.variable} font-sans antialiased`}>
         <DynamicWagmiContext cookies={cookies}>
           <Providers>
             <div>

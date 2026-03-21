@@ -8,7 +8,7 @@
   font-family: 'Brk';
   src: url('/fonts/BerkeleyMono.otf') format('opentype');
   font-weight: 300;
-  font-style: normal, monospace;
+  font-style: normal;
 }
 
 @font-face {
@@ -64,6 +64,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -195,7 +196,7 @@
   --color-usdt: oklch(0.6346 0.1184 167.54);
 
   --font-geist: var(--font-geist-sans);
-  --font-abril: var(--font-abril);
+  --font-bsi: var(--font-bsi);
   --font-exo: var(--font-exo);
   --font-sans: var(--font-figtree);
   --font-bone: var(--font-bone);
@@ -205,6 +206,7 @@
   --font-gs: 'Gens', sans-serif;
   --font-polyn: 'Polyn', sans-serif;
   --font-bitcoin: var(--font-bitcoin);
+  --font-arc: var(--font-arc);
 }
 
 .diamond {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCopy } from '@/hooks/use-copy'
-import { useCallback, useDeferredValue, useState } from 'react'
+import { useCallback, useDeferredValue, useState, type ClipboardEvent } from 'react'
 
 function escapeKey(key: string): string {
   if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) return key
@@ -80,6 +80,87 @@ function parseInput(raw: string): { ok: true; data: unknown } | { ok: false; err
   }
 }
 
+function formatValue(value: unknown, depth = 0, seen = new WeakSet<object>()): string {
+  const indent = '  '.repeat(depth)
+  const nextIndent = '  '.repeat(depth + 1)
+
+  if (value === null) return 'null'
+  if (value === undefined) return 'undefined'
+  if (typeof value === 'string') return JSON.stringify(value)
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (typeof value === 'bigint') return `${value}n`
+  if (typeof value === 'symbol' || typeof value === 'function') return String(value)
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? 'new Date(NaN)' : `new Date(${JSON.stringify(value.toISOString())})`
+  }
+  if (value instanceof RegExp) return value.toString()
+
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return JSON.stringify('[Circular]')
+    seen.add(value)
+
+    if (value.length === 0) {
+      seen.delete(value)
+      return '[]'
+    }
+
+    const items = value.map((item) => `${nextIndent}${formatValue(item, depth + 1, seen)}`)
+    seen.delete(value)
+    return `[\n${items.join(',\n')}\n${indent}]`
+  }
+
+  if (typeof value === 'object') {
+    if (seen.has(value)) return JSON.stringify('[Circular]')
+    seen.add(value)
+
+    if (value instanceof Map) {
+      if (value.size === 0) {
+        seen.delete(value)
+        return 'new Map()'
+      }
+
+      const entries = Array.from(value.entries()).map(
+        ([key, item]) => `${nextIndent}[${formatValue(key, depth + 1, seen)}, ${formatValue(item, depth + 1, seen)}]`
+      )
+
+      seen.delete(value)
+      return `new Map([\n${entries.join(',\n')}\n${indent}])`
+    }
+
+    if (value instanceof Set) {
+      if (value.size === 0) {
+        seen.delete(value)
+        return 'new Set()'
+      }
+
+      const items = Array.from(value.values()).map((item) => `${nextIndent}${formatValue(item, depth + 1, seen)}`)
+
+      seen.delete(value)
+      return `new Set([\n${items.join(',\n')}\n${indent}])`
+    }
+
+    const entries = Object.entries(value)
+    if (entries.length === 0) {
+      seen.delete(value)
+      return '{}'
+    }
+
+    const lines = entries.map(
+      ([key, item]) => `${nextIndent}${JSON.stringify(key)}: ${formatValue(item, depth + 1, seen)}`
+    )
+
+    seen.delete(value)
+    return `{\n${lines.join(',\n')}\n${indent}}`
+  }
+
+  return 'undefined'
+}
+
+function prettifyInput(raw: string): string {
+  const result = parseInput(raw)
+  return result.ok ? formatValue(result.data) : raw
+}
+
 const PLACEHOLDER = `{
   "name": "Acme",
   "count": 42,
@@ -94,7 +175,7 @@ export const Content = () => {
   const { isCopied, copy } = useCopy({})
 
   const result = parseInput(deferredInput)
-  const output = result.ok === true ? jsonToTsDef(result.data) : `// ${result.error}`
+  const output = result.ok === true ? jsonToTsDef(result.data) : `<- ${result.error}`
 
   const handleCopy = useCallback(() => {
     if (result.ok && output) copy('typedef', output)
@@ -103,10 +184,21 @@ export const Content = () => {
   const handlePaste = useCallback(async () => {
     try {
       const text = await navigator.clipboard.readText()
-      setInput(text)
+      setInput(prettifyInput(text))
     } catch {
       // clipboard read denied or unsupported
     }
+  }, [])
+
+  const handleInputPaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = event.clipboardData.getData('text')
+    if (!text) return
+
+    event.preventDefault()
+
+    const { selectionStart, selectionEnd, value } = event.currentTarget
+    const nextValue = `${value.slice(0, selectionStart)}${text}${value.slice(selectionEnd)}`
+    setInput(prettifyInput(nextValue))
   }, [])
 
   return (
@@ -114,40 +206,39 @@ export const Content = () => {
       <div className='grid flex-1 grid-cols-1 gap-px bg-base-300/50 lg:grid-cols-[1fr_1fr]'>
         <section className='flex min-w-0 flex-col bg-base-100'>
           <header className='flex shrink-0 items-center justify-between border-b border-base-300/80 px-4 py-2.5'>
-            <span className='font-mono text-xs font-medium uppercase tracking-wider text-base-content/60'>JSON</span>
+            <span className='font-bsi text-sm font-bold uppercase tracking-wider text-orange-300 opacity-80'>JSON</span>
             <button
               type='button'
               onClick={handlePaste}
-              className='rounded-md px-2.5 py-1 font-mono text-xs text-base-content/70 transition hover:bg-base-300/60 hover:text-base-content'>
+              className='rounded-md px-2.5 py-1 font-arc text-xs bg-base-300/50 hover:bg-base-300/80 hover:text-base-content tracking-wider'>
               Paste
             </button>
           </header>
           <textarea
             aria-label='JSON input'
-            className='min-h-[280px] flex-1 resize-none border-0 bg-transparent p-4 font-[family-name:var(--font-brk)] text-sm leading-relaxed text-base-content outline-none placeholder:text-base-content/40'
+            className='min-h-70 flex-1 resize-none border-0 bg-transparent p-4 font-brk text-sm leading-relaxed text-base-content outline-none placeholder:text-base-content/40'
             placeholder={PLACEHOLDER}
             spellCheck={false}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onPaste={handleInputPaste}
           />
         </section>
 
         <section className='flex min-w-0 flex-col bg-base-100'>
           <header className='flex shrink-0 items-center justify-between border-b border-base-300/80 px-4 py-2.5'>
-            <span className='font-mono text-xs font-medium uppercase tracking-wider text-base-content/60'>
-              TypeScript
-            </span>
+            <span className='font-bsi font-bold text-sm text-[#3178c6] uppercase tracking-wider'>TypeScript</span>
             <button
               type='button'
               onClick={handleCopy}
               disabled={!result.ok || !output}
-              className='rounded-md px-2.5 py-1 font-mono text-xs text-base-content/70 transition hover:bg-base-300/60 hover:text-base-content disabled:pointer-events-none disabled:opacity-50'>
+              className='rounded-md px-2.5 py-1 font-arc text-xs bg-base-300/50 hover:bg-base-300/80 hover:text-base-content tracking-wider'>
               {isCopied ? 'Copied' : 'Copy'}
             </button>
           </header>
           <pre
             aria-label='TypeScript output'
-            className='min-h-[280px] flex-1 overflow-auto p-4 font-brk text-sm leading-relaxed text-base-content/90'>
+            className='min-h-70 flex-1 overflow-auto p-4 font-ios text-sm leading-relaxed text-base-content/90'>
             <code>{output}</code>
           </pre>
         </section>
