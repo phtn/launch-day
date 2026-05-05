@@ -36,6 +36,10 @@ export interface IconifyIcon {
 
 export interface IconifyIconsResponse {
   prefix: string
+  width?: number
+  height?: number
+  left?: number
+  top?: number
   icons: Record<string, IconifyIcon>
   aliases?: Record<string, unknown>
   lastModified?: number

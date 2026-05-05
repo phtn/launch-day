@@ -1,4 +1,5 @@
 import { IconifyIcon, IconifyIconsResponse, IconSet } from '@/app/api/icones/types'
+import { normalizeIconifyIcon } from '@/lib/iconify'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { appendCachedIcons, fetchAndCacheMetadata, getCachedIcons, getCachedMetadata } from './icon-cache'
 
@@ -98,11 +99,18 @@ export const useIconMeta = (iconSetId: string = 'proicons') => {
         const payload = (await res.json()) as IconifyIconsResponse
 
         if (!controller.signal.aborted) {
+          const iconDefaults = {
+            left: payload.left,
+            top: payload.top,
+            width: payload.width,
+            height: payload.height
+          }
+
           const entries: IconEntry[] = Object.entries(payload.icons ?? {}).map(([name, icon]) => ({
             name,
             sourceSetId: id,
             sourceHeight: metadata.height,
-            ...icon
+            ...normalizeIconifyIcon(icon, iconDefaults, metadata.height)
           }))
           setIcons((prev) => [...prev, ...entries])
           setNextIndex(start + list.length)

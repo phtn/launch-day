@@ -5,6 +5,7 @@ import { Slider } from '@/components/slider'
 import { prefetchIconSet } from '@/hooks/icon-cache'
 import { useCopy } from '@/hooks/use-copy'
 import { IconEntry } from '@/hooks/use-icon-meta'
+import { getIconifyViewBox } from '@/lib/iconify'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -72,7 +73,7 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
         ? {
             [hoveredIcon.name as string]: {
               symbol: hoveredIcon.body.replaceAll('"', '"').replaceAll(': ', '`').replaceAll('",', '`,'),
-              viewBox: `0 0 ${hoveredIcon.sourceHeight} ${hoveredIcon.sourceHeight}`,
+              viewBox: getIconifyViewBox(hoveredIcon, hoveredIcon.height ?? hoveredIcon.sourceHeight),
               set: `${hoveredIcon.sourceSetId}`
             }
           }

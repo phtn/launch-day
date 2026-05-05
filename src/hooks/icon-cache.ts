@@ -1,4 +1,5 @@
-import type { IconSet } from '@/app/api/icones/types'
+import type { IconifyIconsResponse, IconSet } from '@/app/api/icones/types'
+import { normalizeIconifyIcon } from '@/lib/iconify'
 import type { IconEntry } from './use-icon-meta'
 
 /**
@@ -141,15 +142,20 @@ export async function prefetchIconSet(iconSetId: string, length = CHUNK_SIZE): P
         headers: { Accept: 'application/json' }
       })
 
-      const payload = (await res.json()) as {
-        icons: Record<string, { body: string; width?: number; height?: number }>
+      const payload = (await res.json()) as IconifyIconsResponse
+
+      const iconDefaults = {
+        left: payload.left,
+        top: payload.top,
+        width: payload.width,
+        height: payload.height
       }
 
       const entries: IconEntry[] = Object.entries(payload.icons ?? {}).map(([name, icon]) => ({
         name,
         sourceSetId: id,
         sourceHeight: metadata.height,
-        ...icon
+        ...normalizeIconifyIcon(icon, iconDefaults, metadata.height)
       }))
 
       setCachedIcons(iconSetId, entries)

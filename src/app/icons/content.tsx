@@ -133,7 +133,7 @@ export const Content = () => {
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown}
                 placeholder=' icon-set-id'
-                className='input input-xs sm:input-sm border-0 outline-0 focus-within:ring-0 focus-visible:ring-0 bg-base-300/50 text-white placeholder:text-base-content/50 focus:outline-none rounded-lg px-3 py-1.5 min-w-[120px]'
+                className='input input-xs sm:input-sm border-0 outline-0 focus-within:ring-0 focus-visible:ring-0 bg-base-300/50 text-white placeholder:text-base-content/50 focus:outline-none rounded-lg px-3 py-1.5 min-w-30'
                 autoFocus
               />
             ) : (
@@ -207,12 +207,10 @@ const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
       onFocus={handlePrefetch}>
       <div className='card-body w-full p-0'>
         <div className='flex items-center space-x-0 sm:space-x-2 pl-4 sm:pl-6'>
-          <div
-            className='text-rotate items-center rounded-xl min-size-[44px] aspect-square'
-            style={{ width: 44, height: 40 }}>
+          <div className='text-rotate items-center rounded-xl size-12 aspect-square' style={{ width: 44, height: 40 }}>
             <span className=''>
               {icons?.slice(0, 69).map((sample, i) => (
-                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-lime-100 size-full' />
+                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-lime-100 size-10' />
               ))}
             </span>
           </div>
