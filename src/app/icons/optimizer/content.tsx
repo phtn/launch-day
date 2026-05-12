@@ -29,7 +29,8 @@ export const Content = () => {
   const [hasOptimized, setHasOptimized] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const latestInputRef = useRef('')
-  const { copy, isCopied } = useCopy({})
+  const { copy: copySymbol, isCopied: isSymbolCopied } = useCopy({})
+  const { copy: copySvg, isCopied: isSvgCopied } = useCopy({})
 
   useEffect(() => {
     latestInputRef.current = input
@@ -39,6 +40,20 @@ export const Content = () => {
     if (!output) return ''
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(output)}`
   }, [output])
+
+  const symbolSnippet = useMemo(() => {
+    if (!output) return ''
+
+    const symbol = getSvgInnerContent(output)
+    const viewBox = getSvgViewBox(output) ?? result?.viewBox.optimized ?? '0 0 24 24'
+    const snippet = {
+      symbol,
+      viewBox,
+      set: 'svg'
+    }
+
+    return `${JSON.stringify('ics')}: ${JSON.stringify(snippet, null, 2)}`
+  }, [output, result?.viewBox.optimized])
 
   const optimizeValue = useCallback(
     async (svg: string) => {
@@ -108,10 +123,15 @@ export const Content = () => {
     void optimizeValue(input)
   }, [input, optimizeValue])
 
-  const handleCopy = useCallback(() => {
+  const handleCopySymbol = useCallback(() => {
+    if (!symbolSnippet) return
+    void copySymbol('ics', symbolSnippet)
+  }, [copySymbol, symbolSnippet])
+
+  const handleCopySvg = useCallback(() => {
     if (!output) return
-    void copy('optimized-svg', output)
-  }, [copy, output])
+    void copySvg('optimized-svg', output)
+  }, [copySvg, output])
 
   const handleDownload = useCallback(() => {
     if (!output) return
@@ -161,7 +181,7 @@ export const Content = () => {
   }, [])
 
   return (
-    <main className='md:mt-12 flex min-h-[calc(100vh-5rem)] flex-col text-white'>
+    <main className='md:mt-14 flex min-h-[calc(100vh-5rem)] flex-col text-white'>
       <div className='flex items-center justify-between border-b border-base-300/80 bg-base-100/70 px-4 py-3 backdrop-blur xl:px-6'>
         <div className='flex items-center gap-3'>
           <Link href='/icons' className='btn btn-ghost btn-sm rounded-lg px-2'>
@@ -252,11 +272,19 @@ export const Content = () => {
           <div className='ml-auto flex flex-wrap items-center gap-2'>
             <button
               type='button'
-              onClick={handleCopy}
+              onClick={handleCopySymbol}
+              disabled={!symbolSnippet}
+              className='btn btn-soft bg-sky-200 text-black/80 rounded-lg disabled:opacity-50 font-normal'>
+              <Icon name={isSymbolCopied ? 'check' : 'copy-fill'} className='size-4' />
+              <span>{isSymbolCopied ? 'Copied' : 'Symbol'}</span>
+            </button>
+            <button
+              type='button'
+              onClick={handleCopySvg}
               disabled={!output}
-              className='btn btn-soft bg-sky-300 text-black/80 rounded-lg disabled:opacity-50'>
-              <Icon name={isCopied ? 'check' : 'copy-fill'} className='size-4' />
-              <span>{isCopied ? 'Copied' : 'Copy Output'}</span>
+              className='btn btn-soft rounded-lg disabled:opacity-50 font-normal'>
+              <Icon name={isSvgCopied ? 'check' : 'copy-fill'} className='size-4' />
+              <span>{isSvgCopied ? 'Copied' : 'SVG'}</span>
             </button>
             <button
               type='button'
@@ -296,12 +324,12 @@ export const Content = () => {
           <div className='grid min-h-0 grid-rows-[minmax(13rem,16rem)_minmax(0,1fr)] bg-gray-300'>
             <div className='px-4 py-4 xl:px-6'>
               <div className='flex h-full flex-col gap-3'>
-                <div className='flex flex-wrap items-center gap-3 text-xs text-base-content/60'>
-                  <span>viewBox</span>
-                  <span className='text-orange-200'>
+                <div className='flex flex-wrap items-center gap-3 text-xs text-base-100'>
+                  <span className='font-semibold'>viewBox</span>
+                  <span className='text-orange-700'>
                     Original: <code>{result?.viewBox.original ?? 'none'}</code>
                   </span>
-                  <span className='text-sky-200'>
+                  <span className='text-sky-700'>
                     Optimized: <code>{result?.viewBox.optimized ?? 'none'}</code>
                   </span>
                   {result?.viewBox.normalized ? (
@@ -309,7 +337,7 @@ export const Content = () => {
                   ) : null}
                 </div>
 
-                <div className='grid flex-1 place-items-center rounded-xs border border-base-300 p-4'>
+                <div className='grid flex-1 place-items-center rounded-xs border-t border-base-300 p-4 mb-4'>
                   {previewSrc ? (
                     <Image
                       src={previewSrc}
@@ -323,32 +351,42 @@ export const Content = () => {
                     <div className='text-sm text-base-content/40'>Preview appears after optimization.</div>
                   )}
                 </div>
-                <div className='flex w-full h-44 gap-4'>
-                  <Image
-                    src={previewSrc}
-                    alt='Optimized SVG preview'
-                    width={80}
-                    height={80}
-                    unoptimized
-                    className='max-h-full max-w-full fill-amber-50 h-auto w-auto object-contain'
-                  />
-                  <Image
-                    src={previewSrc}
-                    alt='Optimized SVG preview'
-                    width={40}
-                    height={40}
-                    unoptimized
-                    className='max-h-full max-w-full fill-amber-50 h-20 w-auto object-contain'
-                  />
-                  <Image
-                    src={previewSrc}
-                    alt='Optimized SVG preview'
-                    width={40}
-                    height={40}
-                    unoptimized
-                    className='max-h-full max-w-full fill-amber-50 h-10 w-auto object-contain'
-                  />
-                </div>
+                {previewSrc && (
+                  <div className='flex w-full h-44 gap-4'>
+                    <Image
+                      src={previewSrc}
+                      alt='Optimized SVG preview'
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className='max-h-full max-w-full fill-amber-50 h-auto w-auto object-contain'
+                    />
+                    <Image
+                      src={previewSrc}
+                      alt='Optimized SVG preview'
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className='max-h-full max-w-full fill-amber-50 h-20 w-auto object-contain'
+                    />
+                    <Image
+                      src={previewSrc}
+                      alt='Optimized SVG preview'
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className='max-h-full max-w-full fill-amber-50 h-10 w-auto object-contain'
+                    />
+                    <Image
+                      src={previewSrc}
+                      alt='Optimized SVG preview'
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className='max-h-full max-w-full fill-amber-50 h-5 w-auto object-contain'
+                    />
+                  </div>
+                )}
                 {error ? <p className='text-sm text-red-300'>{error}</p> : null}
               </div>
             </div>
@@ -479,6 +517,16 @@ function highlightSvgXml(source: string): string {
 
   result += escapeHtml(source.slice(lastIndex))
   return result
+}
+
+function getSvgInnerContent(svg: string): string {
+  const match = svg.match(/^<svg\b[^>]*>([\s\S]*)<\/svg>$/i)
+  return match?.[1]?.trim() ?? ''
+}
+
+function getSvgViewBox(svg: string): string | null {
+  const match = svg.match(/<svg\b[^>]*\bviewBox=(['"])(.*?)\1/i)
+  return match?.[2] ?? null
 }
 
 function highlightXmlToken(token: string): string {

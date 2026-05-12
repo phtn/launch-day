@@ -48,6 +48,7 @@ interface NormalizeViewBoxPluginParams {
 
 interface CleanupSvgAttributesPluginParams {
   pathFillsCurrentColor: boolean
+  precision: number
 }
 
 const normalizeViewBoxPlugin: CustomPlugin<NormalizeViewBoxPluginParams> = {
@@ -116,6 +117,23 @@ const cleanupSvgAttributesPlugin: CustomPlugin<CleanupSvgAttributesPluginParams>
       enter: (node) => {
         delete node.attributes['xml:space']
         delete node.attributes.style
+        delete node.attributes.class
+        delete node.attributes.id
+
+        const translatedX = parsePositionAttribute(node.attributes.x)
+        const translatedY = parsePositionAttribute(node.attributes.y)
+
+        if (translatedX !== null || translatedY !== null) {
+          const nextTransform = buildTranslateTransform(translatedX ?? 0, translatedY ?? 0, params.precision)
+          if (nextTransform) {
+            node.attributes.transform = node.attributes.transform
+              ? `${nextTransform} ${node.attributes.transform}`
+              : nextTransform
+          }
+        }
+
+        delete node.attributes.x
+        delete node.attributes.y
 
         if (!params.pathFillsCurrentColor || node.name !== 'path') return
 
@@ -159,12 +177,14 @@ function optimizeSvgWithMode(
       name: 'preset-default'
     },
     'convertStyleToAttrs',
+    'removeStyleElement',
     'removeDimensions',
     'removeScripts',
     {
       ...cleanupSvgAttributesPlugin,
       params: {
-        pathFillsCurrentColor
+        pathFillsCurrentColor,
+        precision: floatPrecision
       }
     },
     {
@@ -272,6 +292,29 @@ function formatViewBox(viewBox: ParsedViewBox, precision: number): string {
 function formatNumber(value: number, precision: number): string {
   const rounded = Number(value.toFixed(precision))
   return `${Object.is(rounded, -0) ? 0 : rounded}`
+}
+
+function buildTranslateTransform(x: number, y: number, precision: number): string | null {
+  if (x === 0 && y === 0) return null
+
+  return y === 0
+    ? `translate(${formatNumber(x, precision)})`
+    : `translate(${formatNumber(x, precision)} ${formatNumber(y, precision)})`
+}
+
+function parsePositionAttribute(value?: string): number | null {
+  if (value == null) return null
+
+  const normalized = value.trim()
+  if (!normalized) return null
+
+  if (normalized.endsWith('%')) return null
+
+  const match = normalized.match(/^([-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?)(?:px)?$/)
+  if (!match) return null
+
+  const numeric = Number(match[1])
+  return Number.isFinite(numeric) ? numeric : null
 }
 
 function wrapSvgChildrenWithScale(
