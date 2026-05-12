@@ -162,10 +162,6 @@ export const Content = () => {
               <span>Optimizer</span>
               <Icon name='hot' className='size-3 text-minty' />
             </button>
-            <button id='resizer' className='btn btn-secondary text-white px-1.5 rounded-lg'>
-              <span>Resizer</span>
-              <Icon name='hot' className='size-3 text-minty' />
-            </button>
           </div>
           <div className='space-x-1 md:space-x-3 ld:space-x-4'>
             {ATTRIBUTIONS.map((attribution) => (
