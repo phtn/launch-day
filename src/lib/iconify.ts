@@ -24,3 +24,7 @@ export function getIconifyViewBox(icon: IconifyBounds, fallbackSize = 24): strin
 
   return `${left} ${top} ${width} ${height}`
 }
+
+/*
+
+*/

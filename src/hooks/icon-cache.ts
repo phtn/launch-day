@@ -100,7 +100,11 @@ export function setCachedIcons(iconSetId: string, data: IconEntry[]): void {
 
 export function appendCachedIcons(iconSetId: string, newIcons: IconEntry[]): void {
   const existing = getCachedIcons(iconSetId) ?? []
-  const merged = [...existing, ...newIcons]
+  const iconMap = new Map(existing.map((icon) => [icon.name, icon]))
+  newIcons.forEach((icon) => {
+    iconMap.set(icon.name, icon)
+  })
+  const merged = Array.from(iconMap.values())
   setCachedIcons(iconSetId, merged)
 }
 
@@ -119,19 +123,20 @@ export async function prefetchIconSet(iconSetId: string, length = CHUNK_SIZE): P
   const metadata = await fetchAndCacheMetadata(iconSetId)
   if (!metadata) return
 
-  // Check if we already have icons cached
+  // Check if we already have enough icons cached
   const cached = getCachedIcons(iconSetId)
-  if (cached && cached.length > 0) return
+  if (cached && cached.length >= length) return
 
   // Check if already fetching
-  const pendingKey = `${iconSetId}:initial`
+  const pendingKey = `${iconSetId}:${length}`
   if (pendingIcons.has(pendingKey)) return
 
   // Fetch first chunk of icons
   const fetchPromise = (async (): Promise<IconEntry[]> => {
     try {
       const id = (metadata.id ?? iconSetId).trim()
-      const list = metadata.icons.slice(0, length)
+      const start = cached?.length ?? 0
+      const list = metadata.icons.slice(start, length)
       if (list.length === 0) return []
 
       const encoded = encodeURIComponent(list.join(',') + ',')
@@ -158,7 +163,7 @@ export async function prefetchIconSet(iconSetId: string, length = CHUNK_SIZE): P
         ...normalizeIconifyIcon(icon, iconDefaults, metadata.height)
       }))
 
-      setCachedIcons(iconSetId, entries)
+      appendCachedIcons(iconSetId, entries)
       return entries
     } catch (err) {
       console.error('[icon-cache] icons prefetch error:', err)

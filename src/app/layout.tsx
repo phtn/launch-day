@@ -2,16 +2,7 @@ import { Navbar } from '@/_components_/navbar'
 import { Providers } from '@/ctx/providers'
 import { DynamicWagmiContext } from '@/ctx/wagmi/dynamic'
 import { Metadata } from 'next'
-import {
-  Archivo,
-  Bakbak_One,
-  Big_Shoulders_Inline,
-  Titillium_Web as Bitcoin,
-  Exo_2,
-  Figtree,
-  Geist,
-  Space_Grotesk
-} from 'next/font/google'
+import { Archivo, Bakbak_One, Titillium_Web as Bitcoin, Exo_2, Figtree, Geist, Space_Grotesk } from 'next/font/google'
 import { headers } from 'next/headers'
 import { type ReactNode } from 'react'
 import './globals.css'
@@ -25,12 +16,6 @@ const bitcoin = Bitcoin({
 const exo = Exo_2({
   variable: '--font-exo',
   weight: ['400', '900'],
-  subsets: ['latin']
-})
-
-const bsi = Big_Shoulders_Inline({
-  variable: '--font-bsi',
-  weight: ['400'],
   subsets: ['latin']
 })
 
@@ -79,7 +64,7 @@ export default async function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <body
-        className={`${arc.variable} ${bitcoin.variable} ${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${bsi.variable} ${exo.variable} font-sans antialiased`}>
+        className={`${arc.variable} ${bitcoin.variable} ${space.variable} ${bone.variable} ${figtree.variable} ${geist.variable} ${exo.variable} font-sans antialiased`}>
         <DynamicWagmiContext cookies={cookies}>
           <Providers>
             <div>

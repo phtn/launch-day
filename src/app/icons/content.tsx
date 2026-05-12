@@ -1,18 +1,46 @@
 'use client'
 
 import { prefetchIconSet } from '@/hooks/icon-cache'
-import { IconEntry, useIconMeta } from '@/hooks/use-icon-meta'
+import { useIconMeta } from '@/hooks/use-icon-meta'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ReactNode, useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type KeyboardEvent,
+  type ReactNode
+} from 'react'
 import { IconSet } from '../api/icones/types'
 import { ClassName } from '../types'
 import { IconifySvg } from './iconify'
 
 const DEFAULT_ICON_SET_IDS = ['proicons', 'svg-spinners', 'pixelarticons', 'stash', 'lets-icons'] as const
 const STORAGE_KEY = 'icon-sets'
+const ICON_PREVIEW_LIMIT = 36
+const ATTRIBUTIONS = [
+  {
+    label: 'Icônes',
+    description: 'from',
+    href: 'https://icones.js.org'
+  },
+  {
+    label: '@antfu',
+    description: 'built by',
+    href: 'https://github.com/antfu'
+  },
+  {
+    label: 'Iconify',
+    description: 'powered by',
+    href: 'https://iconify.design/'
+  }
+] as const
 
 const loadIconSetsFromStorage = (): string[] => {
   if (typeof window === 'undefined') return [...DEFAULT_ICON_SET_IDS]
@@ -39,7 +67,7 @@ const saveIconSetsToStorage = (iconSets: string[]): void => {
 
 export const Content = () => {
   const router = useRouter()
-  const [iconSetIds, setIconSetIds] = useState<string[]>(loadIconSetsFromStorage())
+  const [iconSetIds, setIconSetIds] = useState<string[]>(() => loadIconSetsFromStorage())
   const [isAddingIconSet, setIsAddingIconSet] = useState(false)
   const [newIconSetId, setNewIconSetId] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -49,13 +77,11 @@ export const Content = () => {
   //   setIconSetIds(loadIconSetsFromStorage())
   // }, [])
 
-  // Eager prefetch all routes on mount for instant navigation
+  // Route payloads are cheap to prefetch; icon payloads are fetched per-card at preview size.
   useEffect(() => {
-    // Use requestIdleCallback for non-blocking prefetch
     const prefetchAll = () => {
       iconSetIds.forEach((id) => {
         router.prefetch(`/icons/${id}`)
-        void prefetchIconSet(id)
       })
     }
 
@@ -86,13 +112,13 @@ export const Content = () => {
       saveIconSetsToStorage(updated)
       // Prefetch the new icon set
       router.prefetch(`/icons/${trimmedId}`)
-      void prefetchIconSet(trimmedId)
+      void prefetchIconSet(trimmedId, ICON_PREVIEW_LIMIT)
     }
     setIsAddingIconSet(false)
     setNewIconSetId('')
   }, [newIconSetId, iconSetIds, router])
 
-  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur()
     } else if (e.key === 'Escape') {
@@ -101,23 +127,6 @@ export const Content = () => {
     }
   }, [])
 
-  const attributions = [
-    {
-      label: 'Icônes',
-      description: 'from',
-      href: 'https://icones.js.org'
-    },
-    {
-      label: '@antfu',
-      description: 'built by',
-      href: 'https://github.com/antfu'
-    },
-    {
-      label: 'Iconify',
-      description: 'powered by',
-      href: 'https://iconify.design/'
-    }
-  ]
   return (
     <main className='h-screen'>
       <div className='text-white pt-12 md:pt-16 md:px-12 size-full'>
@@ -146,8 +155,20 @@ export const Content = () => {
             )}
           </div>
 
+          <div className='flex items-center space-x-4'>
+            <button
+              onClick={() => router.push('/icons/optimizer')}
+              className='btn btn-soft text-white px-1.5 rounded-lg'>
+              <span>Optimizer</span>
+              <Icon name='hot' className='size-3 text-minty' />
+            </button>
+            <button id='resizer' className='btn btn-secondary text-white px-1.5 rounded-lg'>
+              <span>Resizer</span>
+              <Icon name='hot' className='size-3 text-minty' />
+            </button>
+          </div>
           <div className='space-x-1 md:space-x-3 ld:space-x-4'>
-            {attributions.map((attribution) => (
+            {ATTRIBUTIONS.map((attribution) => (
               <Attribution key={attribution.label} {...attribution} />
             ))}
           </div>
@@ -168,24 +189,29 @@ interface AttributionProps {
   href: string
   className?: ClassName
 }
-const Attribution = ({ className, label, description, href }: AttributionProps) => (
-  <span className={cn('text-blue-300 px-2 text-xs md:text-sm lg:text-base font-thin tracking-tighter', className)}>
-    <span className='text-neutral-300 mr-1 font-bold opacity-60'>{description}</span>
-    <a href={href} target='_blank' rel='noopener noreferrer'>
-      {label}
-    </a>
-  </span>
-)
+const Attribution = memo(function Attribution({ className, label, description, href }: AttributionProps) {
+  return (
+    <span className={cn('text-orange-200 px-2 text-xs md:text-sm lg:text-base font-thin tracking-tighter', className)}>
+      <span className='text-neutral-300 mr-1 font-normal opacity-50'>{description}</span>
+      <a href={href} target='_blank' rel='noopener noreferrer'>
+        {label}
+      </a>
+    </span>
+  )
+})
 
 interface IconSetCardProps {
   iconSetId: string
   className?: ClassName
 }
-const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
-  const { metadata, icons, loadingIcons, loadingMeta } = useIconMeta(iconSetId)
+const IconSetCard = memo(function IconSetCard({ iconSetId, className }: IconSetCardProps) {
+  const { metadata, icons, loadingIcons, loadingMeta } = useIconMeta(iconSetId, {
+    initialIconCount: ICON_PREVIEW_LIMIT
+  })
   const router = useRouter()
   const [isPrefetching, startTransition] = useTransition()
   const hasPrefetched = useRef(false)
+  const previewIcons = useMemo(() => icons.slice(0, ICON_PREVIEW_LIMIT), [icons])
 
   // Prefetch route + data on hover/focus for instant navigation
   const handlePrefetch = useCallback(() => {
@@ -202,20 +228,19 @@ const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
 
   return (
     <div
-      className={cn('card bg-base-300/50 card-md shadow-sm w-full sm:w-fit', className)}
+      className={cn('card bg-base-300/50 card-xs shadow-none w-full sm:w-fit', className)}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}>
-      <div className='card-body w-full p-0'>
+      <div className='card-body w-full p-0!'>
         <div className='flex items-center space-x-0 sm:space-x-2 pl-4 sm:pl-6'>
-          <div className='text-rotate items-center rounded-xl size-12 aspect-square' style={{ width: 44, height: 40 }}>
+          <div className='text-rotate items-center size-12 aspect-square' style={{ width: 44, height: 40 }}>
             <span className=''>
-              {icons?.slice(0, 69).map((sample, i) => (
-                <IconifySvg key={sample.name + i} icon={sample} size={40} className='text-lime-100 size-10' />
+              {previewIcons.map((sample) => (
+                <IconifySvg key={sample.name} icon={sample} size={40} className='text-lime-100 size-10' />
               ))}
             </span>
           </div>
           <IconSetCardHeader
-            icons={icons}
             metadata={metadata}
             loading={loadingMeta}
             loadingIcons={loadingIcons}
@@ -225,33 +250,39 @@ const IconSetCard = ({ iconSetId, className }: IconSetCardProps) => {
       </div>
     </div>
   )
-}
+})
 
 interface IconSetCardHeaderProps {
   loading: boolean
   metadata: IconSet | null
   loadingIcons: boolean
   isPrefetching: boolean
-  icons: Array<IconEntry>
 }
 
-const IconSetCardHeader = ({ loading, metadata, loadingIcons, isPrefetching }: IconSetCardHeaderProps) => {
+const IconSetCardHeader = memo(function IconSetCardHeader({
+  loading,
+  metadata,
+  loadingIcons,
+  isPrefetching
+}: IconSetCardHeaderProps) {
   return (
-    <div className='flex items-center justify-between w-full'>
-      <div className='min-w-1/3 m-4 sm:m-6 sm:min-w-44 md:min-w-50 lg:min-w-54 space-y-2.5'>
-        <div className='flex items-center space-x-1 sm:space-x-2'>
-          <Link
-            href={`/icons/${metadata?.id}`}
-            prefetch
-            className={cn(
-              'w-fit flex items-center space-x-2 font-space font-semibold text-lg md:text-xl lg:text-2xl leading-none tracking-tighter'
-            )}>
-            {loading ? <Icon name='spinners-ring' className='text-minty h-5' /> : <span>{metadata?.name}</span>}
-          </Link>
+    <div className='flex items-center justify-between w-full h-24'>
+      <div className='min-w-1/3 m-4 sm:m-6 sm:min-w-44 md:min-w-50 lg:min-w-54 space-y-2'>
+        <div className='block'>
           <Link
             href={`${metadata?.license.url}`}
             className='text-[8px] text-orange-100 opacity-70 uppercase hover:opacity-100 hover:underline underline-offset-2 decoration-dashed decoration-[0.33px] select-none portrait:max-w-[6ch] overflow-clip whitespace-nowrap font-sans font-thin tracking-tighter'>
             {metadata?.license.title}
+          </Link>
+        </div>
+        <div>
+          <Link
+            href={`/icons/${metadata?.id}`}
+            prefetch
+            className={cn(
+              'truncate max-w-[18ch] flex items-center space-x-2 font-space font-semibold text-lg md:text-xl leading-none tracking-tighter'
+            )}>
+            {loading ? <Icon name='spinners-ring' className='text-minty h-5' /> : <span>{metadata?.name}</span>}
           </Link>
         </div>
         <div className='flex items-center space-x-1'>
@@ -268,7 +299,10 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons, isPrefetching }: I
               </span>
             </h4>
           </Link>
-          <Icon name={isPrefetching ? 'spinner-ring' : 'check'} className='size-4 text-orange-200' />
+          <Icon
+            name={isPrefetching ? 'spinner-ring' : 'check'}
+            className={cn('size-3 text-orange-200', { 'size-4': isPrefetching })}
+          />
         </div>
       </div>
       <div className='flex items-start space-x-1 px-2 sm:pr-2'>
@@ -293,7 +327,7 @@ const IconSetCardHeader = ({ loading, metadata, loadingIcons, isPrefetching }: I
       </div>
     </div>
   )
-}
+})
 
 interface StatMiniProps {
   value: ReactNode
@@ -301,16 +335,18 @@ interface StatMiniProps {
   href?: string
   className?: ClassName
 }
-const StatMini = ({ value, label, className, href }: StatMiniProps) => (
-  <Link href={href ?? '#'} prefetch>
-    <div
-      className={cn(
-        'select-none flex flex-col items-center p-1 sm:p-2.5 min-h-fit min-w-12 bg-black/20 sm:min-h-18 sm:min-w-20 sm:aspect-square',
-        'font-bold font-space',
-        className
-      )}>
-      <span className='pb-0.5 text-xl font-space font-thin'>{value}</span>
-      <span className='text-xs opacity-60 text-left capitalize font-sans font-normal'>{label}</span>
-    </div>
-  </Link>
-)
+const StatMini = memo(function StatMini({ value, label, className, href }: StatMiniProps) {
+  return (
+    <Link href={href ?? '#'} prefetch>
+      <div
+        className={cn(
+          'select-none flex flex-col items-center p-1 sm:p-2.5 min-h-fit min-w-12 bg-black/20 sm:min-h-18 sm:min-w-20 sm:aspect-square',
+          'font-bold font-space',
+          className
+        )}>
+        <span className='pb-0.5 text-xl font-space font-thin'>{value}</span>
+        <span className='text-xs opacity-60 text-left capitalize font-sans font-normal'>{label}</span>
+      </div>
+    </Link>
+  )
+})

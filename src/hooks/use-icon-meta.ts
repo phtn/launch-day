@@ -7,8 +7,14 @@ export type IconEntry = { name: string; sourceSetId: string; sourceHeight: numbe
 
 const CHUNK_SIZE = 240
 
+interface UseIconMetaOptions {
+  initialIconCount?: number
+}
+
 // Simplified for single-set usage per IconSetCard to avoid effect loops on array identity
-export const useIconMeta = (iconSetId: string = 'proicons') => {
+export const useIconMeta = (iconSetId: string = 'proicons', options: UseIconMetaOptions = {}) => {
+  const initialIconCount = options.initialIconCount ?? CHUNK_SIZE
+
   // Initialize state - cache hydration happens in useEffect to ensure icons fetch triggers
   const [metadata, setMetadata] = useState<IconSet | null>(null)
   const [loadingMeta, setLoadingMeta] = useState<boolean>(true) // Start true for better UX
@@ -74,10 +80,10 @@ export const useIconMeta = (iconSetId: string = 'proicons') => {
   }, [iconSetId])
 
   const doFetchIcons = useCallback(
-    async (start: number) => {
+    async (start: number, count: number = CHUNK_SIZE) => {
       if (!metadata) return
       const id = (metadata.id ?? iconSetId).trim()
-      const list = metadata.icons.slice(start, start + CHUNK_SIZE)
+      const list = metadata.icons.slice(start, start + count)
       if (list.length === 0) return
 
       // Encode as "alarm-clock%2C..." by encoding the comma-separated string with a trailing comma
@@ -133,10 +139,10 @@ export const useIconMeta = (iconSetId: string = 'proicons') => {
 
   // Automatically fetch the first chunk after metadata arrives
   useEffect(() => {
-    if (metadata && icons.length === 0 && !loadingIcons) {
-      void doFetchIcons(0)
+    if (metadata && icons.length < initialIconCount && !loadingIcons) {
+      void doFetchIcons(icons.length, initialIconCount - icons.length)
     }
-  }, [metadata, icons.length, loadingIcons, doFetchIcons])
+  }, [metadata, icons.length, initialIconCount, loadingIcons, doFetchIcons])
 
   const hasMore = useMemo(() => {
     if (!metadata) return false
