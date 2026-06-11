@@ -1,7 +1,7 @@
 'use client'
 
 import { useCopy } from '@/hooks/use-copy'
-import { useCallback, useDeferredValue, useState, type ClipboardEvent } from 'react'
+import { useCallback, useDeferredValue, useMemo, useState, type ClipboardEvent } from 'react'
 
 function escapeKey(key: string): string {
   if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) return key
@@ -40,6 +40,177 @@ function jsonToTsDef(obj: unknown, rootName = 'Generated'): string {
   }
   const body = inferTsType(obj, '  ')
   return `export interface ${rootName} ${body}\n`
+}
+
+type OutputMode = 'typescript' | 'convex'
+
+function toCamelCase(input: string): string {
+  return input
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[^a-zA-Z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part, index) =>
+      index === 0 ? part.toLowerCase() : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`
+    )
+    .join('')
+}
+
+function toPascalCase(input: string): string {
+  const camel = toCamelCase(input)
+  return camel ? `${camel.charAt(0).toUpperCase()}${camel.slice(1)}` : 'Generated'
+}
+
+function toTableName(input: string): string {
+  return toCamelCase(input) || 'generated'
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function inferConvexValue(value: unknown, indent: string): string {
+  if (value === null) return 'v.null()'
+  if (value === undefined) return 'v.optional(v.any())'
+  if (typeof value === 'string') return 'v.string()'
+  if (typeof value === 'number') return 'v.number()'
+  if (typeof value === 'boolean') return 'v.boolean()'
+  if (typeof value === 'bigint') return 'v.int64()'
+  if (typeof value === 'symbol' || typeof value === 'function') return 'v.any()'
+
+  if (value instanceof Date) return 'v.string()'
+  if (value instanceof RegExp) return 'v.string()'
+
+  if (Array.isArray(value)) {
+    const elementValidator = value.length > 0 ? inferConvexValue(value[0], indent) : 'v.any()'
+    return `v.array(${elementValidator})`
+  }
+
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value)
+    if (entries.length === 0) return 'v.object({})'
+    const lines = entries.map(([key, item]) => `${indent}  ${escapeKey(key)}: ${inferConvexValue(item, `${indent}  `)}`)
+    return `v.object({\n${lines.join('\n')}\n${indent}})`
+  }
+
+  return 'v.any()'
+}
+
+type JsonSchemaProperty = {
+  type?: string | string[]
+  description?: string
+  default?: unknown
+  properties?: Record<string, JsonSchemaProperty>
+  required?: string[]
+  items?: JsonSchemaProperty
+  anyOf?: JsonSchemaProperty[]
+  oneOf?: JsonSchemaProperty[]
+  enum?: unknown[]
+}
+
+function inferTsFromJsonSchema(schema: JsonSchemaProperty, indent: string, required = true): string {
+  if (schema.enum && schema.enum.length > 0) {
+    return schema.enum.map((item) => JSON.stringify(item)).join(' | ')
+  }
+
+  const types = Array.isArray(schema.type) ? schema.type : schema.type ? [schema.type] : []
+  const normalized = types.length > 0 ? types : ['unknown']
+  const optional = !required ? ' | undefined' : ''
+
+  if (normalized.includes('null') && normalized.length === 1) return `null${optional}`
+  if (normalized.includes('string')) return `string${optional}`
+  if (normalized.includes('number') || normalized.includes('integer')) return `number${optional}`
+  if (normalized.includes('boolean')) return `boolean${optional}`
+  if (normalized.includes('object') && schema.properties) {
+    const requiredKeys = new Set(schema.required ?? [])
+    const lines = Object.entries(schema.properties).map(([key, prop]) => {
+      const isRequired = requiredKeys.has(key)
+      return `${indent}  ${escapeKey(key)}${isRequired ? '' : '?'}: ${inferTsFromJsonSchema(
+        prop,
+        `${indent}  `,
+        isRequired
+      )}`
+    })
+    return `{\n${lines.join('\n')}\n${indent}}${optional}`
+  }
+  if (normalized.includes('array')) {
+    const itemType = schema.items ? inferTsFromJsonSchema(schema.items, indent, true) : 'unknown'
+    return `${itemType}[]${optional}`
+  }
+  if (normalized.includes('null')) return `null${optional}`
+  return `unknown${optional}`
+}
+
+function inferConvexFromJsonSchema(schema: JsonSchemaProperty, indent: string, required = true): string {
+  if (schema.enum && schema.enum.length > 0) {
+    const validators = schema.enum.map((item) => inferConvexValue(item, ''))
+    return validators.length === 1 ? validators[0] : `v.union(${validators.join(', ')})`
+  }
+
+  const types = Array.isArray(schema.type) ? schema.type : schema.type ? [schema.type] : []
+  const nullable = types.includes('null')
+
+  const base = types.includes('string')
+    ? 'v.string()'
+    : types.includes('number') || types.includes('integer')
+      ? 'v.number()'
+      : types.includes('boolean')
+        ? 'v.boolean()'
+        : types.includes('array')
+          ? schema.items
+            ? `v.array(${inferConvexFromJsonSchema(schema.items, indent, true)})`
+            : 'v.array(v.any())'
+          : types.includes('object') && schema.properties
+            ? (() => {
+                const requiredKeys = new Set(schema.required ?? [])
+                const lines = Object.entries(schema.properties).map(([key, prop]) => {
+                  const isRequired = requiredKeys.has(key)
+                  const validator = inferConvexFromJsonSchema(prop, `${indent}  `, isRequired)
+                  return `${indent}  ${escapeKey(key)}: ${validator}`
+                })
+                return `{\n${lines.join('\n')}\n${indent}}`
+              })()
+            : 'v.any()'
+
+  const wrapped = nullable ? `v.union(${base}, v.null())` : base
+  return required ? wrapped : `v.optional(${wrapped})`
+}
+
+function jsonSchemaToTsDef(obj: unknown, rootName = 'Generated'): string {
+  if (!isPlainObject(obj)) {
+    return jsonToTsDef(obj, rootName)
+  }
+
+  if (obj.type === 'object' && obj.properties) {
+    const body = inferTsFromJsonSchema(obj as JsonSchemaProperty, '  ')
+    return `export interface ${rootName} ${body}\n`
+  }
+
+  return jsonToTsDef(obj, rootName)
+}
+
+function jsonSchemaToConvexSchema(obj: unknown, rootName = 'generated'): string {
+  if (isPlainObject(obj) && obj.name && typeof obj.name === 'string' && obj.type === 'object' && obj.properties) {
+    const tableName = toTableName(obj.name)
+    const body = inferConvexFromJsonSchema(obj as JsonSchemaProperty, '  ')
+    return [
+      `import { defineSchema, defineTable } from 'convex/server'`,
+      `import { v } from 'convex/values'`,
+      '',
+      'export default defineSchema({',
+      `  ${tableName}: defineTable(${body}),`,
+      '})',
+      '',
+    ].join('\n')
+  }
+
+  return [
+    `import { v } from 'convex/values'`,
+    '',
+    `export const ${toCamelCase(rootName) || 'generated'} = ${inferConvexValue(obj, '')}`,
+    '',
+  ].join('\n')
 }
 
 /** Strip "export const obj = ", "const obj = ", "export default ", etc. and trailing semicolon so we parse only the value. */
@@ -171,11 +342,24 @@ const PLACEHOLDER = `{
 
 export const Content = () => {
   const [input, setInput] = useState('')
+  const [mode, setMode] = useState<OutputMode>('typescript')
   const deferredInput = useDeferredValue(input)
   const { isCopied, copy } = useCopy({})
 
   const result = parseInput(deferredInput)
-  const output = result.ok === true ? jsonToTsDef(result.data) : `<- ${result.error}`
+  const output = useMemo(() => {
+    if (!result.ok) return `<- ${result.error}`
+
+    if (mode === 'convex') {
+      return jsonSchemaToConvexSchema(result.data)
+    }
+
+    if (isPlainObject(result.data) && result.data.type === 'object' && result.data.properties) {
+      return jsonSchemaToTsDef(result.data, toPascalCase(String(result.data.name ?? 'Generated')))
+    }
+
+    return jsonToTsDef(result.data)
+  }, [mode, result])
 
   const handleCopy = useCallback(() => {
     if (result.ok && output) copy('typedef', output)
@@ -227,7 +411,24 @@ export const Content = () => {
 
         <section className='flex min-w-0 flex-col bg-base-100'>
           <header className='flex shrink-0 items-center justify-between border-b border-base-300/80 px-4 py-2.5'>
-            <span className='font-bsi font-bold text-sm text-[#3178c6] uppercase tracking-wider'>TypeScript</span>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={() => setMode('typescript')}
+                className={`rounded-md px-2.5 py-1 font-arc text-xs tracking-wider ${
+                  mode === 'typescript' ? 'bg-base-300/80 text-base-content' : 'bg-base-300/50 hover:bg-base-300/80'
+                }`}>
+                TypeScript
+              </button>
+              <button
+                type='button'
+                onClick={() => setMode('convex')}
+                className={`rounded-md px-2.5 py-1 font-arc text-xs tracking-wider ${
+                  mode === 'convex' ? 'bg-base-300/80 text-base-content' : 'bg-base-300/50 hover:bg-base-300/80'
+                }`}>
+                Convex
+              </button>
+            </div>
             <button
               type='button'
               onClick={handleCopy}
