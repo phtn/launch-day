@@ -2,12 +2,53 @@
 
 import { StarlinkData } from '@/app/types'
 import { Icon } from '@/lib/icons'
+import { GAP, HEX_HEIGHT, HEX_WIDTH } from '@/lib/constants'
 import { HyperList } from '@/lib/ui/hyperlist'
 import Link from 'next/link'
 import { memo } from 'react'
 import { backends } from './backends'
-import { HeatTileV2 } from './heat-tile-v2'
 import { HyperHex } from './hyperhex'
+
+type StarlinkTile = StarlinkData & {
+  tileId: string
+  posX: number
+  posY: number
+}
+
+const HEX_ROW_STEP = (HEX_HEIGHT + GAP) / 2
+const HEX_X_GAP = 18
+const HEX_COL_STEP = HEX_WIDTH + HEX_X_GAP
+const HEX_STAGGER_OFFSET = HEX_COL_STEP / 2
+
+const makeHexTiles = (
+  prefix: string,
+  items: StarlinkData[],
+  rows: number[][],
+  origin: { x: number; y: number },
+  offsetRows: 'even' | 'odd'
+): StarlinkTile[] => {
+  const itemById = new Map(items.map((item) => [item.id, item]))
+
+  return rows.flatMap((row, rowIndex) => {
+    const isOffsetRow =
+      offsetRows === 'even' ? rowIndex % 2 === 0 : rowIndex % 2 === 1
+
+    return row.map((id, colIndex) => {
+      const item = itemById.get(id)
+
+      if (!item) {
+        throw new Error(`Missing ${prefix} tile with id ${id}`)
+      }
+
+      return {
+        ...item,
+        tileId: `${prefix}-${item.id}`,
+        posX: origin.x + colIndex * HEX_COL_STEP + (isOffsetRow ? HEX_STAGGER_OFFSET : 0),
+        posY: origin.y + rowIndex * HEX_ROW_STEP
+      }
+    })
+  })
+}
 
 export const Starlink = () => {
   return (
@@ -15,118 +56,32 @@ export const Starlink = () => {
       <div className='relative w-full h-full overflow-x-scroll'>
         <div className='md:h-4 w-full'></div>
         <HyperList
-          keyId='id'
+          keyId='tileId'
           delay={1.15}
           direction='up'
           component={HeatTile}
-          data={socmeds.slice(0, 3)}
-          container='h-0.5 overflow-visible  flex'
-        />
-        <HyperList
-          delay={0.6}
-          keyId='id'
-          direction='up'
-          component={HeatTile}
-          data={socmeds.slice(3, 6)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          delay={0.8}
-          keyId='id'
-          direction='up'
-          component={HeatTile}
-          data={socmeds.slice(6, 9)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          delay={1.3}
-          keyId='id'
-          direction='up'
-          component={HeatTile}
-          data={socmeds.slice(9, 12)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          delay={0.25}
-          keyId='id'
-          direction='up'
-          component={HeatTile}
-          data={socmeds.slice(12)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          keyId='id'
-          delay={2.15}
-          direction='up'
-          component={HeatTileV2}
-          data={backends}
-          container='h-0.5 overflow-visible flex'
-        />
-        {/*<HyperList
-          keyId='id'
-          delay={2.45}
-          direction='up'
-          component={HeatTile}
-          data={backends.slice(4, 7)}
-          container='h-px overflow-visible flex'
-        />*/}
-        {/*<HyperList
-          keyId='id'
-          delay={2.25}
-          direction='up'
-          component={HeatTile}
-          data={backends.slice(7)}
-          container='h-0.5 overflow-visible flex'
-        />*/}
-        <HyperList
-          keyId='id'
-          delay={3.35}
-          direction='up'
-          component={HeatTile}
-          data={frontends.slice(0, 3)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          keyId='id'
-          delay={3.15}
-          direction='up'
-          component={HeatTile}
-          data={frontends.slice(3, 6)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          keyId='id'
-          delay={3.55}
-          direction='up'
-          component={HeatTile}
-          data={frontends.slice(6, 10)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          keyId='id'
-          delay={3.25}
-          direction='up'
-          component={HeatTile}
-          data={frontends.slice(10, 14)}
-          container='h-0.5 overflow-visible flex'
-        />
-        <HyperList
-          keyId='id'
-          delay={3.25}
-          direction='up'
-          component={HeatTile}
-          data={frontends.slice(14)}
-          container='h-0.5 overflow-visible flex'
+          data={tiles}
+          max={tiles.length}
+          container='relative h-full min-w-[560px] overflow-visible'
+          itemStyle='absolute left-0 top-0 size-0 overflow-visible'
         />
       </div>
     </div>
   )
 }
 
-const HeatTile = memo((item: StarlinkData) => {
+const HeatTile = memo((item: StarlinkTile) => {
   return (
-    <Link className='group/tile' href={item.href} target='_blank' title={item.label}>
-      <HyperHex posX={item.posX ?? 0} posY={item.posY ?? 0}>
+    <Link
+      className='group/tile absolute'
+      href={item.href}
+      target='_blank'
+      title={item.label}
+      style={{
+        left: `${item.posX}px`,
+        top: `${item.posY}px`
+      }}>
+      <HyperHex posX={0} posY={0}>
         <Icon name={item.icon} className='size-7 text-zinc-800' solid />
       </HyperHex>
     </Link>
@@ -427,4 +382,43 @@ const frontends: StarlinkData[] = [
     posX: 388,
     posY: 604
   }
+]
+
+const tiles: StarlinkTile[] = [
+  ...makeHexTiles(
+    'social',
+    socmeds,
+    [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8, 12],
+      [9, 10, 11, 13]
+    ],
+    { x: 100, y: 98 },
+    'odd'
+  ),
+  ...makeHexTiles(
+    'backend',
+    backends,
+    [
+      [0, 1, 2, 3],
+      [4, 5, 6, 10, 9],
+      [7, 8, 12, 13]
+    ],
+    { x: 100, y: 302 },
+    'even'
+  ),
+  ...makeHexTiles(
+    'frontend',
+    frontends,
+    [
+      [0, 1, 2],
+      [3, 4, 5, 9],
+      [6, 7, 8],
+      [10, 11, 12, 13],
+      [14, 15, 16, 17]
+    ],
+    { x: 100, y: 500 },
+    'even'
+  )
 ]
