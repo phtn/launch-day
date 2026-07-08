@@ -9,7 +9,7 @@ import { getIconifyViewBox } from '@/lib/iconify'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { RefObject, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { IconifySvg } from '../iconify'
 
 interface IconsPageProps {
@@ -21,15 +21,35 @@ interface IconsPageProps {
   scrollAreaRef: RefObject<HTMLDivElement | null>
 }
 
+const getIconSymbolSnippet = (icon: IconEntry) => {
+  const inner = {
+    symbol: icon.body.replaceAll('"', '"').replaceAll(': ', '`').replaceAll('",', '`,'),
+    viewBox: getIconifyViewBox(icon, icon.height ?? icon.sourceHeight),
+    set: `${icon.sourceSetId}`
+  }
+  const innerJson = JSON.stringify(inner, null, 2)
+  const prop = JSON.stringify(icon.name)
+
+  return `${prop}: ${innerJson}`
+}
+
+const getSvgElementSnippet = (icon: IconEntry, size: number) => {
+  const viewBox = getIconifyViewBox(icon, Math.max(icon.width ?? 32, icon.height ?? 32))
+
+  return `<svg viewBox="${viewBox}" width="${size}" height="${size}" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  ${icon.body}
+</svg>`
+}
+
 export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scrollAreaRef }: IconsPageProps) => {
   const [iconSize, setIconSize] = useState(40)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [hoveredIcon, setHoveredIcon] = useState<IconEntry | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const { isCopied, copy } = useCopy({ timeout: 2000 })
+  const { isCopied: isSymbolCopied, copy: copySymbol } = useCopy({ timeout: 2000 })
+  const { isCopied: isSvgCopied, copy: copySvg } = useCopy({ timeout: 2000 })
 
   // Debounce search query to avoid filtering on every keystroke
   useEffect(() => {
@@ -67,30 +87,14 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const symbolValue = useMemo(
-    () =>
-      hoveredIcon
-        ? {
-            [hoveredIcon.name as string]: {
-              symbol: hoveredIcon.body.replaceAll('"', '"').replaceAll(': ', '`').replaceAll('",', '`,'),
-              viewBox: getIconifyViewBox(hoveredIcon, hoveredIcon.height ?? hoveredIcon.sourceHeight),
-              set: `${hoveredIcon.sourceSetId}`
-            }
-          }
-        : {},
-    [hoveredIcon]
-  )
-  const propertySnippet = useMemo(() => {
-    if (!hoveredIcon) return ''
-    const inner = symbolValue[hoveredIcon.name]
-    const innerJson = JSON.stringify(inner, null, 2)
-    const prop = JSON.stringify(hoveredIcon.name)
-    return `${prop}: ${innerJson}`
-  }, [symbolValue, hoveredIcon])
-
   const copyIconSymbol = useCallback(
-    () => copy(hoveredIcon?.name ?? 'icon-name', propertySnippet),
-    [propertySnippet, hoveredIcon, copy]
+    (icon: IconEntry) => copySymbol(icon.name, getIconSymbolSnippet(icon)),
+    [copySymbol]
+  )
+
+  const copyIconSvg = useCallback(
+    (icon: IconEntry) => copySvg(icon.name, getSvgElementSnippet(icon, iconSize)),
+    [copySvg, iconSize]
   )
 
   // Memoize filtered icons with debounced query and useTransition for non-blocking updates
@@ -251,7 +255,6 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
         {filteredIcons.map((icon, i) => (
           <div
             key={icon.name + i}
-            onMouseEnter={() => setHoveredIcon(icon)}
             className='group/icon relative flex flex-col group aspect-square items-center justify-center p-4 border-[0.33px] border-transparent cursor-pointer hover:bg-base-200/10 dark:hover:bg-card-origin/40 hover:border-xy'>
             <IconifySvg
               icon={icon}
@@ -262,9 +265,14 @@ export const IconSetList = ({ icons, iconSetId, hasMore, loadMore, loadAll, scro
               {icon.name}
             </span>
 
-            <div className='absolute top-0 right-0 hidden group-hover/icon:flex p-2'>
-              <label className='swap swap-rotate'>
-                <input type='checkbox' onClick={copyIconSymbol} checked={isCopied} readOnly />
+            <div className='absolute top-0 right-0 hidden group-hover/icon:flex items-center gap-2 p-2'>
+              <label className='swap swap-rotate' title='Copy SVG element'>
+                <input type='checkbox' onClick={() => copyIconSvg(icon)} checked={isSvgCopied} readOnly />
+                <Icon name='check' className='size-4 swap-on' />
+                <Icon name='clipboard' className='size-4 swap-off' />
+              </label>
+              <label className='swap swap-rotate' title='Copy symbol snippet'>
+                <input type='checkbox' onClick={() => copyIconSymbol(icon)} checked={isSymbolCopied} readOnly />
                 <Icon name={'check'} className='size-4 swap-on' />
                 <Icon name={'re-up.ph'} className='size-4 swap-off' />
               </label>

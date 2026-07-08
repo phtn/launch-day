@@ -7,6 +7,11 @@ import Image from 'next/image'
 import { Dispatch, RefObject, SetStateAction, useEffect, useState } from 'react'
 import { ConversionStats } from './content'
 
+interface ImageDimensions {
+  width: number
+  height: number
+}
+
 interface Props {
   file: File | null
   setFile: Dispatch<SetStateAction<File | null>>
@@ -31,6 +36,7 @@ export const ImageConverter = ({
   onDownload
 }: Props) => {
   const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [convertedDimensions, setConvertedDimensions] = useState<ImageDimensions | null>(null)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -42,6 +48,7 @@ export const ImageConverter = ({
       setFile(f)
       setPreviewUrl(URL.createObjectURL(f))
       setConvertedUrl('')
+      setConvertedDimensions(null)
       setStats({ originalSize: f.size, compressionRatio: 0, newSize: 0 })
     }
   }
@@ -61,6 +68,15 @@ export const ImageConverter = ({
     const sizes = ['Bytes', 'KB', 'MB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const formatDimensions = ({ width, height }: ImageDimensions): string => `${width}x${height}`
+
+  const handleConvertedImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setConvertedDimensions({
+      width: e.currentTarget.naturalWidth,
+      height: e.currentTarget.naturalHeight
+    })
   }
 
   return (
@@ -108,6 +124,11 @@ export const ImageConverter = ({
                   <span className='text-emerald-400 font-space'>
                     &darr;<span className='text-emerald-300'>{stats?.compressionRatio.toFixed(2)}%</span>
                   </span>
+                  {convertedDimensions && (
+                    <span className='dimensions px-4 font-space text-blue-100'>
+                      {formatDimensions(convertedDimensions)}
+                    </span>
+                  )}
                 </h3>
                 <div className='absolute top-4 right-4 z-200'>
                   <button
@@ -120,7 +141,14 @@ export const ImageConverter = ({
                 </div>
               </div>
               <Lens>
-                <Image src={convertedUrl} alt='Converted' width={500} height={500} className='w-full border rounded' />
+                <Image
+                  src={convertedUrl}
+                  alt='Converted'
+                  width={500}
+                  height={500}
+                  onLoad={handleConvertedImageLoad}
+                  className='w-full border rounded'
+                />
               </Lens>
             </div>
           )}

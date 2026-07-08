@@ -99,6 +99,12 @@ export async function mp3ToMidi(file: File): Promise<Blob> {
     lastEndTick = startTick + durationTick
   }
 
+  await audioContext.close()
+
+  if (lastEndTick === 0) {
+    throw new Error('No clear monophonic pitch was detected in this audio.')
+  }
+
   const writer = new MidiWriter.Writer([track])
   const bytes = writer.buildFile()
 

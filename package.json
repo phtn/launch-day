@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.3.7",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@gemini-wallet/core": "^0.3.2",
     "@metamask/sdk": "^0.34.0",
     "@radix-ui/react-slot": "^1.2.4",

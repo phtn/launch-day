@@ -22,8 +22,22 @@ import { ClassName } from '../types'
 import { IconifySvg } from './iconify'
 
 const DEFAULT_ICON_SET_IDS = ['proicons', 'svg-spinners', 'pixelarticons', 'stash', 'lets-icons'] as const
+const FALLBACK_ICON_SET_SUGGESTION_IDS = [
+  ...DEFAULT_ICON_SET_IDS,
+  'material-symbols',
+  'mdi',
+  'tabler',
+  'lucide',
+  'solar',
+  'ph',
+  'heroicons',
+  'ri',
+  'uil',
+  'carbon'
+] as const
 const STORAGE_KEY = 'icon-sets'
 const ICON_PREVIEW_LIMIT = 36
+const ICON_SET_SUGGESTION_LIMIT = 8
 const ATTRIBUTIONS = [
   {
     label: 'Icônes',
@@ -42,13 +56,40 @@ const ATTRIBUTIONS = [
   }
 ] as const
 
+interface IconSetSuggestion {
+  id: string
+  name: string
+  total?: number
+  category?: string
+  author?: {
+    name?: string
+  }
+}
+
+type IconifyCollectionsResponse = Record<
+  string,
+  {
+    name?: string
+    total?: number
+    category?: string
+    author?: {
+      name?: string
+    }
+  }
+>
+
+const fallbackIconSetSuggestions = FALLBACK_ICON_SET_SUGGESTION_IDS.map((id) => ({
+  id,
+  name: id
+}))
+
 const loadIconSetsFromStorage = (): string[] => {
   if (typeof window === 'undefined') return [...DEFAULT_ICON_SET_IDS]
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored) as string[]
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_ICON_SET_IDS]
+      return Array.isArray(parsed) ? parsed : [...DEFAULT_ICON_SET_IDS]
     }
   } catch (err) {
     console.error('[Content] Failed to load icon sets from localStorage:', err)
@@ -70,7 +111,10 @@ export const Content = () => {
   const [iconSetIds, setIconSetIds] = useState<string[]>(() => loadIconSetsFromStorage())
   const [isAddingIconSet, setIsAddingIconSet] = useState(false)
   const [newIconSetId, setNewIconSetId] = useState('')
+  const [iconSetSuggestions, setIconSetSuggestions] = useState<IconSetSuggestion[]>(fallbackIconSetSuggestions)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const skipNextInputCommitRef = useRef(false)
 
   // Load icon sets from localStorage on mount
   // useEffect(() => {
@@ -95,7 +139,81 @@ export const Content = () => {
     }
   }, [router, iconSetIds])
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const loadIconSetSuggestions = async () => {
+      try {
+        const response = await fetch('https://api.iconify.design/collections', {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal
+        })
+
+        if (!response.ok) return
+
+        const collections = (await response.json()) as IconifyCollectionsResponse
+        const suggestions = Object.entries(collections).map(([id, collection]) => ({
+          id,
+          name: collection.name ?? id,
+          total: collection.total,
+          category: collection.category,
+          author: collection.author
+        }))
+
+        setIconSetSuggestions(suggestions)
+      } catch (err) {
+        if ((err as { name?: string }).name === 'AbortError') return
+        console.error('[Content] Failed to load icon set suggestions:', err)
+      }
+    }
+
+    void loadIconSetSuggestions()
+
+    return () => controller.abort()
+  }, [])
+
+  const filteredIconSetSuggestions = useMemo(() => {
+    const query = newIconSetId.trim().toLowerCase()
+    const usedIconSetIds = new Set(iconSetIds)
+
+    return iconSetSuggestions
+      .filter((suggestion) => {
+        if (usedIconSetIds.has(suggestion.id)) return false
+        if (!query) return true
+
+        return (
+          suggestion.id.toLowerCase().includes(query) ||
+          suggestion.name.toLowerCase().includes(query) ||
+          suggestion.category?.toLowerCase().includes(query) ||
+          suggestion.author?.name?.toLowerCase().includes(query)
+        )
+      })
+      .slice(0, ICON_SET_SUGGESTION_LIMIT)
+  }, [iconSetIds, iconSetSuggestions, newIconSetId])
+
+  const activeSuggestionIndex = Math.min(selectedSuggestionIndex, Math.max(filteredIconSetSuggestions.length - 1, 0))
+
+  const addIconSet = useCallback(
+    (iconSetId: string) => {
+      const trimmedId = iconSetId.trim()
+      if (!trimmedId) return
+
+      setIconSetIds((currentIconSetIds) => {
+        if (currentIconSetIds.includes(trimmedId)) return currentIconSetIds
+
+        const updated = [...currentIconSetIds, trimmedId]
+        saveIconSetsToStorage(updated)
+        return updated
+      })
+
+      router.prefetch(`/icons/${trimmedId}`)
+      void prefetchIconSet(trimmedId, ICON_PREVIEW_LIMIT)
+    },
+    [router]
+  )
+
   const handleAddIconSetClick = useCallback(() => {
+    skipNextInputCommitRef.current = false
     setIsAddingIconSet(true)
     setNewIconSetId('')
     // Focus input after state update
@@ -104,28 +222,61 @@ export const Content = () => {
     }, 0)
   }, [])
 
-  const handleInputBlur = useCallback(() => {
-    const trimmedId = newIconSetId.trim()
-    if (trimmedId && !iconSetIds.includes(trimmedId)) {
-      const updated = [...iconSetIds, trimmedId]
-      setIconSetIds(updated)
+  const handleRemoveIconSet = useCallback((iconSetId: string) => {
+    setIconSetIds((currentIconSetIds) => {
+      const updated = currentIconSetIds.filter((currentIconSetId) => currentIconSetId !== iconSetId)
       saveIconSetsToStorage(updated)
-      // Prefetch the new icon set
-      router.prefetch(`/icons/${trimmedId}`)
-      void prefetchIconSet(trimmedId, ICON_PREVIEW_LIMIT)
+      return updated
+    })
+  }, [])
+
+  const handleInputBlur = useCallback(() => {
+    if (skipNextInputCommitRef.current) {
+      skipNextInputCommitRef.current = false
+      return
     }
+
+    addIconSet(newIconSetId)
     setIsAddingIconSet(false)
     setNewIconSetId('')
-  }, [newIconSetId, iconSetIds, router])
+  }, [addIconSet, newIconSetId])
 
-  const handleInputKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur()
-    } else if (e.key === 'Escape') {
+  const handleSuggestionSelect = useCallback(
+    (iconSetId: string) => {
+      skipNextInputCommitRef.current = true
+      addIconSet(iconSetId)
       setIsAddingIconSet(false)
       setNewIconSetId('')
-    }
-  }, [])
+    },
+    [addIconSet]
+  )
+
+  const handleInputKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((currentIndex) =>
+          Math.min(currentIndex + 1, Math.max(filteredIconSetSuggestions.length - 1, 0))
+        )
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((currentIndex) => Math.max(currentIndex - 1, 0))
+      } else if (e.key === 'Enter') {
+        const selectedSuggestion = filteredIconSetSuggestions[activeSuggestionIndex]
+        if (selectedSuggestion) {
+          e.preventDefault()
+          handleSuggestionSelect(selectedSuggestion.id)
+        } else {
+          e.currentTarget.blur()
+        }
+      } else if (e.key === 'Escape') {
+        skipNextInputCommitRef.current = true
+        setIsAddingIconSet(false)
+        setNewIconSetId('')
+      }
+    },
+    [activeSuggestionIndex, filteredIconSetSuggestions, handleSuggestionSelect]
+  )
 
   return (
     <main className='h-screen'>
@@ -134,17 +285,64 @@ export const Content = () => {
           <div className='flex items-center space-x-2'>
             <h1 className='whitespace-nowrap text-xl tracking-tighter leading-7 font-semibold font-sans'>Icon Sets</h1>
             {isAddingIconSet ? (
-              <input
-                ref={inputRef}
-                type='text'
-                value={newIconSetId}
-                onChange={(e) => setNewIconSetId(e.target.value)}
-                onBlur={handleInputBlur}
-                onKeyDown={handleInputKeyDown}
-                placeholder=' icon-set-id'
-                className='input input-xs sm:input-sm border-0 outline-0 focus-within:ring-0 focus-visible:ring-0 bg-base-300/50 text-white placeholder:text-base-content/50 focus:outline-none rounded-lg px-3 py-1.5 min-w-30'
-                autoFocus
-              />
+              <div className='relative'>
+                <input
+                  id='iconset-id'
+                  ref={inputRef}
+                  type='text'
+                  value={newIconSetId}
+                  onChange={(e) => {
+                    setNewIconSetId(e.target.value)
+                    setSelectedSuggestionIndex(0)
+                  }}
+                  onBlur={handleInputBlur}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder=' icon-set-id'
+                  role='combobox'
+                  aria-autocomplete='list'
+                  aria-expanded={filteredIconSetSuggestions.length > 0}
+                  aria-controls='icon-set-suggestions'
+                  className='input input-xs sm:input-sm border-0 outline-0 focus-within:ring-0 focus-visible:ring-0 bg-base-300/50 text-white placeholder:text-base-content/50 focus:outline-none rounded-lg px-3 py-1.5 min-w-30'
+                  autoFocus
+                />
+                {filteredIconSetSuggestions.length > 0 && (
+                  <div
+                    id='icon-set-suggestions'
+                    role='listbox'
+                    className='absolute left-0 top-full z-30 mt-2 w-72 overflow-hidden rounded-lg bg-base-300/95 p-1 shadow-2xl backdrop-blur-xl'>
+                    {filteredIconSetSuggestions.map((suggestion, index) => (
+                      <button
+                        key={suggestion.id}
+                        type='button'
+                        role='option'
+                        aria-selected={index === activeSuggestionIndex}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSuggestionSelect(suggestion.id)}
+                        className={cn(
+                          'flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-xs text-white hover:bg-white/10',
+                          {
+                            'bg-white/10': index === activeSuggestionIndex
+                          }
+                        )}>
+                        <span className='min-w-0'>
+                          <span className='block truncate font-space text-sm font-semibold tracking-tight'>
+                            {suggestion.id}
+                          </span>
+                          <span className='block truncate text-[10px] text-blue-100/70'>
+                            {suggestion.name}
+                            {suggestion.category ? ` / ${suggestion.category}` : ''}
+                          </span>
+                        </span>
+                        {suggestion.total ? (
+                          <span className='shrink-0 font-space text-[10px] text-orange-100/70'>
+                            {suggestion.total.toLocaleString()}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 id='add-icon-set'
@@ -171,7 +369,7 @@ export const Content = () => {
         </div>
         <div className='p-4 flex flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-8'>
           {iconSetIds.map((iconSetId) => (
-            <IconSetCard key={iconSetId} iconSetId={iconSetId} />
+            <IconSetCard key={iconSetId} iconSetId={iconSetId} onRemove={handleRemoveIconSet} />
           ))}
         </div>
       </div>
@@ -198,9 +396,10 @@ const Attribution = memo(function Attribution({ className, label, description, h
 
 interface IconSetCardProps {
   iconSetId: string
+  onRemove: (iconSetId: string) => void
   className?: ClassName
 }
-const IconSetCard = memo(function IconSetCard({ iconSetId, className }: IconSetCardProps) {
+const IconSetCard = memo(function IconSetCard({ iconSetId, onRemove, className }: IconSetCardProps) {
   const { metadata, icons, loadingIcons, loadingMeta } = useIconMeta(iconSetId, {
     initialIconCount: ICON_PREVIEW_LIMIT
   })
@@ -224,9 +423,17 @@ const IconSetCard = memo(function IconSetCard({ iconSetId, className }: IconSetC
 
   return (
     <div
-      className={cn('card bg-base-300/50 card-xs shadow-none w-full sm:w-fit', className)}
+      className={cn('group relative card bg-base-300/50 card-xs shadow-none w-full sm:w-fit', className)}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}>
+      <button
+        type='button'
+        aria-label={`Remove ${iconSetId} icon set`}
+        title={`Remove ${iconSetId}`}
+        onClick={() => onRemove(iconSetId)}
+        className='btn btn-ghost btn-sm btn-circle absolute -right-3 -top-3 z-10 bg-black/20 text-red-100 opacity-70 transition-opacity hover:bg-red-400/60 hover:text-white sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 rounded-xs'>
+        <Icon name='close' className='size-5' />
+      </button>
       <div className='card-body w-full p-0!'>
         <div className='flex items-center space-x-0 sm:space-x-2 pl-4 sm:pl-6'>
           <div className='text-rotate items-center size-12 aspect-square' style={{ width: 44, height: 40 }}>
