@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 
-export type ConversionDirection = 'video-to-audio' | 'audio-to-audio'
+export type ConversionDirection = 'video-to-audio' | 'video-to-video' | 'audio-to-audio'
 export type AudioOutputFormat = 'mp3' | 'wav' | 'm4a' | 'mp4'
 
 export interface ConversionProgress {
@@ -15,6 +15,7 @@ export interface ConversionResult {
   bitrate: string
   format: AudioOutputFormat
   fileName: string
+  previewType: 'audio' | 'video'
 }
 
 export interface AudioConversionOptions {
@@ -67,6 +68,17 @@ const getTrimArgs = (trimStart?: string, trimEnd?: string) => {
   if (startSeconds > 0) return ['-ss', trimStart ?? '00:00:00']
 
   return []
+}
+
+const getTrimStartArgs = (trimStart?: string) => {
+  return timeToSeconds(trimStart) > 0 ? ['-ss', trimStart ?? '00:00:00'] : []
+}
+
+const getTrimDurationArgs = (trimStart?: string, trimEnd?: string) => {
+  const startSeconds = timeToSeconds(trimStart)
+  const endSeconds = timeToSeconds(trimEnd)
+
+  return endSeconds > startSeconds ? ['-t', String(endSeconds - startSeconds)] : []
 }
 
 const toUint8Array = (data: Awaited<ReturnType<FFmpegInstance['readFile']>>) => {
@@ -145,8 +157,9 @@ export const useAudioConverter = () => {
         const ffmpeg = await loadFFmpeg(emitProgress)
         const { fetchFile } = await import('@ffmpeg/util')
 
+        const outputFileName = getOutputFileName(file, options.outputFormat)
         const inputPath = `input.${getExtension(file)}`
-        const outputPath = getOutputFileName(file, options.outputFormat)
+        const outputPath = outputFileName === inputPath ? `output.${options.outputFormat}` : outputFileName
         const thumbnailPath = options.thumbnail ? `thumbnail.${getExtension(options.thumbnail)}` : null
 
         await Promise.all([deleteIfExists(ffmpeg, inputPath), deleteIfExists(ffmpeg, outputPath)])
@@ -180,7 +193,11 @@ export const useAudioConverter = () => {
 
         const outputData = toUint8Array(await ffmpeg.readFile(outputPath))
         const blobBytes = new Uint8Array(outputData)
-        const blob = new Blob([blobBytes.buffer], { type: mimeTypeByFormat[options.outputFormat] })
+        const blob = new Blob([blobBytes], { type: mimeTypeByFormat[options.outputFormat] })
+
+        if (blob.size === 0) {
+          throw new Error('FFmpeg produced an empty output file.')
+        }
 
         emitProgress({ phase: 'complete', percentage: 100 })
 
@@ -190,7 +207,8 @@ export const useAudioConverter = () => {
           size: blob.size,
           bitrate: options.bitrate,
           format: options.outputFormat,
-          fileName: outputPath
+          fileName: outputFileName,
+          previewType: getPreviewType(options)
         }
       })()
 
@@ -214,6 +232,13 @@ export const useAudioConverter = () => {
   return { convert, terminate }
 }
 
+const getPreviewType = (options: AudioConversionOptions): 'audio' | 'video' => {
+  if (options.direction === 'video-to-video') return 'video'
+  if (options.outputFormat === 'mp4' && options.thumbnail) return 'video'
+
+  return 'audio'
+}
+
 const getAudioCodecArgs = (format: AudioOutputFormat, bitrate: string) => {
   switch (format) {
     case 'mp3':
@@ -233,6 +258,10 @@ const getAudioConversionArgs = (
   thumbnailPath: string | null,
   trimArgs: string[]
 ) => {
+  if (options.direction === 'video-to-video' && options.outputFormat === 'mp4') {
+    return [...trimArgs, '-i', inputPath, '-map', '0', '-c', 'copy', '-movflags', '+faststart', outputPath]
+  }
+
   const audioArgs = ['-map', '0:a:0', ...getAudioCodecArgs(options.outputFormat, options.bitrate)]
 
   if (options.outputFormat === 'mp3' || options.outputFormat === 'wav') {
@@ -248,7 +277,7 @@ const getAudioConversionArgs = (
   }
 
   return [
-    ...trimArgs,
+    ...getTrimStartArgs(options.trimStart),
     '-i',
     inputPath,
     '-loop',
@@ -270,6 +299,7 @@ const getAudioConversionArgs = (
     'stillimage',
     '-pix_fmt',
     'yuv420p',
+    ...getTrimDurationArgs(options.trimStart, options.trimEnd),
     '-shortest',
     '-movflags',
     '+faststart',

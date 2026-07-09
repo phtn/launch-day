@@ -19,6 +19,7 @@ type ConversionStats = {
   bitrate: string
   format: AudioOutputFormat
   fileName: string
+  previewType: 'audio' | 'video'
 }
 
 const mediaInputAccept = 'audio/*,video/mp4,.mp3,.wav,.m4a,.mp4'
@@ -65,11 +66,16 @@ const getFileFormat = (file: File): AudioOutputFormat | null => {
   return null
 }
 
-const getDirectionForFormat = (format: AudioOutputFormat): ConversionDirection => {
-  return format === 'mp4' ? 'video-to-audio' : 'audio-to-audio'
+const getDirectionForConversion = (
+  sourceFormat: AudioOutputFormat,
+  outputFormat: AudioOutputFormat | null
+): ConversionDirection => {
+  if (sourceFormat === 'mp4' && outputFormat === 'mp4') return 'video-to-video'
+  return sourceFormat === 'mp4' ? 'video-to-audio' : 'audio-to-audio'
 }
 
 const getOutputOptionsForFormat = (format: AudioOutputFormat): AudioOutputFormat[] => {
+  if (format === 'mp4') return ['mp4', 'wav', 'mp3', 'm4a']
   return mediaFormats.filter((option) => option !== format)
 }
 
@@ -106,8 +112,9 @@ export const AudioConverter = () => {
   const selectedFileFormat = selectedFile ? getFileFormat(selectedFile) : null
   const targetFormat = outputFormat
   const outputFormatOptions = selectedFileFormat ? getOutputOptionsForFormat(selectedFileFormat) : []
-  const sourceLabel = direction === 'video-to-audio' ? 'video' : 'audio'
+  const sourceLabel = direction === 'audio-to-audio' ? 'audio' : 'video'
   const titleSource = selectedFileFormat ?? 'media'
+  const isVideoTrim = direction === 'video-to-video'
   const qualityDisabled = targetFormat === 'wav'
 
   useEffect(() => {
@@ -154,7 +161,7 @@ export const AudioConverter = () => {
   }
 
   const loadMediaDuration = (file: File, nextDirection: ConversionDirection) => {
-    const media = nextDirection === 'video-to-audio' ? document.createElement('video') : document.createElement('audio')
+    const media = nextDirection === 'audio-to-audio' ? document.createElement('audio') : document.createElement('video')
     media.preload = 'metadata'
 
     media.onloadedmetadata = () => {
@@ -183,15 +190,16 @@ export const AudioConverter = () => {
       return
     }
 
-    const nextDirection = getDirectionForFormat(fileFormat)
     const nextOutputOptions = getOutputOptionsForFormat(fileFormat)
+    const nextOutputFormat = nextOutputOptions[0] ?? null
+    const nextDirection = getDirectionForConversion(fileFormat, nextOutputFormat)
 
     if (convertedUrl) {
       URL.revokeObjectURL(convertedUrl)
     }
 
     setDirection(nextDirection)
-    setOutputFormat(nextOutputOptions[0] ?? null)
+    setOutputFormat(nextOutputFormat)
     setSelectedFile(file)
     setThumbnailFile(null)
     setThumbnailPreviewUrl((currentUrl) => {
@@ -263,13 +271,18 @@ export const AudioConverter = () => {
 
     try {
       if (!targetFormat) return
+      const selectedThumbnail =
+        direction === 'audio-to-audio' && targetFormat === 'mp4'
+          ? (thumbnailFile ?? thumbnailInputRef.current?.files?.[0] ?? null)
+          : null
+
       const { result, onProgress } = await convert(selectedFile, {
         bitrate,
         direction,
         outputFormat: targetFormat,
         trimStart,
         trimEnd,
-        thumbnail: direction === 'audio-to-audio' && targetFormat === 'mp4' ? thumbnailFile : null
+        thumbnail: selectedThumbnail
       })
 
       onProgress(setProgress)
@@ -287,7 +300,8 @@ export const AudioConverter = () => {
         newSize: conversionResult.size,
         bitrate: conversionResult.bitrate,
         format: conversionResult.format,
-        fileName: conversionResult.fileName
+        fileName: conversionResult.fileName,
+        previewType: conversionResult.previewType
       })
     } catch (err) {
       console.error('Conversion error:', err)
@@ -369,15 +383,24 @@ export const AudioConverter = () => {
               <div className='flex items-center justify-between mb-4'>
                 <label className='block text-base font-semibold tracking-tight'>Output Format</label>
                 <p className='text-xs opacity-80 tracking-tight'>
-                  {direction === 'video-to-audio' ? 'Extract audio from MP4.' : 'MP4 can include a still thumbnail.'}
+                  {direction === 'video-to-video'
+                    ? 'Trim MP4 without re-encoding.'
+                    : direction === 'video-to-audio'
+                      ? 'Extract audio from MP4.'
+                      : 'MP4 can include a still thumbnail.'}
                 </p>
               </div>
 
-              <div className={cn('grid gap-3', direction === 'video-to-audio' ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-4')}>
+              <div className={cn('grid gap-3', selectedFileFormat === 'mp4' ? 'grid-cols-4' : 'grid-cols-3 sm:grid-cols-4')}>
                 {outputFormatOptions.map((format) => (
                   <button
                     key={format}
-                    onClick={() => setOutputFormat(format)}
+                    onClick={() => {
+                      setOutputFormat(format)
+                      if (selectedFileFormat) {
+                        setDirection(getDirectionForConversion(selectedFileFormat, format))
+                      }
+                    }}
                     className={cn(
                       'h-12 rounded-xl border text-lg uppercase tracking-tight transition-colors font-semibold',
                       {
@@ -466,14 +489,24 @@ export const AudioConverter = () => {
             <div className='mb-6'>
               <div className='flex items-center justify-between mb-4'>
                 <label className='block text-base font-semibold tracking-tight'>
-                  {qualityDisabled ? 'Convert Audio' : 'Select Audio Quality'}
+                  {isVideoTrim ? 'Trim MP4' : qualityDisabled ? 'Convert Audio' : 'Select Audio Quality'}
                 </label>
                 <p className='text-xs opacity-80 tracking-tight'>
-                  {qualityDisabled ? 'WAV uses uncompressed PCM audio.' : 'Higher bitrate means a larger file.'}
+                  {isVideoTrim
+                    ? 'Keeps the original video and audio streams.'
+                    : qualityDisabled
+                      ? 'WAV uses uncompressed PCM audio.'
+                      : 'Higher bitrate means a larger file.'}
                 </p>
               </div>
 
-              {qualityDisabled ? (
+              {isVideoTrim ? (
+                <button
+                  onClick={() => handleConvert('copy')}
+                  className='w-full text-lg tracking-tight h-14 bg-cyan-500/30 rounded-xl hover:bg-cyan-700 transition-colors font-semibold shadow-sm hover:shadow-md'>
+                  Trim MP4
+                </button>
+              ) : qualityDisabled ? (
                 <button
                   onClick={() => handleConvert('pcm')}
                   className='w-full text-lg tracking-tight h-14 bg-cyan-500/30 rounded-xl hover:bg-cyan-700 transition-colors font-semibold shadow-sm hover:shadow-md'>
@@ -559,7 +592,7 @@ export const AudioConverter = () => {
               <div>
                 <div className='w-full py-2'>
                   <p className='text-sm font-medium tracking-tighter mb-2'>Preview your {stats.format}</p>
-                  {stats.format === 'mp4' ? (
+                  {stats.previewType === 'video' ? (
                     <video controls src={convertedUrl} className='w-full h-32 border rounded-lg' />
                   ) : (
                     <audio controls src={convertedUrl} className='w-full h-10 border rounded-lg'>
